@@ -1,0 +1,188 @@
+---
+import FlowLayout from '../../layouts/FlowLayout.astro'
+const steps=[{label:'ACCESO',href:'/patient'},{label:'MIS RECETAS',href:'/patient/dashboard'},{label:'DETALLE',href:'/patient/detail'}]
+---
+<FlowLayout title="Paciente — Acceso" role="patient" steps={steps} currentStep={0}>
+<div class="anim-slide" style="display:flex;flex-direction:column;gap:20px;">
+
+  <div style="text-align:center;">
+    <div class="anim-bounce" style="display:flex;justify-content:center;margin-bottom:14px;">
+      <svg width="56" height="66" viewBox="0 0 24 28" style="image-rendering:pixelated;">
+        <use href="#ico-patient"/>
+      </svg>
+    </div>
+    <h1 style="font-family:'Press Start 2P',monospace;font-size:13px;color:#f4f4f4;margin-bottom:8px;line-height:1.7;">
+      ACCESO PACIENTE
+    </h1>
+    <p style="font-family:'VT323',monospace;font-size:22px;color:#c0cbdc;">
+      Reconocimiento facial o ingresa tu CURP
+    </p>
+  </div>
+
+  <!-- FACE SCANNER — the main access method -->
+  <div style="background:#222639;border:3px solid #41a6f6;box-shadow:4px 4px 0 #1a6eb0;padding:20px;">
+
+    <div style="font-family:'Press Start 2P',monospace;font-size:8px;color:#41a6f6;margin-bottom:14px;display:flex;align-items:center;gap:8px;">
+      <span class="anim-blink" style="display:inline-block;width:8px;height:8px;background:#41a6f6;"></span>
+      IDENTIFICACIÓN FACIAL
+    </div>
+
+    <!-- Face scanner viewport -->
+    <div id="face-viewport" style="background:#061018;border:3px solid #41a6f6;position:relative;overflow:hidden;margin-bottom:18px;aspect-ratio:1/1;max-height:260px;">
+
+      <!-- Biometric dot grid -->
+      <div class="biometric-grid"></div>
+
+      <!-- Scan line -->
+      <div class="face-scan-line" id="scan-line"></div>
+
+      <!-- Corner brackets -->
+      <div style="position:absolute;top:10px;left:10px;width:28px;height:28px;border-top:4px solid #41a6f6;border-left:4px solid #41a6f6;"></div>
+      <div style="position:absolute;top:10px;right:10px;width:28px;height:28px;border-top:4px solid #41a6f6;border-right:4px solid #41a6f6;"></div>
+      <div style="position:absolute;bottom:10px;left:10px;width:28px;height:28px;border-bottom:4px solid #41a6f6;border-left:4px solid #41a6f6;"></div>
+      <div style="position:absolute;bottom:10px;right:10px;width:28px;height:28px;border-bottom:4px solid #41a6f6;border-right:4px solid #41a6f6;"></div>
+
+      <!-- Pixel face icon centered -->
+      <div id="face-icon" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;">
+        <svg width="80" height="90" viewBox="0 0 32 36" style="image-rendering:pixelated;color:#41a6f6;">
+          <use href="#ico-face"/>
+        </svg>
+        <p id="face-status" style="font-family:'Press Start 2P',monospace;font-size:8px;color:#41a6f6;letter-spacing:.08em;" class="anim-blink">
+          ACERQUE SU ROSTRO
+        </p>
+      </div>
+
+      <!-- Detection dots (shown when scanning) -->
+      <div id="face-dots" style="display:none;position:absolute;inset:0;">
+        <!-- Forehead -->
+        <div class="face-dot" style="top:22%;left:48%;animation-delay:.1s;"></div>
+        <div class="face-dot" style="top:22%;left:52%;animation-delay:.15s;"></div>
+        <!-- Eyes -->
+        <div class="face-dot" style="top:35%;left:35%;animation-delay:.2s;"></div>
+        <div class="face-dot" style="top:35%;left:65%;animation-delay:.25s;"></div>
+        <div class="face-dot" style="top:37%;left:38%;animation-delay:.3s;"></div>
+        <div class="face-dot" style="top:37%;left:62%;animation-delay:.35s;"></div>
+        <!-- Nose -->
+        <div class="face-dot" style="top:52%;left:50%;animation-delay:.4s;"></div>
+        <!-- Mouth corners -->
+        <div class="face-dot" style="top:63%;left:38%;animation-delay:.45s;"></div>
+        <div class="face-dot" style="top:63%;left:62%;animation-delay:.5s;"></div>
+        <div class="face-dot" style="top:65%;left:42%;animation-delay:.55s;"></div>
+        <div class="face-dot" style="top:65%;left:58%;animation-delay:.6s;"></div>
+        <!-- Chin -->
+        <div class="face-dot" style="top:75%;left:50%;animation-delay:.65s;"></div>
+        <!-- Jaw -->
+        <div class="face-dot" style="top:70%;left:32%;animation-delay:.7s;"></div>
+        <div class="face-dot" style="top:70%;left:68%;animation-delay:.75s;"></div>
+      </div>
+
+      <!-- Progress bar inside viewport -->
+      <div id="scan-progress-track" style="display:none;position:absolute;bottom:12px;left:20px;right:20px;height:6px;border:2px solid #41a6f6;background:#0d0e1a;">
+        <div id="scan-progress-fill" style="height:100%;width:0%;background:#41a6f6;transition:width .05s steps(1,end);"></div>
+      </div>
+    </div>
+
+    <!-- Simulate scan button -->
+    <button type="button" id="scan-btn"
+            style="width:100%;padding:14px;background:#0a1525;border:3px solid #41a6f6;box-shadow:4px 4px 0 #1a6eb0;font-family:'Press Start 2P',monospace;font-size:9px;color:#41a6f6;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:16px;">
+      <svg width="20" height="22" viewBox="0 0 32 36" style="image-rendering:pixelated;color:#41a6f6;"><use href="#ico-face"/></svg>
+      INICIAR ESCANEO
+    </button>
+
+    <!-- Divider -->
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+      <div style="flex:1;height:2px;background:#29366f;"></div>
+      <span style="font-family:'Press Start 2P',monospace;font-size:7px;color:#29366f;">O INGRESA TU CURP</span>
+      <div style="flex:1;height:2px;background:#29366f;"></div>
+    </div>
+
+    <form action="/patient/dashboard" method="GET" id="curp-form" style="display:flex;flex-direction:column;gap:14px;">
+      <div>
+        <label style="font-family:'Press Start 2P',monospace;font-size:8px;color:#41a6f6;display:block;margin-bottom:8px;letter-spacing:.06em;">TU CURP</label>
+        <input type="text" name="curp" placeholder="RAEG920315HMCRND07"
+               style="width:100%;background:#f8f8f0;color:#1a1c2c;border:3px solid #41a6f6;padding:12px 14px;font-family:'VT323',monospace;font-size:22px;text-align:center;letter-spacing:.15em;text-transform:uppercase;box-shadow:inset 2px 2px 0 rgba(0,0,0,.1);"
+               maxlength="18" required/>
+      </div>
+      <button type="submit" class="px-btn px-btn-blue px-btn-lg" style="width:100%;justify-content:center;">
+        <svg width="14" height="11" viewBox="0 0 16 12" style="image-rendering:pixelated;color:white;">
+          <rect x="0" y="4" width="12" height="4" fill="currentColor"/>
+          <rect x="8" y="0" width="4" height="4" fill="currentColor"/>
+          <rect x="8" y="8" width="4" height="4" fill="currentColor"/>
+          <rect x="12" y="2" width="2" height="2" fill="currentColor"/>
+          <rect x="12" y="8" width="2" height="2" fill="currentColor"/>
+          <rect x="14" y="4" width="2" height="4" fill="currentColor"/>
+        </svg>
+        VER MIS RECETAS
+      </button>
+    </form>
+  </div>
+
+  <div style="display:flex;align-items:center;justify-content:center;gap:8px;">
+    <svg width="16" height="20" viewBox="0 0 20 24" style="image-rendering:pixelated;color:#29366f;"><use href="#ico-lock"/></svg>
+    <p style="font-family:'Press Start 2P',monospace;font-size:7px;color:#29366f;line-height:1.8;">
+      DATOS BIOMÉTRICOS NO SE ALMACENAN · CIFRADO E2E
+    </p>
+  </div>
+</div>
+</FlowLayout>
+
+<script>
+  const btn        = document.getElementById('scan-btn')
+  const viewport   = document.getElementById('face-viewport')
+  const status     = document.getElementById('face-status')
+  const dots       = document.getElementById('face-dots')
+  const scanLine   = document.getElementById('scan-line')
+  const progTrack  = document.getElementById('scan-progress-track')
+  const progFill   = document.getElementById('scan-progress-fill')
+  const form       = document.getElementById('curp-form')
+
+  const phases = [
+    { msg:'DETECTANDO ROSTRO...', color:'#41a6f6', dur:800  },
+    { msg:'MAPEANDO PUNTOS...',   color:'#41a6f6', dur:1000 },
+    { msg:'VERIFICANDO...',       color:'#ffcd75', dur:800  },
+    { msg:'IDENTIDAD CONFIRMADA', color:'#38b764', dur:600  },
+  ]
+
+  btn.addEventListener('click', () => {
+    btn.disabled = true
+    btn.textContent = 'ESCANEANDO...'
+    btn.style.color = '#ffcd75'
+    btn.style.borderColor = '#ffcd75'
+
+    dots.style.display = 'block'
+    progTrack.style.display = 'block'
+
+    let pct = 0
+    const phaseDurs = phases.map(p=>p.dur)
+    const total = phaseDurs.reduce((a,b)=>a+b, 0)
+    let elapsed = 0
+
+    phases.forEach((ph, i) => {
+      const delay = phaseDurs.slice(0, i).reduce((a,b)=>a+b, 0)
+      setTimeout(() => {
+        status.textContent = ph.msg
+        status.style.color = ph.color
+        scanLine.style.boxShadow = `0 0 10px ${ph.color}`
+        scanLine.style.background = `linear-gradient(90deg,transparent,${ph.color},transparent)`
+        viewport.style.borderColor = ph.color
+        if (i === phases.length - 1) {
+          setTimeout(() => {
+            status.classList.remove('anim-blink')
+            viewport.style.background = '#061810'
+            status.textContent = 'ACCESO CONCEDIDO'
+            // Navigate after brief success state
+            setTimeout(() => { window.location.href = '/patient/dashboard' }, 400)
+          }, ph.dur * 0.6)
+        }
+      }, delay)
+    })
+
+    // Animate progress bar
+    const pti = setInterval(() => {
+      elapsed += 50
+      pct = Math.min(100, Math.round((elapsed / total) * 100))
+      progFill.style.width = pct + '%'
+      if (pct >= 100) clearInterval(pti)
+    }, 50)
+  })
+</script>

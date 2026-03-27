@@ -1,0 +1,367 @@
+---
+import FlowLayout from '../../layouts/FlowLayout.astro'
+const steps = [
+  { label: 'ESCANEAR', href: '/pharmacy' },
+  { label: 'VERIFICAR', href: '/pharmacy/verify' },
+  { label: 'DISPENSAR', href: '/pharmacy/seal' },
+]
+---
+<FlowLayout title="Farmacia — Verificar" role="pharmacy" steps={steps} currentStep={1} back="/pharmacy" wide={true}>
+<div class="anim-slide" style="display:flex;flex-direction:column;gap:20px;">
+  <div>
+    <h1 style="font-family:'Press Start 2P',monospace;font-size:13px;color:#f4f4f4;margin-bottom:6px;">VERIFICAR RECETA</h1>
+    <p style="font-family:'VT323',monospace;font-size:22px;color:#c0cbdc;">
+      p256.verify() · sha256() · @noble/curves + @noble/hashes
+    </p>
+  </div>
+
+  <!-- Cargando -->
+  <div id="state-loading" style="background:#222639;border:3px solid #29366f;padding:28px;text-align:center;">
+    <p style="font-family:'Press Start 2P',monospace;font-size:9px;color:#5b6ee1;" class="anim-blink">⏳ VERIFICANDO FIRMA...</p>
+    <p style="font-family:'VT323',monospace;font-size:19px;color:#c0cbdc;margin-top:8px;">Ejecutando p256.verify() con @noble/curves</p>
+  </div>
+
+  <!-- Grid principal -->
+  <div id="main-grid" style="display:none;flex-direction:column;gap:16px;">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+
+      <!-- LEFT: detalles receta -->
+      <div style="display:flex;flex-direction:column;gap:12px;">
+
+        <div style="background:#0d1a2e;border:3px solid #41a6f6;box-shadow:4px 4px 0 #1a6eb0;padding:16px;display:flex;align-items:center;gap:12px;">
+          <span style="font-size:32px;flex-shrink:0;">🧑‍💼</span>
+          <div>
+            <p style="font-family:'Press Start 2P',monospace;font-size:9px;color:#41a6f6;">GARCÍA MENDOZA, LUIS</p>
+            <p style="font-family:'VT323',monospace;font-size:19px;color:#c0cbdc;margin-top:4px;">GARM850315HDFNDS07</p>
+            <p style="font-family:'VT323',monospace;font-size:18px;color:#5b6ee1;">FOLIO XYZ-123 · 20 MAR 2026</p>
+          </div>
+        </div>
+
+        <div style="background:#222639;border:3px solid #e8003d;box-shadow:4px 4px 0 #8c0025;overflow:hidden;">
+          <div style="background:#e8003d;padding:8px 14px;">
+            <span style="font-family:'Press Start 2P',monospace;font-size:7px;color:white;">💊 PRESCRIPCIÓN</span>
+          </div>
+          <div style="padding:16px;">
+            {[
+              { l:'MEDICAMENTO', v:'Amoxicilina 500mg', big:true },
+              { l:'DOSIS',       v:'1 cápsula c/8h con alimentos' },
+              { l:'CANTIDAD',    v:'21 cápsulas' },
+              { l:'VIGENCIA',    v:'28 días restantes' },
+              { l:'MÉDICO',      v:'Dr. Eduardo Ramírez · Cédula 4892103' },
+            ].map(f => (
+              <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:2px solid #29366f;gap:8px;">
+                <span style="font-family:'Press Start 2P',monospace;font-size:6px;color:#5b6ee1;flex-shrink:0;width:80px;">{f.l}</span>
+                <span style={'text-align:right;font-family:\'VT323\',monospace;font-size:'+(f.big?'20px':'18px')+';color:'+(f.big?'#f4f4f4':'#c0cbdc')+';'}>{f.v}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div id="doctor-chip" style="background:#1a2e1a;border:3px solid #38b764;padding:12px;display:flex;align-items:center;gap:10px;">
+          <span style="font-size:22px;">👨‍⚕️</span>
+          <div>
+            <p style="font-family:'Press Start 2P',monospace;font-size:8px;color:#38b764;">DR. EDUARDO RAMÍREZ</p>
+            <p style="font-family:'VT323',monospace;font-size:17px;color:#c0cbdc;margin-top:3px;">
+              Cédula 4892103 · <span id="doctor-auth-label" style="color:#38b764;">AUTORIZADO ✓</span>
+            </p>
+          </div>
+        </div>
+
+        <!-- Botones demo de tampering -->
+        <div style="background:#0d0e1a;border:3px dashed #29366f;padding:14px;">
+          <p style="font-family:'Press Start 2P',monospace;font-size:7px;color:#29366f;margin-bottom:10px;">DEMO — SIMULAR ATAQUE</p>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;">
+            <button id="btn-valid"  onclick="runVerify(false)" class="px-btn px-btn-ghost" style="font-size:7px;padding:5px 10px;">✓ RECETA ORIGINAL</button>
+            <button id="btn-tamper" onclick="runVerify(true)"  class="px-btn px-btn-ghost" style="font-size:7px;padding:5px 10px;">⛔ DATOS ALTERADOS</button>
+            <button id="btn-badsig" onclick="simulateInvalidSig()" class="px-btn px-btn-ghost" style="font-size:7px;padding:5px 10px;">⛔ FIRMA FALSA</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: resultado -->
+      <div style="display:flex;flex-direction:column;gap:12px;">
+
+        <!-- VÁLIDO -->
+        <div id="result-valid" style="display:none;background:#1a2e1a;border:4px solid #38b764;box-shadow:6px 6px 0 #257a43;padding:28px;text-align:center;flex-direction:column;align-items:center;flex:1;">
+          <div class="anim-float" style="margin-bottom:16px;">
+            <svg width="80" height="96" viewBox="0 0 20 24" style="image-rendering:pixelated;">
+              <rect x="2" y="0" width="16" height="2" fill="#38b764"/>
+              <rect x="0" y="2" width="20" height="14" fill="#38b764"/>
+              <rect x="1" y="16" width="18" height="2" fill="#38b764"/>
+              <rect x="2" y="18" width="16" height="2" fill="#38b764"/>
+              <rect x="4" y="20" width="12" height="2" fill="#38b764"/>
+              <rect x="6" y="22" width="8"  height="2" fill="#38b764"/>
+              <rect x="2" y="0" width="16" height="4" fill="rgba(255,255,255,.3)"/>
+              <rect x="4"  y="10" width="4" height="4" fill="white"/>
+              <rect x="8"  y="12" width="4" height="2" fill="white"/>
+              <rect x="10" y="8"  width="4" height="4" fill="white"/>
+              <rect x="12" y="6"  width="4" height="2" fill="white"/>
+              <rect x="14" y="4"  width="2" height="2" fill="white"/>
+            </svg>
+          </div>
+          <h2 style="font-family:'Press Start 2P',monospace;font-size:11px;color:#38b764;line-height:1.7;margin-bottom:8px;">FIRMA VÁLIDA</h2>
+          <p style="font-family:'VT323',monospace;font-size:20px;color:#c0cbdc;margin-bottom:16px;line-height:1.4;">
+            p256.verify() → <strong style="color:#38b764;">true</strong>
+          </p>
+          <div style="width:100%;background:#222639;border:2px solid #38b764;padding:14px;text-align:left;">
+            {['ECDSA P-256 VERIFY → PASS','SHA-256 HASH ÍNTEGRO','PAYLOAD NO ALTERADO','MÉDICO AUTORIZADO'].map(c => (
+              <div style="display:flex;gap:8px;padding:6px 0;border-bottom:1px solid #29366f;">
+                <span style="color:#38b764;font-family:'Press Start 2P',monospace;font-size:8px;flex-shrink:0;">✓</span>
+                <span style="font-family:'Press Start 2P',monospace;font-size:7px;color:#c0cbdc;line-height:1.7;">{c}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <!-- DATOS ALTERADOS -->
+        <div id="result-tamper" style="display:none;background:#2a0d0d;border:4px solid #e8003d;box-shadow:6px 6px 0 #8c0025;padding:28px;text-align:center;flex-direction:column;align-items:center;flex:1;">
+          <div class="anim-bounce" style="margin-bottom:16px;">
+            <svg width="80" height="96" viewBox="0 0 20 24" style="image-rendering:pixelated;">
+              <rect x="2" y="0" width="16" height="2" fill="#e8003d"/>
+              <rect x="0" y="2" width="20" height="14" fill="#e8003d"/>
+              <rect x="1" y="16" width="18" height="2" fill="#e8003d"/>
+              <rect x="2" y="18" width="16" height="2" fill="#e8003d"/>
+              <rect x="4" y="20" width="12" height="2" fill="#e8003d"/>
+              <rect x="5" y="5" width="3" height="3" fill="white"/> <rect x="12" y="5" width="3" height="3" fill="white"/>
+              <rect x="7" y="7" width="3" height="3" fill="white"/> <rect x="10" y="7" width="3" height="3" fill="white"/>
+              <rect x="8" y="9" width="4" height="2" fill="white"/>
+              <rect x="7" y="11" width="3" height="3" fill="white"/> <rect x="10" y="11" width="3" height="3" fill="white"/>
+              <rect x="5" y="13" width="3" height="3" fill="white"/> <rect x="12" y="13" width="3" height="3" fill="white"/>
+            </svg>
+          </div>
+          <h2 style="font-family:'Press Start 2P',monospace;font-size:10px;color:#e8003d;line-height:1.7;margin-bottom:8px;">DATOS MANIPULADOS</h2>
+          <p style="font-family:'VT323',monospace;font-size:20px;color:#c0cbdc;margin-bottom:12px;line-height:1.4;">
+            p256.verify() → <strong style="color:#e8003d;">false</strong><br/>
+            <strong style="color:#ffcd75;">No dispensar este medicamento.</strong>
+          </p>
+          <div style="width:100%;background:#1a0505;border:2px solid #e8003d;padding:12px;margin-bottom:10px;text-align:left;">
+            <p style="font-family:'Press Start 2P',monospace;font-size:6px;color:#e8003d;margin-bottom:8px;">SHA-256 — COMPARACIÓN</p>
+            <p style="font-family:'Press Start 2P',monospace;font-size:6px;color:#5b6ee1;margin-bottom:3px;">FIRMADO:</p>
+            <p id="hash-expected" style="font-family:'VT323',monospace;font-size:14px;color:#ffcd75;word-break:break-all;margin-bottom:8px;line-height:1.4;"></p>
+            <p style="font-family:'Press Start 2P',monospace;font-size:6px;color:#5b6ee1;margin-bottom:3px;">ALTERADO:</p>
+            <p id="hash-received" style="font-family:'VT323',monospace;font-size:14px;color:#e8003d;word-break:break-all;line-height:1.4;"></p>
+          </div>
+          <div style="width:100%;background:#1a0505;border:2px solid #e8003d;padding:12px;text-align:left;">
+            {[{l:'ECDSA VERIFY',ok:false},{l:'HASH SHA-256',ok:false},{l:'INTEGRIDAD',ok:false},{l:'MÉDICO AUTH',ok:true}].map(c=>(
+              <div style="display:flex;gap:8px;padding:5px 0;border-bottom:1px solid #29366f;">
+                <span style={'color:'+(c.ok?'#38b764':'#e8003d')+';font-family:\'Press Start 2P\',monospace;font-size:8px;flex-shrink:0;'}>{c.ok?'✓':'✗'}</span>
+                <span style={'font-family:\'Press Start 2P\',monospace;font-size:7px;color:'+(c.ok?'#c0cbdc':'#e8003d')+';line-height:1.7;'}>{c.l}{!c.ok?' — FALLO':''}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <!-- FIRMA FALSA -->
+        <div id="result-badsig" style="display:none;background:#2a0d0d;border:4px solid #e8003d;box-shadow:6px 6px 0 #8c0025;padding:28px;text-align:center;flex-direction:column;align-items:center;flex:1;">
+          <div class="anim-bounce" style="margin-bottom:16px;">
+            <svg width="80" height="96" viewBox="0 0 20 24" style="image-rendering:pixelated;">
+              <rect x="2" y="0" width="16" height="2" fill="#e8003d"/>
+              <rect x="0" y="2" width="20" height="14" fill="#e8003d"/>
+              <rect x="1" y="16" width="18" height="2" fill="#e8003d"/>
+              <rect x="2" y="18" width="16" height="2" fill="#e8003d"/>
+              <rect x="4" y="20" width="12" height="2" fill="#e8003d"/>
+              <rect x="8"  y="4"  width="4" height="2" fill="white"/>
+              <rect x="12" y="6"  width="2" height="4" fill="white"/>
+              <rect x="10" y="10" width="2" height="2" fill="white"/>
+              <rect x="9"  y="14" width="2" height="2" fill="white"/>
+            </svg>
+          </div>
+          <h2 style="font-family:'Press Start 2P',monospace;font-size:10px;color:#e8003d;line-height:1.7;margin-bottom:8px;">FIRMA INVÁLIDA</h2>
+          <p style="font-family:'VT323',monospace;font-size:20px;color:#c0cbdc;margin-bottom:16px;line-height:1.4;">
+            p256.verify() → <strong style="color:#e8003d;">false</strong><br/>
+            La firma no corresponde a ninguna llave registrada.<br/>
+            <strong style="color:#ffcd75;">No dispensar.</strong>
+          </p>
+          <div style="width:100%;background:#1a0505;border:2px solid #e8003d;padding:12px;text-align:left;">
+            <p style="font-family:'Press Start 2P',monospace;font-size:6px;color:#e8003d;margin-bottom:6px;">ERROR</p>
+            <p style="font-family:'VT323',monospace;font-size:17px;color:#c0cbdc;line-height:1.5;">
+              ECDSA_VERIFY_FAILED · La firma presentada no pudo<br/>
+              verificarse con la llave pública del médico registrado.
+            </p>
+          </div>
+        </div>
+
+        <!-- Botones de acción -->
+        <div id="action-valid" style="display:none;flex-direction:column;gap:8px;">
+          <a href="/pharmacy/seal" class="px-btn px-btn-red px-btn-lg" style="width:100%;justify-content:center;text-decoration:none;font-size:10px;">
+            💊 PROCEDER A DISPENSAR
+          </a>
+          <a href="/pharmacy" class="px-btn px-btn-ghost" style="width:100%;justify-content:center;text-decoration:none;">✕ CANCELAR</a>
+        </div>
+        <div id="action-error" style="display:none;flex-direction:column;gap:8px;">
+          <a href="/pharmacy" class="px-btn px-btn-ghost" style="width:100%;justify-content:center;text-decoration:none;background:#2a0d0d;border-color:#e8003d;color:#e8003d;">
+            ⛔ RECHAZAR RECETA
+          </a>
+          <a href="/pharmacy" class="px-btn px-btn-ghost" style="width:100%;justify-content:center;text-decoration:none;">◄ ESCANEAR OTRA</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Panel técnico -->
+    <div style="background:#0d0e1a;border:3px solid #29366f;overflow:hidden;">
+      <div style="background:#29366f;padding:10px 16px;">
+        <span style="font-family:'Press Start 2P',monospace;font-size:7px;color:#f4f4f4;">🔬 DETALLE TÉCNICO — @noble/curves + @noble/hashes</span>
+      </div>
+      <div style="padding:16px;display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div>
+          <p style="font-family:'Press Start 2P',monospace;font-size:6px;color:#5b6ee1;margin-bottom:5px;">JSON CANÓNICO (canonicalizeJSON)</p>
+          <pre id="tech-canonical" style="font-family:'VT323',monospace;font-size:14px;color:#41a6f6;white-space:pre-wrap;word-break:break-all;background:#060710;padding:10px;margin:0;max-height:140px;overflow-y:auto;line-height:1.4;"></pre>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <div>
+            <p style="font-family:'Press Start 2P',monospace;font-size:6px;color:#5b6ee1;margin-bottom:4px;">SHA-256 DEL PAYLOAD</p>
+            <p id="tech-digest" style="font-family:'VT323',monospace;font-size:13px;color:#ffcd75;word-break:break-all;background:#060710;padding:8px;line-height:1.5;"></p>
+          </div>
+          <div>
+            <p style="font-family:'Press Start 2P',monospace;font-size:6px;color:#5b6ee1;margin-bottom:4px;">FIRMA (primeros 32 bytes)</p>
+            <p id="tech-sig" style="font-family:'VT323',monospace;font-size:13px;color:#38b764;word-break:break-all;background:#060710;padding:8px;line-height:1.5;"></p>
+          </div>
+          <div>
+            <p style="font-family:'Press Start 2P',monospace;font-size:6px;color:#5b6ee1;margin-bottom:4px;">RESULTADO p256.verify()</p>
+            <p id="tech-result" style="font-family:'Press Start 2P',monospace;font-size:9px;background:#060710;padding:8px;"></p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /main-grid -->
+</div>
+</FlowLayout>
+
+<script>
+  import { canonicalizeJSON, verifySignature } from '../../utils/cryptoFlow.ts'
+  import { sha256 } from '@noble/hashes/sha2.js'
+  import { utf8ToBytes, bytesToHex, hexToBytes } from '@noble/hashes/utils.js'
+  import { testKeys } from '../../utils/testData.ts'
+  import { getPublicKey } from '../../utils/cryptoFlow.ts'
+
+  /* ══ ESTADO ══ */
+  let storedCanonical = ''
+  let storedSigHex    = ''
+  let storedPubHex    = ''
+
+  /* ══ RECETA BASE ══ */
+  const RECETA_BASE = {
+    datos: {
+      paciente_id:   'GARM850315HDFNDS07',
+      medico_id:     'CED-4892103',
+      medicamento:   'Amoxicilina 500mg',
+      dosis:         '1 cápsula cada 8 horas con alimentos',
+      cantidad:      21,
+      fecha_emision: new Date().toISOString().split('.')[0] + 'Z',
+      vigencia_dias: 30,
+    },
+    dispensacion: null,
+  }
+
+  async function init() {
+    storedSigHex    = sessionStorage.getItem('rxflow_signature') || ''
+    storedCanonical = sessionStorage.getItem('rxflow_canonical') || canonicalizeJSON(RECETA_BASE)
+    storedPubHex    = sessionStorage.getItem('rxflow_pubkey')   || ''
+
+    // Si no hay firma: generar firma demo con testKeys.medico
+    if (!storedSigHex || !storedPubHex) {
+      storedPubHex    = getPublicKey(testKeys.medico)
+      storedSigHex    = (await import('../../utils/cryptoFlow.ts')).signData(storedCanonical, testKeys.medico)
+      sessionStorage.setItem('rxflow_signature', storedSigHex)
+      sessionStorage.setItem('rxflow_canonical',  storedCanonical)
+      sessionStorage.setItem('rxflow_pubkey',     storedPubHex)
+    }
+
+    // Panel técnico
+    ;(document.getElementById('tech-canonical') as HTMLPreElement).textContent =
+      JSON.stringify(JSON.parse(storedCanonical), null, 2)
+    ;(document.getElementById('tech-digest') as HTMLParagraphElement).textContent =
+      sessionStorage.getItem('rxflow_digest') || bytesToHex(sha256(utf8ToBytes(storedCanonical)))
+    ;(document.getElementById('tech-sig') as HTMLParagraphElement).textContent =
+      storedSigHex.slice(0, 64) + '…'
+
+    ;(document.getElementById('state-loading') as HTMLDivElement).style.display = 'none'
+    ;(document.getElementById('main-grid') as HTMLDivElement).style.display = 'flex'
+
+    await runVerify(false)
+  }
+
+  async function runVerify(tampered: boolean) {
+    // Resaltar botón activo
+    const btnValid  = document.getElementById('btn-valid')  as HTMLButtonElement
+    const btnTamper = document.getElementById('btn-tamper') as HTMLButtonElement
+    const btnBadsig = document.getElementById('btn-badsig') as HTMLButtonElement
+    btnValid.style.borderColor  = tampered ? '#29366f' : '#f4f4f4'
+    btnValid.style.color        = tampered ? '#5b6ee1' : '#f4f4f4'
+    btnTamper.style.borderColor = tampered ? '#f4f4f4' : '#29366f'
+    btnTamper.style.color       = tampered ? '#f4f4f4' : '#5b6ee1'
+    btnBadsig.style.borderColor = '#29366f'
+    btnBadsig.style.color       = '#5b6ee1'
+
+    let payloadToVerify = storedCanonical
+    if (tampered) {
+      const obj = JSON.parse(storedCanonical)
+      obj.datos.cantidad = 99  // atacante altera la cantidad
+      payloadToVerify = canonicalizeJSON(obj)
+    }
+
+    // Verificación real con @noble/curves
+    const isValid = verifySignature(payloadToVerify, storedSigHex, storedPubHex)
+
+    // Actualizar panel técnico
+    ;(document.getElementById('tech-result') as HTMLParagraphElement).textContent = isValid ? 'true ✓' : 'false ✗'
+    ;(document.getElementById('tech-result') as HTMLParagraphElement).style.color  = isValid ? '#38b764' : '#e8003d'
+
+    if (tampered && !isValid) {
+      const hashOriginal = sessionStorage.getItem('rxflow_digest') || bytesToHex(sha256(utf8ToBytes(storedCanonical)))
+      const hashTampered = bytesToHex(sha256(utf8ToBytes(payloadToVerify)))
+      ;(document.getElementById('hash-expected') as HTMLParagraphElement).textContent = hashOriginal
+      ;(document.getElementById('hash-received') as HTMLParagraphElement).textContent = hashTampered
+    }
+
+    showResult(isValid ? 'valid' : (tampered ? 'tamper' : 'tamper'))
+  }
+
+  async function simulateInvalidSig() {
+    const btnBadsig = document.getElementById('btn-badsig') as HTMLButtonElement
+    const btnValid  = document.getElementById('btn-valid')  as HTMLButtonElement
+    const btnTamper = document.getElementById('btn-tamper') as HTMLButtonElement
+    btnBadsig.style.borderColor = '#f4f4f4'
+    btnBadsig.style.color       = '#f4f4f4'
+    btnValid.style.borderColor  = '#29366f'; btnValid.style.color  = '#5b6ee1'
+    btnTamper.style.borderColor = '#29366f'; btnTamper.style.color = '#5b6ee1'
+
+    // Firma aleatoria como hex (144 chars = 72 bytes, tamaño típico DER P-256)
+    const fakeBytes = crypto.getRandomValues(new Uint8Array(72))
+    const fakeSigHex = Array.from(fakeBytes).map(b => b.toString(16).padStart(2,'0')).join('')
+
+    // verifySignature con @noble captura el error internamente y retorna false
+    const isValid = verifySignature(storedCanonical, fakeSigHex, storedPubHex)
+
+    ;(document.getElementById('tech-result') as HTMLParagraphElement).textContent = 'false ✗'
+    ;(document.getElementById('tech-result') as HTMLParagraphElement).style.color  = '#e8003d'
+    ;(document.getElementById('tech-sig') as HTMLParagraphElement).textContent    =
+      fakeSigHex.slice(0, 64) + '… (ALEATORIA)'
+
+    showResult('badsig')
+  }
+
+  function showResult(type: 'valid' | 'tamper' | 'badsig') {
+    ;['result-valid','result-tamper','result-badsig','action-valid','action-error'].forEach(id => {
+      const el = document.getElementById(id)
+      if (el) el.style.display = 'none'
+    })
+    if (type === 'valid') {
+      ;(document.getElementById('result-valid')  as HTMLDivElement).style.display = 'flex'
+      ;(document.getElementById('action-valid')  as HTMLDivElement).style.display = 'flex'
+    } else if (type === 'tamper') {
+      ;(document.getElementById('result-tamper') as HTMLDivElement).style.display = 'flex'
+      ;(document.getElementById('action-error')  as HTMLDivElement).style.display = 'flex'
+    } else {
+      ;(document.getElementById('result-badsig') as HTMLDivElement).style.display = 'flex'
+      ;(document.getElementById('action-error')  as HTMLDivElement).style.display = 'flex'
+    }
+  }
+
+  // Exponer al scope global
+  ;(window as any).runVerify          = runVerify
+  ;(window as any).simulateInvalidSig = simulateInvalidSig
+
+  init()
+</script>

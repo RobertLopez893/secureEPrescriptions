@@ -1,0 +1,303 @@
+---
+// Pixel art icon sprite sheet — all 8px grid, no emojis
+// Usage: import Icons from '../components/Icons.astro'
+// Then: <Icons.Pill size={48} color="#e8003d"/>
+---
+
+<!-- Hidden SVG defs for reuse -->
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none;" aria-hidden="true">
+  <defs>
+
+    <!-- PILL (capsule, half/half) -->
+    <symbol id="ico-pill" viewBox="0 0 32 16">
+      <rect x="1"  y="3" width="14" height="10" rx="5" fill="var(--pill-a,#e8003d)"/>
+      <rect x="17" y="3" width="14" height="10" rx="5" fill="var(--pill-b,#f4f4f4)"/>
+      <rect x="15" y="3" width="2"  height="10" fill="#1a1c2c"/>
+      <rect x="2"  y="3" width="12" height="4"  rx="3" fill="rgba(255,255,255,.25)"/>
+      <rect x="18" y="3" width="12" height="4"  rx="3" fill="rgba(255,255,255,.35)"/>
+    </symbol>
+
+    <!-- VIRUS (Dr. Mario enemy) -->
+    <symbol id="ico-virus" viewBox="0 0 20 20">
+      <rect x="3"  y="0"  width="14" height="2"  fill="currentColor"/>
+      <rect x="1"  y="2"  width="18" height="14" fill="currentColor"/>
+      <rect x="3"  y="16" width="14" height="2"  fill="currentColor"/>
+      <rect x="5"  y="18" width="10" height="2"  fill="currentColor"/>
+      <!-- spikes -->
+      <rect x="8"  y="0"  width="4"  height="2"  fill="currentColor"/>
+      <rect x="8"  y="18" width="4"  height="2"  fill="currentColor"/>
+      <rect x="0"  y="8"  width="2"  height="4"  fill="currentColor"/>
+      <rect x="18" y="8"  width="2"  height="4"  fill="currentColor"/>
+      <!-- white eye sockets -->
+      <rect x="3"  y="5"  width="6"  height="6"  fill="white"/>
+      <rect x="11" y="5"  width="6"  height="6"  fill="white"/>
+      <!-- pupils -->
+      <rect x="4"  y="6"  width="4"  height="4"  fill="#1a1c2c"/>
+      <rect x="12" y="6"  width="4"  height="4"  fill="#1a1c2c"/>
+      <!-- mouth -->
+      <rect x="5"  y="12" width="10" height="2"  fill="white"/>
+      <rect x="7"  y="14" width="6"  height="1"  fill="white"/>
+    </symbol>
+
+    <!-- DOCTOR (torso, stethoscope) -->
+    <symbol id="ico-doctor" viewBox="0 0 24 28">
+      <!-- head -->
+      <rect x="7"  y="0"  width="10" height="10" fill="#f4c87a"/>
+      <rect x="5"  y="2"  width="14" height="8"  fill="#f4c87a"/>
+      <!-- hair -->
+      <rect x="5"  y="0"  width="14" height="3"  fill="#5c3a1e"/>
+      <!-- eyes -->
+      <rect x="8"  y="4"  width="2"  height="2"  fill="#1a1c2c"/>
+      <rect x="14" y="4"  width="2"  height="2"  fill="#1a1c2c"/>
+      <!-- smile -->
+      <rect x="9"  y="7"  width="6"  height="1"  fill="#c0724a"/>
+      <!-- white coat body -->
+      <rect x="4"  y="10" width="16" height="14" fill="white"/>
+      <!-- coat lapels -->
+      <rect x="4"  y="10" width="4"  height="10" fill="#e0e0e0"/>
+      <rect x="16" y="10" width="4"  height="10" fill="#e0e0e0"/>
+      <!-- green cross on chest -->
+      <rect x="10" y="13" width="4"  height="2"  fill="#38b764"/>
+      <rect x="11" y="12" width="2"  height="4"  fill="#38b764"/>
+      <!-- stethoscope -->
+      <rect x="8"  y="10" width="2"  height="6"  fill="#c0cbdc"/>
+      <rect x="8"  y="16" width="6"  height="2"  fill="#c0cbdc"/>
+      <rect x="14" y="10" width="2"  height="6"  fill="#c0cbdc"/>
+      <rect x="13" y="18" width="4"  height="2"  fill="#c0cbdc"/>
+      <!-- arms -->
+      <rect x="0"  y="11" width="4"  height="10" fill="white"/>
+      <rect x="20" y="11" width="4"  height="10" fill="white"/>
+    </symbol>
+
+    <!-- PATIENT (person silhouette) -->
+    <symbol id="ico-patient" viewBox="0 0 24 28">
+      <!-- head -->
+      <rect x="7"  y="0"  width="10" height="10" fill="#f4c87a"/>
+      <rect x="5"  y="2"  width="14" height="8"  fill="#f4c87a"/>
+      <!-- hair -->
+      <rect x="5"  y="0"  width="14" height="4"  fill="#3d2b1f"/>
+      <!-- eyes -->
+      <rect x="8"  y="4"  width="2"  height="2"  fill="#1a1c2c"/>
+      <rect x="14" y="4"  width="2"  height="2"  fill="#1a1c2c"/>
+      <!-- body -->
+      <rect x="4"  y="11" width="16" height="13" fill="#41a6f6"/>
+      <!-- arms -->
+      <rect x="0"  y="12" width="4"  height="9"  fill="#41a6f6"/>
+      <rect x="20" y="12" width="4"  height="9"  fill="#41a6f6"/>
+      <!-- collar -->
+      <rect x="9"  y="10" width="6"  height="3"  fill="#f4c87a"/>
+    </symbol>
+
+    <!-- PHARMACIST (similar but with lab coat and rx symbol) -->
+    <symbol id="ico-pharmacist" viewBox="0 0 24 28">
+      <!-- head -->
+      <rect x="7"  y="0"  width="10" height="10" fill="#f4a67a"/>
+      <rect x="5"  y="2"  width="14" height="8"  fill="#f4a67a"/>
+      <!-- hair (bun style) -->
+      <rect x="6"  y="0"  width="12" height="3"  fill="#8B4513"/>
+      <rect x="4"  y="1"  width="4"  height="4"  fill="#8B4513"/>
+      <rect x="16" y="1"  width="4"  height="4"  fill="#8B4513"/>
+      <!-- eyes -->
+      <rect x="8"  y="4"  width="2"  height="2"  fill="#1a1c2c"/>
+      <rect x="14" y="4"  width="2"  height="2"  fill="#1a1c2c"/>
+      <!-- lab coat -->
+      <rect x="4"  y="10" width="16" height="14" fill="white"/>
+      <rect x="4"  y="10" width="4"  height="10" fill="#ddd"/>
+      <rect x="16" y="10" width="4"  height="10" fill="#ddd"/>
+      <!-- Rx symbol on chest -->
+      <rect x="10" y="12" width="2"  height="6"  fill="#e8003d"/>
+      <rect x="10" y="12" width="5"  height="2"  fill="#e8003d"/>
+      <rect x="13" y="14" width="2"  height="2"  fill="#e8003d"/>
+      <rect x="12" y="16" width="3"  height="2"  fill="#e8003d"/>
+      <!-- arms -->
+      <rect x="0"  y="11" width="4"  height="10" fill="white"/>
+      <rect x="20" y="11" width="4"  height="10" fill="white"/>
+    </symbol>
+
+    <!-- SHIELD (security) -->
+    <symbol id="ico-shield" viewBox="0 0 24 28">
+      <rect x="3"  y="0"  width="18" height="2"  fill="currentColor"/>
+      <rect x="1"  y="2"  width="22" height="16" fill="currentColor"/>
+      <rect x="2"  y="18" width="20" height="2"  fill="currentColor"/>
+      <rect x="4"  y="20" width="16" height="2"  fill="currentColor"/>
+      <rect x="6"  y="22" width="12" height="2"  fill="currentColor"/>
+      <rect x="8"  y="24" width="8"  height="2"  fill="currentColor"/>
+      <rect x="10" y="26" width="4"  height="2"  fill="currentColor"/>
+      <!-- highlight -->
+      <rect x="3"  y="0"  width="18" height="5"  fill="rgba(255,255,255,.25)"/>
+    </symbol>
+
+    <!-- CHECKMARK (inside shield area) -->
+    <symbol id="ico-check" viewBox="0 0 18 14">
+      <rect x="0"  y="7"  width="4"  height="4"  fill="white"/>
+      <rect x="4"  y="10" width="4"  height="4"  fill="white"/>
+      <rect x="8"  y="6"  width="4"  height="4"  fill="white"/>
+      <rect x="12" y="2"  width="4"  height="4"  fill="white"/>
+      <rect x="14" y="0"  width="4"  height="2"  fill="white"/>
+    </symbol>
+
+    <!-- LOCK -->
+    <symbol id="ico-lock" viewBox="0 0 20 24">
+      <rect x="4"  y="8"  width="12" height="14" fill="currentColor"/>
+      <rect x="2"  y="10" width="16" height="12" fill="currentColor"/>
+      <rect x="6"  y="0"  width="8"  height="2"  fill="currentColor"/>
+      <rect x="4"  y="2"  width="12" height="8"  fill="none" stroke="currentColor" stroke-width="2"/>
+      <rect x="4"  y="2"  width="2"  height="8"  fill="currentColor"/>
+      <rect x="14" y="2"  width="2"  height="8"  fill="currentColor"/>
+      <rect x="6"  y="2"  width="8"  height="2"  fill="currentColor"/>
+      <!-- keyhole -->
+      <rect x="8"  y="13" width="4"  height="2"  fill="#1a1c2c"/>
+      <rect x="9"  y="15" width="2"  height="4"  fill="#1a1c2c"/>
+    </symbol>
+
+    <!-- KEY -->
+    <symbol id="ico-key" viewBox="0 0 28 16">
+      <rect x="0"  y="4"  width="8"  height="8"  fill="none" stroke="currentColor" stroke-width="2"/>
+      <rect x="0"  y="4"  width="8"  height="8"  rx="4" fill="none" stroke="currentColor" stroke-width="2"/>
+      <!-- ring hole -->
+      <rect x="2"  y="6"  width="4"  height="4"  rx="2" fill="#1a1c2c"/>
+      <!-- shaft -->
+      <rect x="8"  y="7"  width="18" height="2"  fill="currentColor"/>
+      <!-- teeth -->
+      <rect x="20" y="9"  width="2"  height="3"  fill="currentColor"/>
+      <rect x="24" y="9"  width="2"  height="2"  fill="currentColor"/>
+    </symbol>
+
+    <!-- CLIPBOARD / prescription -->
+    <symbol id="ico-clipboard" viewBox="0 0 22 28">
+      <rect x="2"  y="2"  width="18" height="24" fill="white"/>
+      <rect x="0"  y="4"  width="22" height="22" fill="white"/>
+      <rect x="0"  y="4"  width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"/>
+      <!-- clip at top -->
+      <rect x="7"  y="0"  width="8"  height="5"  fill="currentColor"/>
+      <rect x="8"  y="1"  width="6"  height="3"  fill="#1a1c2c"/>
+      <!-- lines -->
+      <rect x="4"  y="10" width="14" height="2"  fill="#c0cbdc"/>
+      <rect x="4"  y="15" width="14" height="2"  fill="#c0cbdc"/>
+      <rect x="4"  y="20" width="10" height="2"  fill="#c0cbdc"/>
+      <!-- Rx text area -->
+      <rect x="4"  y="6"  width="6"  height="2"  fill="currentColor"/>
+    </symbol>
+
+    <!-- FACE / biometric (for patient scan) -->
+    <symbol id="ico-face" viewBox="0 0 32 36">
+      <!-- scan frame corners -->
+      <rect x="0"  y="0"  width="6"  height="2"  fill="currentColor"/>
+      <rect x="0"  y="0"  width="2"  height="8"  fill="currentColor"/>
+      <rect x="26" y="0"  width="6"  height="2"  fill="currentColor"/>
+      <rect x="30" y="0"  width="2"  height="8"  fill="currentColor"/>
+      <rect x="0"  y="28" width="2"  height="8"  fill="currentColor"/>
+      <rect x="0"  y="34" width="6"  height="2"  fill="currentColor"/>
+      <rect x="30" y="28" width="2"  height="8"  fill="currentColor"/>
+      <rect x="26" y="34" width="6"  height="2"  fill="currentColor"/>
+      <!-- face -->
+      <rect x="8"  y="4"  width="16" height="18" rx="2" fill="#f4c87a"/>
+      <rect x="6"  y="6"  width="20" height="14" rx="2" fill="#f4c87a"/>
+      <!-- eyes -->
+      <rect x="10" y="9"  width="4"  height="4"  fill="white"/>
+      <rect x="18" y="9"  width="4"  height="4"  fill="white"/>
+      <rect x="11" y="10" width="2"  height="2"  fill="#1a1c2c"/>
+      <rect x="19" y="10" width="2"  height="2"  fill="#1a1c2c"/>
+      <!-- nose -->
+      <rect x="15" y="14" width="2"  height="2"  fill="#c07a50"/>
+      <!-- mouth -->
+      <rect x="11" y="17" width="10" height="2"  fill="#c07a50"/>
+      <rect x="9"  y="15" width="2"  height="2"  fill="#c07a50"/>
+      <rect x="21" y="15" width="2"  height="2"  fill="#c07a50"/>
+      <!-- scan line slot -->
+      <rect x="4"  y="22" width="24" height="2"  fill="currentColor" opacity=".5"/>
+    </symbol>
+
+    <!-- QR CODE (stylized) -->
+    <symbol id="ico-qr" viewBox="0 0 24 24">
+      <!-- top-left corner -->
+      <rect x="0" y="0" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2"/>
+      <rect x="3" y="3" width="4" height="4" fill="currentColor"/>
+      <!-- top-right corner -->
+      <rect x="14" y="0" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2"/>
+      <rect x="17" y="3" width="4" height="4" fill="currentColor"/>
+      <!-- bottom-left corner -->
+      <rect x="0" y="14" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2"/>
+      <rect x="3" y="17" width="4" height="4" fill="currentColor"/>
+      <!-- data dots -->
+      <rect x="12" y="0"  width="2" height="2" fill="currentColor"/>
+      <rect x="12" y="4"  width="2" height="2" fill="currentColor"/>
+      <rect x="12" y="12" width="2" height="2" fill="currentColor"/>
+      <rect x="14" y="12" width="2" height="2" fill="currentColor"/>
+      <rect x="18" y="12" width="2" height="2" fill="currentColor"/>
+      <rect x="22" y="12" width="2" height="2" fill="currentColor"/>
+      <rect x="12" y="16" width="2" height="2" fill="currentColor"/>
+      <rect x="16" y="16" width="2" height="2" fill="currentColor"/>
+      <rect x="14" y="18" width="4" height="4" fill="currentColor"/>
+      <rect x="20" y="14" width="4" height="4" fill="currentColor"/>
+      <rect x="20" y="20" width="4" height="4" fill="currentColor"/>
+    </symbol>
+
+    <!-- STAR (for win screens) -->
+    <symbol id="ico-star" viewBox="0 0 20 20">
+      <rect x="8"  y="0"  width="4"  height="4"  fill="currentColor"/>
+      <rect x="6"  y="4"  width="8"  height="4"  fill="currentColor"/>
+      <rect x="0"  y="6"  width="20" height="4"  fill="currentColor"/>
+      <rect x="2"  y="10" width="16" height="4"  fill="currentColor"/>
+      <rect x="4"  y="14" width="4"  height="4"  fill="currentColor"/>
+      <rect x="12" y="14" width="4"  height="4"  fill="currentColor"/>
+      <rect x="2"  y="16" width="4"  height="4"  fill="currentColor"/>
+      <rect x="14" y="16" width="4"  height="4"  fill="currentColor"/>
+    </symbol>
+
+    <!-- ARROW RIGHT -->
+    <symbol id="ico-arrow-r" viewBox="0 0 16 12">
+      <rect x="0"  y="4"  width="12" height="4"  fill="currentColor"/>
+      <rect x="8"  y="0"  width="4"  height="4"  fill="currentColor"/>
+      <rect x="8"  y="8"  width="4"  height="4"  fill="currentColor"/>
+      <rect x="12" y="2"  width="2"  height="2"  fill="currentColor"/>
+      <rect x="12" y="8"  width="2"  height="2"  fill="currentColor"/>
+      <rect x="14" y="4"  width="2"  height="4"  fill="currentColor"/>
+    </symbol>
+
+    <!-- ARROW LEFT -->
+    <symbol id="ico-arrow-l" viewBox="0 0 16 12">
+      <rect x="4"  y="4"  width="12" height="4"  fill="currentColor"/>
+      <rect x="4"  y="0"  width="4"  height="4"  fill="currentColor"/>
+      <rect x="4"  y="8"  width="4"  height="4"  fill="currentColor"/>
+      <rect x="2"  y="2"  width="2"  height="2"  fill="currentColor"/>
+      <rect x="2"  y="8"  width="2"  height="2"  fill="currentColor"/>
+      <rect x="0"  y="4"  width="2"  height="4"  fill="currentColor"/>
+    </symbol>
+
+    <!-- CHECKMARK (standalone) -->
+    <symbol id="ico-checkmark" viewBox="0 0 20 16">
+      <rect x="0"  y="8"  width="4"  height="4"  fill="currentColor"/>
+      <rect x="4"  y="11" width="4"  height="4"  fill="currentColor"/>
+      <rect x="8"  y="7"  width="4"  height="4"  fill="currentColor"/>
+      <rect x="12" y="3"  width="4"  height="4"  fill="currentColor"/>
+      <rect x="16" y="0"  width="4"  height="3"  fill="currentColor"/>
+    </symbol>
+
+    <!-- CROSS (X) -->
+    <symbol id="ico-x" viewBox="0 0 16 16">
+      <rect x="0"  y="0"  width="4"  height="4"  fill="currentColor"/>
+      <rect x="12" y="0"  width="4"  height="4"  fill="currentColor"/>
+      <rect x="4"  y="4"  width="4"  height="4"  fill="currentColor"/>
+      <rect x="8"  y="4"  width="4"  height="4"  fill="currentColor"/>
+      <rect x="6"  y="6"  width="4"  height="4"  fill="currentColor" opacity=".7"/>
+      <rect x="4"  y="8"  width="4"  height="4"  fill="currentColor"/>
+      <rect x="8"  y="8"  width="4"  height="4"  fill="currentColor"/>
+      <rect x="0"  y="12" width="4"  height="4"  fill="currentColor"/>
+      <rect x="12" y="12" width="4"  height="4"  fill="currentColor"/>
+    </symbol>
+
+    <!-- HEART (health) -->
+    <symbol id="ico-heart" viewBox="0 0 22 20">
+      <rect x="2"  y="0"  width="6"  height="4"  fill="currentColor"/>
+      <rect x="14" y="0"  width="6"  height="4"  fill="currentColor"/>
+      <rect x="0"  y="4"  width="10" height="6"  fill="currentColor"/>
+      <rect x="12" y="4"  width="10" height="6"  fill="currentColor"/>
+      <rect x="0"  y="6"  width="22" height="6"  fill="currentColor"/>
+      <rect x="2"  y="12" width="18" height="4"  fill="currentColor"/>
+      <rect x="4"  y="16" width="14" height="3"  fill="currentColor"/>
+      <rect x="7"  y="19" width="8"  height="2"  fill="currentColor"/>
+    </symbol>
+
+  </defs>
+</svg>

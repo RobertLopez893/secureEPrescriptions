@@ -1,0 +1,62 @@
+---
+import FlowLayout from '../../layouts/FlowLayout.astro'
+const steps=[{label:'ESCANEAR',href:'/pharmacy'},{label:'VERIFICAR',href:'/pharmacy/verify'},{label:'DISPENSAR',href:'/pharmacy/seal'}]
+const checklist=['MEDICAMENTO CORRECTO (AMOXICILINA 500MG)','CANTIDAD CORRECTA (21 CÁPSULAS)','INSTRUCCIONES EXPLICADAS AL PACIENTE','PACIENTE IDENTIFICADO CORRECTAMENTE']
+---
+<FlowLayout title="Farmacia — Dispensar" role="pharmacy" steps={steps} currentStep={2} back="/pharmacy/verify">
+<div class="anim-slide" style="display:flex;flex-direction:column;gap:20px;">
+  <div>
+    <h1 style="font-family:'Press Start 2P',monospace;font-size:13px;color:#f4f4f4;margin-bottom:6px;">CONFIRMAR DESPACHO</h1>
+    <p style="font-family:'VT323',monospace;font-size:22px;color:#c0cbdc;">Marca cada punto y sella la receta</p>
+  </div>
+
+  <!-- Big medication display -->
+  <div style="background:#1a0d0d;border:4px solid #e8003d;box-shadow:6px 6px 0 #8c0025;padding:24px;">
+    <p style="font-family:'Press Start 2P',monospace;font-size:8px;color:#e8003d;margin-bottom:16px;">ENTREGAR AL PACIENTE</p>
+    <div style="display:flex;align-items:center;gap:16px;background:#2a0d0d;border:3px solid #e8003d;padding:16px;margin-bottom:20px;">
+      <div class="anim-bounce" style="font-size:48px;flex-shrink:0;">💊</div>
+      <div>
+        <p style="font-family:'Press Start 2P',monospace;font-size:14px;color:#f4f4f4;margin-bottom:6px;">AMOXICILINA</p>
+        <p style="font-family:'VT323',monospace;font-size:22px;color:#e8003d;">500 mg · 21 CÁPSULAS</p>
+        <p style="font-family:'VT323',monospace;font-size:20px;color:#c0cbdc;margin-top:4px;">GARCÍA MENDOZA, LUIS</p>
+      </div>
+    </div>
+
+    <!-- Pixel art checklist -->
+    <div style="display:flex;flex-direction:column;gap:4px;" id="checklist">
+      {checklist.map((item,idx)=>(
+        <label style="display:flex;align-items:flex-start;gap:12px;padding:12px;background:#222639;border:2px solid #29366f;cursor:pointer;transition:all .1s;" id={`lbl-${idx}`}>
+          <input type="checkbox" style="width:18px;height:18px;accent-color:#e8003d;flex-shrink:0;margin-top:2px;cursor:pointer;" onchange={`toggleCheck(${idx})`}/>
+          <span style="font-family:'Press Start 2P',monospace;font-size:7px;color:#c0cbdc;line-height:1.8;" id={`txt-${idx}`}>{item}</span>
+        </label>
+      ))}
+    </div>
+  </div>
+
+  <!-- Notes -->
+  <div style="background:#222639;border:3px solid #29366f;padding:16px;">
+    <label class="px-label" style="color:#e8003d;">NOTAS (OPCIONAL)</label>
+    <textarea class="px-input red" style="border-color:#e8003d;resize:none;margin-top:4px;" rows="2" placeholder="Ej. Se indicó tomar con alimentos..."></textarea>
+  </div>
+
+  <form action="/pharmacy/done" method="GET">
+    <button type="submit" class="px-btn px-btn-red px-btn-lg" style="width:100%;justify-content:center;font-size:11px;">
+      ✅ CONFIRMAR Y SELLAR RECETA
+    </button>
+  </form>
+
+  <p style="text-align:center;font-family:'Press Start 2P',monospace;font-size:7px;color:#29366f;line-height:1.8;">
+    EL SELLO QUEDA REGISTRADO DE FORMA PERMANENTE
+  </p>
+</div>
+</FlowLayout>
+
+<script>
+  function toggleCheck(i) {
+    const lbl=document.getElementById('lbl-'+i)
+    const txt=document.getElementById('txt-'+i)
+    const cb=lbl.querySelector('input')
+    if(cb.checked){lbl.style.background='#1a2e1a';lbl.style.borderColor='#38b764';txt.style.textDecoration='line-through';txt.style.color='#5b6ee1';}
+    else{lbl.style.background='#222639';lbl.style.borderColor='#29366f';txt.style.textDecoration='';txt.style.color='#c0cbdc';}
+  }
+</script>

@@ -1,0 +1,91 @@
+---
+import FlowLayout from '../../layouts/FlowLayout.astro'
+const steps=[{label:'LOGIN',href:'/doctor'},{label:'PACIENTE',href:'/doctor/patient'},{label:'MEDICAMENTO',href:'/doctor/medication'},{label:'FIRMA',href:'/doctor/sign'}]
+---
+<FlowLayout title="Receta Emitida" role="doctor" steps={steps} currentStep={4}>
+<div class="anim-pop" style="display:flex;flex-direction:column;align-items:center;text-align:center;gap:24px;">
+
+  <!-- Confetti pieces -->
+  <div id="confetti" style="position:fixed;top:30%;left:50%;pointer-events:none;z-index:100;"></div>
+
+  <div style="background:#1a2e1a;border:4px solid #38b764;box-shadow:8px 8px 0 #257a43;padding:40px 28px;width:100%;">
+
+    <!-- Animated shield checkmark -->
+    <div style="display:flex;justify-content:center;margin-bottom:20px;">
+      <div class="anim-bounce" style="position:relative;">
+        <svg width="64" height="74" viewBox="0 0 24 28" style="image-rendering:pixelated;color:#38b764;">
+          <use href="#ico-shield"/>
+        </svg>
+        <div style="position:absolute;top:30%;left:50%;transform:translate(-50%,-50%);">
+          <svg width="22" height="17" viewBox="0 0 20 16" style="image-rendering:pixelated;color:white;">
+            <use href="#ico-checkmark"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <h1 style="font-family:'Press Start 2P',monospace;font-size:16px;color:#38b764;margin-bottom:8px;line-height:1.6;">RECETA EMITIDA</h1>
+    <p style="font-family:'VT323',monospace;font-size:24px;color:#c0cbdc;margin-bottom:18px;">Firmada y enviada correctamente</p>
+
+    <div style="background:#222639;border:3px solid #38b764;padding:12px 20px;display:inline-block;margin-bottom:22px;" class="anim-score">
+      <span style="font-family:'Press Start 2P',monospace;font-size:14px;color:#ffcd75;" id="folio-display">FOLIO: DOC-???</span>
+    </div>
+
+    <!-- Stars -->
+    <div style="display:flex;justify-content:center;gap:16px;margin-bottom:28px;">
+      {[0,1,2].map(idx=>(
+        <svg width="28" height="28" viewBox="0 0 20 20" style={'image-rendering:pixelated;color:#ffcd75;animation:px-bounce .6s ease-in-out infinite;animation-delay:'+(idx*.15)+'s;'}>
+          <use href="#ico-star"/>
+        </svg>
+      ))}
+    </div>
+
+    <!-- What's next -->
+    <div style="text-align:left;border-top:3px solid #38b764;padding-top:18px;display:flex;flex-direction:column;gap:0;">
+      {[
+        {ico:'patient',  text:'El paciente recibe notificación con su receta digital.'},
+        {ico:'lock',     text:'La receta queda cifrada y almacenada en el servidor.'},
+        {ico:'pharmacist',text:'El paciente puede mostrar su identificación en la farmacia.'},
+      ].map(item=>(
+        <div style="display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:2px solid #29366f;">
+          <svg width="22" height="26" viewBox="0 0 24 28" style={'image-rendering:pixelated;color:#38b764;flex-shrink:0;'+(item.ico==='lock'?'view-box:0 0 20 24;width:18px;height:22px;':'')}>
+            <use href={'#ico-'+item.ico}/>
+          </svg>
+          <p style="font-family:'VT323',monospace;font-size:20px;color:#c0cbdc;line-height:1.5;">{item.text}</p>
+        </div>
+      ))}
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:12px;width:100%;">
+    <a href="/doctor/patient" class="px-btn px-btn-green px-btn-lg" style="width:100%;justify-content:center;text-decoration:none;">
+      <svg width="14" height="11" viewBox="0 0 16 12" style="image-rendering:pixelated;color:white;">
+        <rect x="0" y="4" width="12" height="4" fill="currentColor"/>
+        <rect x="8" y="0" width="4" height="4" fill="currentColor"/>
+        <rect x="8" y="8" width="4" height="4" fill="currentColor"/>
+        <rect x="12" y="2" width="2" height="2" fill="currentColor"/>
+        <rect x="12" y="8" width="2" height="2" fill="currentColor"/>
+        <rect x="14" y="4" width="2" height="4" fill="currentColor"/>
+      </svg>
+      EMITIR OTRA RECETA
+    </a>
+    <a href="/" class="px-btn px-btn-ghost" style="width:100%;justify-content:center;text-decoration:none;">VOLVER AL INICIO</a>
+  </div>
+</div>
+</FlowLayout>
+
+<script>
+  // Random folio
+  document.getElementById('folio-display').textContent = 'FOLIO: DOC-' + Math.floor(Math.random()*900+100)
+
+  // Confetti burst
+  const container = document.getElementById('confetti')
+  const colors = ['#38b764','#ffcd75','#41a6f6','#e8003d','#f4f4f4']
+  for (let i=0;i<20;i++) {
+    const el = document.createElement('div')
+    el.style.cssText = `position:absolute;width:6px;height:6px;background:${colors[i%5]};
+      --tx:${(Math.random()-0.5)*200}px;
+      animation:confettiFall ${.8+Math.random()*.8}s ease ${i*.05}s both;`
+    container.appendChild(el)
+  }
+</script>
