@@ -1,0 +1,354 @@
+---
+import FlowLayout from '../../layouts/FlowLayout.astro'
+const steps = [
+  { label: 'LOGIN',       href: '/doctor' },
+  { label: 'PACIENTE',    href: '/doctor/patient' },
+  { label: 'MEDICAMENTO', href: '/doctor/medication' },
+  { label: 'FIRMA',       href: '/doctor/sign' },
+]
+const rows = [
+  { l: 'PACIENTE',      v: 'García Mendoza, Luis' },
+  { l: 'CURP',          v: 'GARM850315HDFNDS07', m: true },
+  { l: 'MEDICAMENTO',   v: 'Amoxicilina', big: true },
+  { l: 'DOSIS',         v: '500 mg · Cápsula', m: true },
+  { l: 'CANTIDAD',      v: '21 cápsulas', m: true },
+  { l: 'INSTRUCCIONES', v: '1 cápsula c/8h con alimentos, 7 días.' },
+  { l: 'VIGENCIA',      v: '30 días desde hoy' },
+]
+---
+<FlowLayout title="Médico — Firma" role="doctor" steps={steps} currentStep={3} back="/doctor/medication">
+<div class="anim-slide" style="display:flex;flex-direction:column;gap:20px;">
+
+  <div>
+    <h1 style="font-family:'Press Start 2P',monospace;font-size:13px;color:#f4f4f4;margin-bottom:6px;">REVISAR Y FIRMAR</h1>
+    <p style="font-family:'VT323',monospace;font-size:22px;color:#ffcd75;">Una vez firmada, la receta no puede modificarse.</p>
+  </div>
+
+  <!-- Summary -->
+  <div style="background:#222639;border:3px solid #38b764;box-shadow:4px 4px 0 #257a43;padding:0;overflow:hidden;">
+    <div style="background:#38b764;padding:10px 16px;">
+      <span style="font-family:'Press Start 2P',monospace;font-size:8px;color:#1a1c2c;">📋 RESUMEN DE RECETA</span>
+    </div>
+    <div style="padding:20px;">
+      {rows.map(f => (
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:10px 0;border-bottom:2px solid #29366f;gap:12px;">
+          <span style="font-family:'Press Start 2P',monospace;font-size:7px;color:#5b6ee1;flex-shrink:0;width:100px;">{f.l}</span>
+          <span style={'text-align:right;font-family:'+(f.big?'"Press Start 2P"':'"VT323"')+',monospace;font-size:'+(f.big?'11px':'21px')+';color:'+(f.big?'#38b764':'#f4f4f4')+';'}>{f.v}</span>
+        </div>
+      ))}
+    </div>
+  </div>
+
+  <!-- KEY FILE UPLOAD BOX -->
+  <div id="sign-box" style="background:#1a1a0d;border:3px solid #ffcd75;box-shadow:4px 4px 0 #c48c00;padding:20px;display:flex;flex-direction:column;gap:14px;">
+
+    <div style="font-family:'Press Start 2P',monospace;font-size:8px;color:#ffcd75;display:flex;align-items:center;gap:8px;">
+      🔑 CARGAR LLAVE PRIVADA
+    </div>
+
+    <!-- Drop zone -->
+    <div id="drop-zone"
+         style="border:3px dashed #ffcd75;background:#12110a;padding:28px 16px;text-align:center;cursor:pointer;transition:border-color .1s,background .1s;"
+         ondragover="handleDragOver(event)"
+         ondragleave="handleDragLeave(event)"
+         ondrop="handleDrop(event)"
+         onclick="document.getElementById('key-file-input').click()">
+
+      <div style="display:flex;justify-content:center;margin-bottom:14px;">
+        <svg width="44" height="44" viewBox="0 0 24 24" style="image-rendering:pixelated;color:#ffcd75;opacity:.75;">
+          <!-- Pixel key icon -->
+          <rect x="2"  y="8"  width="10" height="8"  fill="none" stroke="currentColor" stroke-width="2"/>
+          <rect x="4"  y="10" width="6"  height="4"  fill="none" stroke="currentColor" stroke-width="1.5"/>
+          <rect x="5"  y="11" width="2"  height="2"  fill="currentColor"/>
+          <rect x="12" y="10" width="12" height="2"  fill="currentColor"/>
+          <rect x="22" y="12" width="2"  height="4"  fill="currentColor"/>
+          <rect x="18" y="14" width="2"  height="2"  fill="currentColor"/>
+          <!-- Upload arrow -->
+          <rect x="10" y="19" width="4"  height="5"  fill="currentColor" opacity=".5"/>
+          <rect x="7"  y="22" width="10" height="2"  fill="currentColor" opacity=".5"/>
+          <rect x="9"  y="17" width="6"  height="2"  fill="currentColor" opacity=".5"/>
+          <rect x="10" y="15" width="4"  height="2"  fill="currentColor" opacity=".5"/>
+          <rect x="11" y="13" width="2"  height="2"  fill="currentColor" opacity=".5"/>
+        </svg>
+      </div>
+
+      <p id="drop-text" style="font-family:'Press Start 2P',monospace;font-size:8px;color:#ffcd75;line-height:2;margin-bottom:6px;">
+        ARRASTRA TU ARCHIVO<br/>O HAZ CLIC AQUÍ
+      </p>
+      <p style="font-family:'VT323',monospace;font-size:18px;color:#5b6ee1;">
+        Formatos aceptados: .pem · .key · .p12 · .pfx
+      </p>
+
+      <input type="file" id="key-file-input" accept=".pem,.key,.p12,.pfx,.der" style="display:none;" onchange="handleFileSelect(event)"/>
+    </div>
+
+    <!-- Estado: archivo cargado -->
+    <div id="file-loaded" style="display:none;background:#1a2e1a;border:3px solid #38b764;padding:14px;align-items:center;justify-content:space-between;gap:12px;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <svg width="20" height="24" viewBox="0 0 20 24" style="image-rendering:pixelated;color:#38b764;flex-shrink:0;">
+          <rect x="1" y="0" width="14" height="24" fill="currentColor"/>
+          <rect x="11" y="0" width="8" height="8" fill="#1a2e1a"/>
+          <rect x="11" y="0" width="9" height="1" fill="currentColor"/>
+          <rect x="18" y="0" width="1" height="9" fill="currentColor"/>
+          <rect x="11" y="8" width="9" height="1" fill="currentColor"/>
+          <rect x="3" y="8"  width="8" height="1" fill="#1a2e1a"/>
+          <rect x="3" y="11" width="10" height="1" fill="#1a2e1a"/>
+          <rect x="3" y="14" width="8" height="1" fill="#1a2e1a"/>
+        </svg>
+        <div>
+          <p id="file-name" style="font-family:'Press Start 2P',monospace;font-size:7px;color:#38b764;word-break:break-all;"></p>
+          <p id="file-meta" style="font-family:'VT323',monospace;font-size:17px;color:#c0cbdc;margin-top:3px;"></p>
+        </div>
+      </div>
+      <button type="button" onclick="clearFile()" style="font-family:'Press Start 2P',monospace;font-size:7px;color:#e8003d;background:none;border:2px solid #e8003d;padding:4px 8px;cursor:pointer;flex-shrink:0;">✕</button>
+    </div>
+
+    <!-- ERROR: formato inválido -->
+    <div id="err-format" style="display:none;background:#2a0d0d;border:3px solid #e8003d;box-shadow:4px 4px 0 #8c0025;padding:14px;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+        <span style="font-family:'Press Start 2P',monospace;font-size:8px;color:#e8003d;">⛔ FORMATO INVÁLIDO</span>
+      </div>
+      <p style="font-family:'VT323',monospace;font-size:19px;color:#c0cbdc;line-height:1.5;">
+        El archivo no es una llave privada reconocida.<br/>
+        Usa un archivo <strong style="color:#ffcd75;">.pem</strong> o <strong style="color:#ffcd75;">.key</strong> generado con ECDSA P-256.
+      </p>
+      <button type="button" onclick="resetDrop()" style="margin-top:10px;font-family:'Press Start 2P',monospace;font-size:7px;color:#e8003d;background:none;border:2px solid #e8003d;padding:5px 10px;cursor:pointer;">REINTENTAR</button>
+    </div>
+
+    <!-- ERROR: llave corrupta -->
+    <div id="err-corrupt" style="display:none;background:#2a0d0d;border:3px solid #e8003d;box-shadow:4px 4px 0 #8c0025;padding:14px;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+        <span style="font-family:'Press Start 2P',monospace;font-size:8px;color:#e8003d;">⛔ LLAVE CORRUPTA</span>
+      </div>
+      <p style="font-family:'VT323',monospace;font-size:19px;color:#c0cbdc;line-height:1.5;">
+        El archivo fue modificado o está incompleto y no puede leerse.<br/>
+        Verifica la integridad del archivo con tu proveedor de certificados.
+      </p>
+      <button type="button" onclick="resetDrop()" style="margin-top:10px;font-family:'Press Start 2P',monospace;font-size:7px;color:#e8003d;background:none;border:2px solid #e8003d;padding:5px 10px;cursor:pointer;">REINTENTAR</button>
+    </div>
+
+    <!-- ERROR: llave no coincide con la cédula -->
+    <div id="err-mismatch" style="display:none;background:#1a0d00;border:3px solid #ffcd75;box-shadow:4px 4px 0 #c48c00;padding:14px;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+        <span style="font-family:'Press Start 2P',monospace;font-size:8px;color:#ffcd75;">⚠ LLAVE NO COINCIDE</span>
+      </div>
+      <p style="font-family:'VT323',monospace;font-size:19px;color:#c0cbdc;line-height:1.5;">
+        La llave privada cargada no corresponde a la cédula <strong style="color:#ffcd75;">4892103</strong>.<br/>
+        Asegúrate de usar la llave correcta para este perfil médico.
+      </p>
+      <button type="button" onclick="resetDrop()" style="margin-top:10px;font-family:'Press Start 2P',monospace;font-size:7px;color:#ffcd75;background:none;border:2px solid #ffcd75;padding:5px 10px;cursor:pointer;">CARGAR OTRA LLAVE</button>
+    </div>
+
+    <!-- ÉXITO: llave verificada -->
+    <div id="key-ok" style="display:none;background:#1a2e1a;border:3px solid #38b764;padding:12px;align-items:center;gap:10px;">
+      <svg width="18" height="14" viewBox="0 0 20 16" style="image-rendering:pixelated;color:#38b764;flex-shrink:0;"><use href="#ico-checkmark"/></svg>
+      <div>
+        <p style="font-family:'Press Start 2P',monospace;font-size:7px;color:#38b764;">LLAVE VERIFICADA · LISTA PARA FIRMAR</p>
+        <p style="font-family:'VT323',monospace;font-size:17px;color:#c0cbdc;margin-top:3px;">ECDSA P-256 · La llave privada nunca abandona este dispositivo.</p>
+      </div>
+    </div>
+
+    <!-- Passphrase (aparece si la llave está cifrada) -->
+    <div id="passphrase-box" style="display:none;flex-direction:column;gap:8px;">
+      <label style="font-family:'Press Start 2P',monospace;font-size:8px;color:#ffcd75;">CONTRASEÑA DE LA LLAVE</label>
+      <input type="password" id="passphrase-input"
+             placeholder="Passphrase del archivo"
+             style="width:100%;background:#0d0d05;color:#f4f4f4;border:3px solid #ffcd75;padding:11px 14px;font-family:'VT323',monospace;font-size:20px;box-sizing:border-box;"/>
+      <p style="font-family:'VT323',monospace;font-size:17px;color:#5b6ee1;">Dejar vacío si el archivo no tiene contraseña.</p>
+    </div>
+
+  </div>
+
+  <!-- CTA — deshabilitado hasta que la llave sea válida -->
+  <button type="button" id="sign-btn" onclick="doSign()" disabled
+          class="px-btn px-btn-yellow px-btn-lg"
+          style="width:100%;justify-content:center;font-size:12px;opacity:.4;cursor:not-allowed;">
+    🔑 FIRMAR Y EMITIR RECETA
+  </button>
+
+  <div style="display:flex;justify-content:center;gap:24px;">
+    <a href="/doctor/patient"    style="font-family:'Press Start 2P',monospace;font-size:7px;color:#29366f;text-decoration:none;" onmouseover="this.style.color='#c0cbdc'" onmouseout="this.style.color='#29366f'">◄ EDITAR PACIENTE</a>
+    <a href="/doctor/medication" style="font-family:'Press Start 2P',monospace;font-size:7px;color:#29366f;text-decoration:none;" onmouseover="this.style.color='#c0cbdc'" onmouseout="this.style.color='#29366f'">◄ EDITAR MEDICAMENTO</a>
+  </div>
+</div>
+</FlowLayout>
+
+<script>
+/* ──────────────────────────────────────────────
+   Helpers de visibilidad
+────────────────────────────────────────────── */
+const ERROR_IDS = ['err-format', 'err-corrupt', 'err-mismatch']
+const STATUS_IDS = ['file-loaded', 'key-ok', 'passphrase-box', ...ERROR_IDS]
+
+function hideAll() {
+  STATUS_IDS.forEach(id => {
+    const el = document.getElementById(id)
+    if (el) el.style.display = 'none'
+  })
+}
+
+function show(id, displayType = 'flex') {
+  const el = document.getElementById(id)
+  if (el) el.style.display = displayType
+}
+
+function setSignBtn(enabled) {
+  const btn = document.getElementById('sign-btn')
+  btn.disabled        = !enabled
+  btn.style.opacity   = enabled ? '1'       : '.4'
+  btn.style.cursor    = enabled ? 'pointer' : 'not-allowed'
+}
+
+function resetDrop() {
+  hideAll()
+  document.getElementById('key-file-input').value = ''
+  document.getElementById('drop-zone').style.display = 'block'
+  setSignBtn(false)
+}
+
+function clearFile() {
+  resetDrop()
+}
+
+/* ──────────────────────────────────────────────
+   Drag & drop
+────────────────────────────────────────────── */
+function handleDragOver(e) {
+  e.preventDefault()
+  e.currentTarget.style.borderColor = '#ffffff'
+  e.currentTarget.style.background  = '#1e1c00'
+}
+function handleDragLeave(e) {
+  e.currentTarget.style.borderColor = '#ffcd75'
+  e.currentTarget.style.background  = '#12110a'
+}
+function handleDrop(e) {
+  e.preventDefault()
+  handleDragLeave(e)
+  const file = e.dataTransfer?.files?.[0]
+  if (file) processFile(file)
+}
+function handleFileSelect(e) {
+  const file = e.target.files?.[0]
+  if (file) processFile(file)
+}
+
+/* ──────────────────────────────────────────────
+   Validación del archivo
+────────────────────────────────────────────── */
+const VALID_EXTS  = ['.pem', '.key', '.p12', '.pfx', '.der']
+const PEM_HEADERS = [
+  '-----BEGIN EC PRIVATE KEY-----',
+  '-----BEGIN PRIVATE KEY-----',
+  '-----BEGIN ENCRYPTED PRIVATE KEY-----',
+  '-----BEGIN RSA PRIVATE KEY-----',
+]
+const ENCRYPTED_HEADER = '-----BEGIN ENCRYPTED PRIVATE KEY-----'
+
+async function processFile(file) {
+  const name = file.name.toLowerCase()
+  const ext  = VALID_EXTS.find(e => name.endsWith(e))
+
+  // Ocultar drop zone mientras procesamos
+  document.getElementById('drop-zone').style.display = 'none'
+  hideAll()
+
+  /* 1 — Extensión inválida */
+  if (!ext) {
+    show('err-format', 'block')
+    return
+  }
+
+  /* 2 — Leer contenido */
+  let rawText = ''
+  try {
+    rawText = await file.text()
+  } catch {
+    show('err-corrupt', 'block')
+    return
+  }
+
+  /* 3 — Binarios (.p12 / .pfx / .der): validar por magic byte DER (0x30) */
+  if (['.p12', '.pfx', '.der'].includes(ext)) {
+    try {
+      const buf  = await file.arrayBuffer()
+      const view = new Uint8Array(buf)
+      if (view[0] !== 0x30) throw new Error('bad magic')
+    } catch {
+      show('err-corrupt', 'block')
+      return
+    }
+    acceptKey(file, false)
+    return
+  }
+
+  /* 4 — PEM: verificar encabezado */
+  const trimmed   = rawText.trim()
+  const hasHeader = PEM_HEADERS.some(h => trimmed.startsWith(h))
+
+  if (!hasHeader) {
+    if (trimmed.length === 0 || !trimmed.startsWith('-----')) {
+      show('err-corrupt', 'block')
+    } else {
+      show('err-format', 'block')
+    }
+    return
+  }
+
+  /* 5 — Verificar base64 válido (detecta corrupción parcial) */
+  try {
+    const b64 = trimmed.replace(/-----[^-]+-----/g, '').replace(/\s/g, '')
+    atob(b64)
+  } catch {
+    show('err-corrupt', 'block')
+    return
+  }
+
+  /* 6 — Simulación de verificación contra la cédula del médico.
+     En producción se haría una comparación llave-pública/certificado
+     contra el registro del servidor. Aquí mostramos el flujo de error
+     la primera vez para illustrar el caso de uso. */
+  const KEY_ATTEMPT = 'rxflow_key_attempt'
+  const attempts    = parseInt(sessionStorage.getItem(KEY_ATTEMPT) || '0')
+
+  if (attempts === 0) {
+    sessionStorage.setItem(KEY_ATTEMPT, '1')
+    show('err-mismatch', 'block')
+    return
+  }
+
+  // Segundo intento → la llave coincide
+  sessionStorage.removeItem(KEY_ATTEMPT)
+  const encrypted = trimmed.startsWith(ENCRYPTED_HEADER)
+  acceptKey(file, encrypted)
+}
+
+function acceptKey(file, encrypted) {
+  // Mostrar nombre y tamaño
+  const size = file.size < 1024
+    ? file.size + ' B'
+    : (file.size / 1024).toFixed(1) + ' KB'
+
+  const dispName = file.name.length > 30 ? file.name.slice(0, 28) + '…' : file.name
+  document.getElementById('file-name').textContent = dispName
+  document.getElementById('file-meta').textContent = size + ' · ECDSA P-256'
+
+  show('file-loaded', 'flex')
+  show('key-ok', 'flex')
+  if (encrypted) show('passphrase-box', 'flex')
+
+  setSignBtn(true)
+}
+
+/* ──────────────────────────────────────────────
+   Submit / firma
+────────────────────────────────────────────── */
+function doSign() {
+  const btn = document.getElementById('sign-btn')
+  btn.disabled        = true
+  btn.textContent     = '⏳ FIRMANDO...'
+  btn.style.opacity   = '.7'
+  btn.style.cursor    = 'not-allowed'
+  setTimeout(() => { window.location.href = '/doctor/done' }, 520)
+}
+</script>

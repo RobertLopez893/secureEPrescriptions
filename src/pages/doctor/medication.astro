@@ -1,0 +1,82 @@
+---
+import FlowLayout from '../../layouts/FlowLayout.astro'
+const steps=[{label:'LOGIN',href:'/doctor'},{label:'PACIENTE',href:'/doctor/patient'},{label:'MEDICAMENTO',href:'/doctor/medication'},{label:'FIRMA',href:'/doctor/sign'}]
+---
+<FlowLayout title="Médico — Medicamento" role="doctor" steps={steps} currentStep={2} back="/doctor/patient">
+<div class="anim-slide" style="display:flex;flex-direction:column;gap:20px;">
+  <div>
+    <h1 style="font-family:'Press Start 2P',monospace;font-size:13px;color:#f4f4f4;margin-bottom:6px;">PRESCRIPCIÓN</h1>
+    <p style="font-family:'VT323',monospace;font-size:22px;color:#c0cbdc;">¿Qué medicamento se prescribe?</p>
+  </div>
+
+  <div class="px-card" style="padding:24px;background:#222639;border-color:#38b764;box-shadow:4px 4px 0 #257a43;">
+    <form action="/doctor/sign" method="GET" style="display:flex;flex-direction:column;gap:18px;">
+      <div>
+        <label class="px-label" style="color:#38b764;">MEDICAMENTO *</label>
+        <input type="text" name="medication" placeholder="Nombre del medicamento"
+               class="px-input green" style="font-size:24px;font-family:'Press Start 2P',monospace;" id="med-name" required/>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+        <div>
+          <label class="px-label" style="color:#38b764;">DOSIS *</label>
+          <input type="text" name="strength" placeholder="500 mg" class="px-input green" id="med-dose" required/>
+        </div>
+        <div>
+          <label class="px-label" style="color:#38b764;">FORMA FARMACÉUTICA *</label>
+          <select name="form" class="px-input green">
+            <option value="">SELECCIONAR...</option>
+            <option>CÁPSULA</option><option>TABLETA</option>
+            <option>SOLUCIÓN ORAL</option><option>INYECTABLE</option>
+            <option>CREMA</option><option>GOTAS</option><option>JARABE</option>
+          </select>
+        </div>
+        <div>
+          <label class="px-label" style="color:#38b764;">CANTIDAD *</label>
+          <input type="number" name="quantity" placeholder="14" min="1" class="px-input green" id="med-qty" required/>
+        </div>
+        <div>
+          <label class="px-label" style="color:#38b764;">RECARGAS</label>
+          <input type="number" name="refills" placeholder="0" min="0" max="5" class="px-input green"/>
+        </div>
+      </div>
+
+      <div>
+        <label class="px-label" style="color:#38b764;">INSTRUCCIONES *</label>
+        <textarea name="instructions" rows="3" class="px-input green" style="resize:none;"
+                  placeholder="Tomar 1 cápsula cada 8 horas con alimentos..." required></textarea>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+        <div>
+          <label class="px-label" style="color:#38b764;">FECHA EMISIÓN</label>
+          <input type="date" name="date" class="px-input green" value={new Date().toISOString().split('T')[0]}/>
+        </div>
+        <div>
+          <label class="px-label" style="color:#38b764;">VIGENCIA (DÍAS)</label>
+          <input type="number" name="validity" value="30" class="px-input green"/>
+        </div>
+      </div>
+
+      <!-- Live pill preview -->
+      <div id="preview" style="background:#1a2e1a;border:3px solid #38b764;padding:16px;display:flex;align-items:center;gap:14px;transition:background .2s;">
+        <div style="font-size:32px;" class="anim-float">💊</div>
+        <div>
+          <p style="font-family:'Press Start 2P',monospace;font-size:10px;color:#38b764;" id="preview-name">—</p>
+          <p style="font-family:'VT323',monospace;font-size:20px;color:#c0cbdc;margin-top:4px;" id="preview-dose">Completa los campos</p>
+        </div>
+      </div>
+
+      <button type="submit" class="px-btn px-btn-green px-btn-lg" style="width:100%;justify-content:center;">
+        ► REVISAR Y FIRMAR
+      </button>
+    </form>
+  </div>
+</div>
+</FlowLayout>
+<script>
+  const n=document.getElementById('med-name'), d=document.getElementById('med-dose'), q=document.getElementById('med-qty')
+  const pn=document.getElementById('preview-name'), pd=document.getElementById('preview-dose')
+  const update=()=>{ pn.textContent=n.value.trim()||'—'; pd.textContent=`${d.value.trim()||'?'} · ${q.value.trim()||'?'} unidades` }
+  ;[n,d,q].forEach(el=>el.addEventListener('input',update))
+</script>

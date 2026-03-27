@@ -1,0 +1,83 @@
+---
+import FlowLayout from '../../layouts/FlowLayout.astro'
+const steps=[{label:'ACCESO',href:'/patient'},{label:'MIS RECETAS',href:'/patient/dashboard'},{label:'DETALLE',href:'/patient/detail'}]
+const rxList=[
+  {folio:'XYZ-123',date:'20 MAR',med:'Amoxicilina 500mg',  doctor:'Dr. E. Ramírez',    status:'pendiente',isNew:true },
+  {folio:'XYZ-118',date:'18 MAR',med:'Ibuprofeno 400mg',   doctor:'Dra. M. Villanueva',status:'surtida',  isNew:false},
+  {folio:'XYZ-111',date:'15 MAR',med:'Omeprazol 20mg',     doctor:'Dr. E. Ramírez',    status:'surtida',  isNew:false},
+  {folio:'XYZ-098',date:'02 MAR',med:'Metformina 850mg',   doctor:'Dr. C. Vega',       status:'surtida',  isNew:false},
+]
+---
+<FlowLayout title="Mis Recetas" role="patient" steps={steps} currentStep={1} back="/patient" wide={true}>
+<div class="anim-slide" style="display:flex;flex-direction:column;gap:20px;">
+
+  <!-- Patient ID card -->
+  <div style="background:#0d1a2e;border:3px solid #41a6f6;box-shadow:4px 4px 0 #1a6eb0;padding:16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+    <div style="display:flex;align-items:center;gap:14px;">
+      <span style="font-size:40px;">🧑‍💼</span>
+      <div>
+        <p style="font-family:'Press Start 2P',monospace;font-size:11px;color:#41a6f6;">LUIS GARCÍA MENDOZA</p>
+        <p style="font-family:'VT323',monospace;font-size:20px;color:#c0cbdc;margin-top:4px;">GARM850315HDFNDS07</p>
+      </div>
+    </div>
+    <!-- Mini QR -->
+    <div style="background:#f4f4f4;border:3px solid #1a1c2c;padding:8px;">
+      <svg width="48" height="48" viewBox="0 0 14 14" style="image-rendering:pixelated;">
+        <rect x="0" y="0" width="5" height="5" fill="none" stroke="#1a1c2c" stroke-width="1"/>
+        <rect x="1" y="1" width="3" height="3" fill="#1a1c2c"/>
+        <rect x="9" y="0" width="5" height="5" fill="none" stroke="#1a1c2c" stroke-width="1"/>
+        <rect x="10" y="1" width="3" height="3" fill="#1a1c2c"/>
+        <rect x="0" y="9" width="5" height="5" fill="none" stroke="#1a1c2c" stroke-width="1"/>
+        <rect x="1" y="10" width="3" height="3" fill="#1a1c2c"/>
+        <rect x="6" y="0" width="2" height="2" fill="#1a1c2c"/>
+        <rect x="7" y="3" width="2" height="2" fill="#1a1c2c"/>
+        <rect x="6" y="6" width="2" height="2" fill="#1a1c2c"/>
+        <rect x="9" y="7" width="5" height="2" fill="#1a1c2c"/>
+        <rect x="9" y="10" width="2" height="4" fill="#1a1c2c"/>
+        <rect x="12" y="10" width="2" height="2" fill="#1a1c2c"/>
+        <rect x="6" y="9" width="2" height="5" fill="#1a1c2c"/>
+      </svg>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;">
+    <div class="px-stat"><span class="px-stat-num" style="color:#f4f4f4;">{rxList.length}</span><span class="px-stat-label">TOTAL</span></div>
+    <div class="px-stat"><span class="px-stat-num" style="color:#38b764;">{rxList.filter(r=>r.status==='surtida').length}</span><span class="px-stat-label">SURTIDAS</span></div>
+    <div class="px-stat"><span class="px-stat-num" style="color:#ffcd75;">{rxList.filter(r=>r.status==='pendiente').length}</span><span class="px-stat-label">PENDIENTE</span></div>
+  </div>
+
+  <!-- Prescription list -->
+  <div style="display:flex;flex-direction:column;gap:4px;">
+    {rxList.map((rx,idx)=>{
+      const rxBorder = rx.status==='pendiente'?'#ffcd75':'#29366f'
+      const rxShadow = rx.status==='pendiente'?'4px 4px 0 #c48c00':'4px 4px 0 #0d0e1a'
+      const rxStyle  = 'text-decoration:none;display:flex;align-items:center;gap:14px;padding:16px;background:#222639;border:3px solid '+rxBorder+';box-shadow:'+rxShadow+';position:relative;transition:transform .08s;'
+      return (
+      <a href="/patient/detail" style={rxStyle}
+         class={'anim-slide d'+(idx+1)}
+         onmouseover="this.style.transform='translateX(4px)'"
+         onmouseout="this.style.transform=''">
+        {rx.isNew && <div style="position:absolute;top:0;right:0;background:#ffcd75;color:#1a1c2c;font-family:'Press Start 2P',monospace;font-size:7px;padding:4px 8px;">NEW!</div>}
+        <span style="font-size:28px;flex-shrink:0;">💊</span>
+        <div style="flex:1;min-width:0;">
+          <p style="font-family:'Press Start 2P',monospace;font-size:9px;color:#f4f4f4;margin-bottom:6px;">{rx.med}</p>
+          <p style="font-family:'VT323',monospace;font-size:19px;color:#c0cbdc;">{rx.doctor}</p>
+          <p style="font-family:'VT323',monospace;font-size:17px;color:#5b6ee1;">{rx.date} · FOLIO {rx.folio}</p>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
+          <span class={'px-badge '+(rx.status==='pendiente'?'px-badge-yellow':'px-badge-green')}>
+            {rx.status==='pendiente'?'⏳ PENDIENTE':'✓ SURTIDA'}
+          </span>
+          <span style="font-family:'Press Start 2P',monospace;font-size:9px;color:#5b6ee1;">►</span>
+        </div>
+      </a>
+      )
+    })}
+  </div>
+
+  <p style="text-align:center;font-family:'Press Start 2P',monospace;font-size:7px;color:#29366f;line-height:1.8;">
+    🔒 SOLO TÚ, TU MÉDICO Y EL FARMACÉUTICO PUEDEN VER ESTAS RECETAS
+  </p>
+</div>
+</FlowLayout>

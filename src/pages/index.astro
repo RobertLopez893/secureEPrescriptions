@@ -1,0 +1,221 @@
+---
+// Astro 5: import via frontmatter so Vite/Tailwind can process it
+import '../styles/global.css'
+---
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>RxPro — Recetas Digitales Seguras</title>
+
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 16'><rect x='1' y='3' width='14' height='10' rx='5' fill='%23e8003d'/><rect x='17' y='3' width='14' height='10' rx='5' fill='white'/></svg>"/>
+  <style>
+    .pill-bg{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:0;}
+    .pill-sprite{position:absolute;animation:pill-fall linear infinite;opacity:0;}
+    .virus-ambient{position:absolute;animation:virus-wiggle ease-in-out infinite;opacity:.35;}
+    body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9998;background:repeating-linear-gradient(0deg,rgba(0,0,0,.035),rgba(0,0,0,.035) 1px,transparent 1px,transparent 3px);}
+  </style>
+</head>
+<body style="min-height:100vh;display:flex;flex-direction:column;">
+
+<!-- SVG SPRITES -->
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none;" aria-hidden="true"><defs>
+  <symbol id="ico-doctor" viewBox="0 0 24 28"><rect x="7" y="0" width="10" height="10" fill="#f4c87a"/><rect x="5" y="2" width="14" height="8" fill="#f4c87a"/><rect x="5" y="0" width="14" height="3" fill="#5c3a1e"/><rect x="8" y="4" width="2" height="2" fill="#1a1c2c"/><rect x="14" y="4" width="2" height="2" fill="#1a1c2c"/><rect x="9" y="7" width="6" height="1" fill="#c0724a"/><rect x="4" y="10" width="16" height="14" fill="white"/><rect x="4" y="10" width="4" height="10" fill="#e0e0e0"/><rect x="16" y="10" width="4" height="10" fill="#e0e0e0"/><rect x="10" y="13" width="4" height="2" fill="#38b764"/><rect x="11" y="12" width="2" height="4" fill="#38b764"/><rect x="0" y="11" width="4" height="10" fill="white"/><rect x="20" y="11" width="4" height="10" fill="white"/></symbol>
+  <symbol id="ico-patient" viewBox="0 0 24 28"><rect x="7" y="0" width="10" height="10" fill="#f4c87a"/><rect x="5" y="2" width="14" height="8" fill="#f4c87a"/><rect x="5" y="0" width="14" height="4" fill="#3d2b1f"/><rect x="8" y="4" width="2" height="2" fill="#1a1c2c"/><rect x="14" y="4" width="2" height="2" fill="#1a1c2c"/><rect x="4" y="11" width="16" height="13" fill="#41a6f6"/><rect x="0" y="12" width="4" height="9" fill="#41a6f6"/><rect x="20" y="12" width="4" height="9" fill="#41a6f6"/><rect x="9" y="10" width="6" height="3" fill="#f4c87a"/></symbol>
+  <symbol id="ico-pharmacist" viewBox="0 0 24 28"><rect x="7" y="0" width="10" height="10" fill="#f4a67a"/><rect x="5" y="2" width="14" height="8" fill="#f4a67a"/><rect x="6" y="0" width="12" height="3" fill="#8B4513"/><rect x="4" y="1" width="4" height="4" fill="#8B4513"/><rect x="16" y="1" width="4" height="4" fill="#8B4513"/><rect x="8" y="4" width="2" height="2" fill="#1a1c2c"/><rect x="14" y="4" width="2" height="2" fill="#1a1c2c"/><rect x="4" y="10" width="16" height="14" fill="white"/><rect x="4" y="10" width="4" height="10" fill="#ddd"/><rect x="16" y="10" width="4" height="10" fill="#ddd"/><rect x="10" y="12" width="2" height="6" fill="#e8003d"/><rect x="10" y="12" width="5" height="2" fill="#e8003d"/><rect x="13" y="14" width="2" height="2" fill="#e8003d"/><rect x="12" y="16" width="3" height="2" fill="#e8003d"/><rect x="0" y="11" width="4" height="10" fill="white"/><rect x="20" y="11" width="4" height="10" fill="white"/></symbol>
+  <symbol id="ico-virus" viewBox="0 0 20 20"><rect x="3" y="0" width="14" height="2" fill="currentColor"/><rect x="1" y="2" width="18" height="14" fill="currentColor"/><rect x="3" y="16" width="14" height="2" fill="currentColor"/><rect x="5" y="18" width="10" height="2" fill="currentColor"/><rect x="8" y="0" width="4" height="2" fill="currentColor"/><rect x="8" y="18" width="4" height="2" fill="currentColor"/><rect x="0" y="8" width="2" height="4" fill="currentColor"/><rect x="18" y="8" width="2" height="4" fill="currentColor"/><rect x="3" y="5" width="6" height="6" fill="white"/><rect x="11" y="5" width="6" height="6" fill="white"/><rect x="4" y="6" width="4" height="4" fill="#1a1c2c"/><rect x="12" y="6" width="4" height="4" fill="#1a1c2c"/><rect x="5" y="12" width="10" height="2" fill="white"/><rect x="7" y="14" width="6" height="1" fill="white"/></symbol>
+  <symbol id="ico-checkmark" viewBox="0 0 20 16"><rect x="0" y="8" width="4" height="4" fill="currentColor"/><rect x="4" y="11" width="4" height="4" fill="currentColor"/><rect x="8" y="7" width="4" height="4" fill="currentColor"/><rect x="12" y="3" width="4" height="4" fill="currentColor"/><rect x="16" y="0" width="4" height="3" fill="currentColor"/></symbol>
+  <symbol id="ico-star" viewBox="0 0 20 20"><rect x="8" y="0" width="4" height="4" fill="currentColor"/><rect x="6" y="4" width="8" height="4" fill="currentColor"/><rect x="0" y="6" width="20" height="4" fill="currentColor"/><rect x="2" y="10" width="16" height="4" fill="currentColor"/><rect x="4" y="14" width="4" height="4" fill="currentColor"/><rect x="12" y="14" width="4" height="4" fill="currentColor"/><rect x="2" y="16" width="4" height="4" fill="currentColor"/><rect x="14" y="16" width="4" height="4" fill="currentColor"/></symbol>
+  <symbol id="ico-heart" viewBox="0 0 22 20"><rect x="2" y="0" width="6" height="4" fill="currentColor"/><rect x="14" y="0" width="6" height="4" fill="currentColor"/><rect x="0" y="4" width="10" height="6" fill="currentColor"/><rect x="12" y="4" width="10" height="6" fill="currentColor"/><rect x="0" y="6" width="22" height="6" fill="currentColor"/><rect x="2" y="12" width="18" height="4" fill="currentColor"/><rect x="4" y="16" width="14" height="3" fill="currentColor"/><rect x="7" y="19" width="8" height="2" fill="currentColor"/></symbol>
+</defs></svg>
+
+<!-- PAGE LOADER -->
+<div id="px-loader" class="px-loader">
+  <div style="animation:px-bounce .5s ease-in-out infinite;">
+    <svg width="80" height="40" viewBox="0 0 32 16" style="image-rendering:pixelated;">
+      <rect x="1" y="3" width="14" height="10" rx="5" fill="#e8003d"/>
+      <rect x="17" y="3" width="14" height="10" rx="5" fill="#f4f4f4"/>
+      <rect x="15" y="3" width="2" height="10" fill="#1a1c2c"/>
+      <rect x="2" y="3" width="12" height="4" rx="3" fill="rgba(255,255,255,.25)"/>
+    </svg>
+  </div>
+  <div style="font-family:'Press Start 2P',monospace;font-size:10px;color:#e8003d;letter-spacing:.1em;" id="loader-msg">CARGANDO...</div>
+  <div class="px-progress-track">
+    <div class="px-progress-fill"></div>
+  </div>
+</div>
+
+<!-- BG PILLS + VIRUSES -->
+<div class="pill-bg" aria-hidden="true">
+  {Array.from({length:16}).map((_,idx)=>{
+    const pairs=[['#e8003d','#f4f4f4'],['#41a6f6','#29366f'],['#38b764','#ffcd75'],['#ffcd75','#e8003d'],['#f4f4f4','#41a6f6'],['#b13e53','#38b764']]
+    const [a,b]=pairs[idx%6]
+    const pL=((idx*6.2)%100),pD=(7+(idx*1.2)%11),pDel=((idx*0.9)%9),pR=((idx*53)%360)
+    return <div class="pill-sprite" style={'left:'+pL+'%;animation-duration:'+pD+'s;animation-delay:'+pDel+'s;'}><svg width="14" height="28" viewBox="0 0 32 16" style={'image-rendering:pixelated;transform:rotate('+pR+'deg);'}><rect x="1" y="3" width="14" height="10" rx="5" fill={a}/><rect x="17" y="3" width="14" height="10" rx="5" fill={b}/><rect x="15" y="3" width="2" height="10" fill="#1a1c2c"/></svg></div>
+  })}
+  {[{t:'10%',l:'4%',c:'#e8003d',d:'0s',du:'1.5s'},{t:'35%',l:'93%',c:'#41a6f6',d:'.6s',du:'1.9s'},{t:'62%',l:'3%',c:'#38b764',d:'1.2s',du:'1.4s'},{t:'80%',l:'90%',c:'#ffcd75',d:'.3s',du:'2s'},{t:'22%',l:'88%',c:'#b13e53',d:'1s',du:'1.7s'}].map(v=>(
+    <div class="virus-ambient" style={'top:'+v.t+';left:'+v.l+';animation-delay:'+v.d+';animation-duration:'+v.du+';color:'+v.c+';'}>
+      <svg width="24" height="24" viewBox="0 0 20 20" style="image-rendering:pixelated;"><use href="#ico-virus"/></svg>
+    </div>
+  ))}
+</div>
+
+<!-- TOP BAR -->
+<header style="background:#0d0e1a;border-bottom:4px solid #070810;position:sticky;top:0;z-index:50;">
+  <div style="max-width:1100px;margin:0 auto;padding:0 20px;height:52px;display:flex;align-items:center;justify-content:space-between;">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <svg width="36" height="18" viewBox="0 0 32 16" style="image-rendering:pixelated;"><rect x="1" y="3" width="14" height="10" rx="5" fill="#e8003d"/><rect x="17" y="3" width="14" height="10" rx="5" fill="#f4f4f4"/><rect x="15" y="3" width="2" height="10" fill="#1a1c2c"/><rect x="2" y="3" width="12" height="4" rx="3" fill="rgba(255,255,255,.25)"/></svg>
+      <span style="font-family:'Press Start 2P',monospace;font-size:13px;color:#f4f4f4;">RxPro</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <span class="anim-blink" style="display:inline-block;width:8px;height:8px;background:#38b764;"></span>
+      <span style="font-family:'Press Start 2P',monospace;font-size:8px;color:#38b764;">SISTEMA ACTIVO</span>
+    </div>
+  </div>
+</header>
+
+<!-- MAIN -->
+<main style="flex:1;position:relative;z-index:1;max-width:1100px;margin:0 auto;width:100%;padding:60px 20px;">
+
+  <!-- HERO -->
+  <div style="text-align:center;margin-bottom:72px;" class="anim-slide">
+    <!-- Bouncing pill -->
+    <div style="display:flex;justify-content:center;margin-bottom:28px;">
+      <div class="anim-bounce" style="animation-duration:1s;">
+        <svg width="120" height="60" viewBox="0 0 32 16" style="image-rendering:pixelated;">
+          <rect x="1" y="3" width="14" height="10" rx="5" fill="#e8003d"/>
+          <rect x="17" y="3" width="14" height="10" rx="5" fill="#f4f4f4"/>
+          <rect x="15" y="3" width="2" height="10" fill="#1a1c2c"/>
+          <rect x="2" y="3" width="12" height="4" rx="3" fill="rgba(255,255,255,.3)"/>
+          <rect x="18" y="3" width="12" height="4" rx="3" fill="rgba(255,255,255,.45)"/>
+        </svg>
+      </div>
+    </div>
+
+    <h1 style="font-family:'Press Start 2P',monospace;font-size:clamp(16px,3vw,26px);color:#f4f4f4;margin-bottom:8px;line-height:1.7;">
+      RECETAS MÉDICAS
+    </h1>
+    <h1 style="font-family:'Press Start 2P',monospace;font-size:clamp(16px,3vw,26px);color:#ffcd75;margin-bottom:28px;line-height:1.7;">
+      DIGITALES SEGURAS
+    </h1>
+    <p style="font-family:'VT323',monospace;font-size:26px;color:#c0cbdc;max-width:500px;margin:0 auto 40px;line-height:1.4;">
+      Firma digital · Verificación automática · Despacho sellado
+    </p>
+
+    <!-- Score display -->
+    <div style="display:flex;justify-content:center;gap:20px;margin-bottom:48px;flex-wrap:wrap;">
+      {[{l:'RECETAS HOY',v:'247',c:'#38b764'},{l:'FARMACIAS',v:'3',c:'#41a6f6'},{l:'MÉDICOS',v:'320',c:'#ffcd75'}].map(s=>(
+        <div style={'text-align:center;border:3px solid '+s.c+';padding:12px 20px;background:'+s.c+'18;box-shadow:4px 4px 0 '+s.c+'66;'} class="anim-score">
+          <div style={"font-family:'Press Start 2P',monospace;font-size:26px;color:"+s.c+';'}>{s.v}</div>
+          <div style={"font-family:'Press Start 2P',monospace;font-size:7px;color:"+s.c+";margin-top:6px;"}>{s.l}</div>
+        </div>
+      ))}
+    </div>
+
+    <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:14px;">
+      <a href="/doctor"   class="px-btn px-btn-green px-btn-lg" style="text-decoration:none;gap:10px;">
+        <svg width="20" height="24" viewBox="0 0 24 28" style="image-rendering:pixelated;"><use href="#ico-doctor"/></svg>
+        SOY MÉDICO
+      </a>
+      <a href="/patient"  class="px-btn px-btn-blue px-btn-lg" style="text-decoration:none;gap:10px;">
+        <svg width="20" height="24" viewBox="0 0 24 28" style="image-rendering:pixelated;"><use href="#ico-patient"/></svg>
+        SOY PACIENTE
+      </a>
+      <a href="/pharmacy" class="px-btn px-btn-red px-btn-lg" style="text-decoration:none;gap:10px;">
+        <svg width="20" height="24" viewBox="0 0 24 28" style="image-rendering:pixelated;"><use href="#ico-pharmacist"/></svg>
+        SOY FARMACÉUTICO
+      </a>
+    </div>
+  </div>
+
+  <!-- ROLE CARDS -->
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px;margin-bottom:60px;">
+    {[
+      {href:'/doctor',   ico:'doctor',      title:'MÉDICO',       c:'#38b764',dark:'#257a43',features:['Formulario paso a paso','Firma ECDSA P-256','Envío inmediato'],btn:'px-btn-green',desc:'Emite recetas digitales firmadas. El paciente las recibe al instante.'},
+      {href:'/patient',  ico:'patient',     title:'PACIENTE',     c:'#41a6f6',dark:'#1a6eb0',features:['Reconocimiento facial','Historial cifrado','Solo tú lo ves'],  btn:'px-btn-blue', desc:'Accede con reconocimiento facial y muestra tu identificación en la farmacia.'},
+      {href:'/pharmacy', ico:'pharmacist',  title:'FARMACÉUTICO', c:'#e8003d',dark:'#8c0025',features:['Verificación automática','Sello criptográfico','Registro permanente'],btn:'px-btn-red',desc:'Verifica y sella el despacho con un solo clic.'},
+    ].map((card,idx)=>{
+      const cs = 'text-decoration:none;display:block;background:#222639;border:3px solid '+card.c+';box-shadow:6px 6px 0 '+card.dark+';padding:26px;transition:transform .08s;'
+      const bs = '8px 10px 0 '+card.dark
+      const bs0= '6px 6px 0 '+card.dark
+      return (
+      <a href={card.href} style={cs}
+         class={'anim-slide d'+(idx+1)}
+         onmouseover={"this.style.transform='translateY(-4px)';this.style.boxShadow='"+bs+"'"}
+         onmouseout={"this.style.transform='';this.style.boxShadow='"+bs0+"'"}>
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
+          <div style={'width:48px;height:48px;display:flex;align-items:center;justify-content:center;border:3px solid '+card.c+';background:'+card.c+'22;'}>
+            <svg width="28" height="33" viewBox="0 0 24 28" style="image-rendering:pixelated;"><use href={'#ico-'+card.ico}/></svg>
+          </div>
+          <span style={"font-family:'Press Start 2P',monospace;font-size:11px;color:"+card.c+';'}>{card.title}</span>
+        </div>
+        <p style="font-family:'VT323',monospace;font-size:20px;color:#c0cbdc;margin-bottom:16px;line-height:1.5;">{card.desc}</p>
+        <div style="margin-bottom:20px;">
+          {card.features.map(f=>(
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px;">
+              <svg width="14" height="11" viewBox="0 0 20 16" style={'image-rendering:pixelated;color:'+card.c+';flex-shrink:0;'}><use href="#ico-checkmark"/></svg>
+              <span style="font-family:'VT323',monospace;font-size:19px;color:#f4f4f4;">{f}</span>
+            </div>
+          ))}
+        </div>
+        <div class={'px-btn '+card.btn} style="width:100%;justify-content:center;font-size:9px;">
+          ENTRAR
+          <svg width="12" height="9" viewBox="0 0 16 12" style="image-rendering:pixelated;color:currentColor;"><rect x="0" y="4" width="12" height="4" fill="currentColor"/><rect x="8" y="0" width="4" height="4" fill="currentColor"/><rect x="8" y="8" width="4" height="4" fill="currentColor"/><rect x="12" y="2" width="2" height="2" fill="currentColor"/><rect x="12" y="8" width="2" height="2" fill="currentColor"/><rect x="14" y="4" width="2" height="4" fill="currentColor"/></svg>
+        </div>
+      </a>
+      )
+    })}
+  </div>
+
+  <!-- HOW IT WORKS -->
+  <div style="background:#222639;border:3px solid #29366f;box-shadow:6px 6px 0 #0d0e1a;padding:36px;">
+    <h2 style="font-family:'Press Start 2P',monospace;font-size:13px;color:#ffcd75;text-align:center;margin-bottom:36px;">── EL PROCESO ──</h2>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:4px;">
+      {[
+        {n:'01',ico:'doctor',     title:'MÉDICO PRESCRIBE',    desc:'Llena el formulario y firma con su clave digital.',  c:'#38b764'},
+        {n:'02',ico:'patient',    title:'PACIENTE RECIBE',     desc:'Accede con reconocimiento facial a su receta.',      c:'#41a6f6'},
+        {n:'03',ico:'pharmacist', title:'FARMACIA VERIFICA',   desc:'Escanea y valida la firma automáticamente.',         c:'#e8003d'},
+        {n:'04',ico:'checkmark',  title:'MEDICAMENTO SELLADO', desc:'El despacho queda registrado permanentemente.',      c:'#ffcd75'},
+      ].map((s,idx)=>{
+        const ss = 'padding:22px;border:3px solid '+s.c+'44;background:'+s.c+'0d;text-align:center;position:relative;'
+        const ns = 'position:absolute;top:-13px;left:50%;transform:translateX(-50%);background:#222639;padding:0 8px;font-family:\'Press Start 2P\',monospace;font-size:8px;color:'+s.c+';border:2px solid '+s.c+';'
+        const svgW = s.ico==='checkmark'?'28':'34'
+        const svgH = s.ico==='checkmark'?'22':'40'
+        const svgVB = s.ico==='checkmark'?'0 0 20 16':'0 0 24 28'
+        return (
+        <div style={ss} class={'anim-slide d'+(idx+1)}>
+          <div style={ns}>{s.n}</div>
+          <div style="display:flex;justify-content:center;margin-bottom:12px;">
+            <svg width={svgW} height={svgH} viewBox={svgVB} style={'image-rendering:pixelated;color:'+s.c+';'}>
+              <use href={'#ico-'+s.ico}/>
+            </svg>
+          </div>
+          <p style={"font-family:'Press Start 2P',monospace;font-size:7px;color:"+s.c+";margin-bottom:10px;line-height:1.8;"}>{s.title}</p>
+          <p style="font-family:'VT323',monospace;font-size:18px;color:#c0cbdc;line-height:1.5;">{s.desc}</p>
+        </div>
+        )
+      })}
+    </div>
+  </div>
+</main>
+
+<footer style="background:#0d0e1a;border-top:3px solid #1a1e30;padding:12px 20px;position:relative;z-index:1;">
+  <div style="max-width:1100px;margin:0 auto;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;">
+    <span style="font-family:'Press Start 2P',monospace;font-size:7px;color:#29366f;">RxPro · CRYPTOGRAPHY PROJECT 2026</span>
+    <div style="display:flex;gap:5px;flex-wrap:wrap;">
+      {['ECDSA P-256','AES-256-GCM','HMAC-SHA256','RFC 8785','FIPS 186-5'].map(t=>(
+        <span style="font-family:'Press Start 2P',monospace;font-size:6px;padding:3px 7px;border:2px solid #29366f;color:#29366f;">{t}</span>
+      ))}
+    </div>
+  </div>
+</footer>
+
+<script>
+  const msgs=['CARGANDO...','INICIANDO...','CIFRANDO...','LISTO...']
+  const el=document.getElementById('loader-msg')
+  let mi=0
+  if(el){const iv=setInterval(()=>{el.textContent=msgs[++mi%msgs.length]},180);setTimeout(()=>clearInterval(iv),780)}
+</script>
+</body>
+</html>
