@@ -1,7 +1,3 @@
-Aquí tienes la versión final y completa de tu `README.md`. He incluido el diagrama de árbol con la ubicación exacta del archivo de variables de entorno (`.env`) y una sección detallada sobre qué debe contener.
-
----
-
 # Secure E-Prescriptions
 
 Sistema de gestión de recetas médicas electrónicas con cifrado en el lado del cliente y arquitectura de microservicios.
