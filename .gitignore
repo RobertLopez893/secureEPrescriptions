@@ -1,5 +1,37 @@
-node_modules/ 
-dist/ 
+# --- Base de Datos y Docker ---
+# Ignora los datos reales de la base de datos (se guardan en el volumen de Docker)
+postgres_data/
+
+# --- Entorno y Secretos ---
+# NUNCA subas el archivo .env con contraseñas reales
+.env
+.env.local
+
+# --- Python ---
+# Carpetas de entorno virtual (como tu carpeta 'venv')
+venv/
+env/
+.venv/
+
+# Archivos compilados de Python (la carpeta __pycache__ que mencionaste)
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# --- Node.js / Astro ---
+# La carpeta gigante de dependencias
+node_modules/
+
+# Archivos de compilación (dist es donde Astro genera el sitio final)
+dist/
 .astro/
-.env 
-*.local
+
+# Logs de error de npm
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# --- Sistema Operativo ---
+.DS_Store
+Thumbs.db
