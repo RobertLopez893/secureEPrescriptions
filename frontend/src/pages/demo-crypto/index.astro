@@ -1,0 +1,175 @@
+---
+import Layout from '../../layouts/FlowLayout.astro';
+import Icons from '../../components/Icons.astro';
+const steps=[{label:'LOGIN',href:'/doctor'},{label:'PACIENTE',href:'/doctor/patient'},{label:'MEDICAMENTO',href:'/doctor/medication'},{label:'FIRMA',href:'/doctor/sign'}];
+---
+
+<Layout title="Demo E2EE: Flujo Interactivo" role="doctor" steps={steps} currentStep={0}>
+  <div class="max-w-7xl mx-auto p-4 space-y-6">
+    <header class="text-center space-y-2">
+      <h1 class="text-3xl font-bold text-slate-900">Laboratorio Criptográfico E2EE</h1>
+      <p class="text-slate-500">Edita los JSON manualmente para probar la resistencia del motor criptográfico.</p>
+    </header>
+
+    <div class="bg-slate-100 p-4 rounded-xl border border-slate-200 flex flex-wrap items-center gap-4 shadow-sm">
+      
+      <button id="btn-emitir" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-semibold transition-all">
+        1. Emitir (Médico)
+      </button>
+
+      <div class="h-8 w-px bg-slate-300 mx-2"></div> 
+      <div class="flex items-center gap-2">
+        <label for="actor-select" class="text-sm font-bold text-slate-700">Intentar abrir como:</label>
+        <select id="actor-select" class="bg-white border border-slate-300 text-slate-700 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2 font-semibold shadow-sm">
+          <option value="paciente">Paciente</option>
+          <option value="farmacia">Farmacéutico</option>
+          <option value="doctor">Doctor</option>
+        </select>
+      </div>
+
+      <button id="btn-abrir" class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg font-semibold transition-all">
+        2. Desencriptar
+      </button>
+
+      <div class="h-8 w-px bg-slate-300 mx-2"></div> 
+      <button id="btn-sellar" class="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2 rounded-lg font-semibold transition-all ml-auto">
+        3. Sellar (Farmacia)
+      </button>
+      
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      
+      <div class="space-y-2">
+        <h3 class="font-bold text-slate-700 flex items-center gap-2">
+          <Icons name="database" /> Datos Cifrados (Cápsula y Accesos)
+        </h3>
+        <p class="text-xs text-slate-500 italic">Editable: Prueba cambiar un caracter de la cápsula o un wrap.</p>
+        <textarea id="encrypted-window" spellcheck="false" class="w-full h-[600px] bg-slate-900 text-green-400 font-mono text-xs p-4 rounded-xl border border-slate-700 focus:ring-2 focus:ring-blue-500 outline-none resize-y shadow-inner" placeholder="// Aquí aparecerá el paquete encriptado..."></textarea>
+      </div>
+
+      <div class="space-y-2">
+        <h3 class="font-bold text-slate-700 flex items-center gap-2">
+          <Icons name="eye" /> Datos Desencriptados (Contenido)
+        </h3>
+        <p class="text-xs text-slate-500 italic">Editable: Prueba alterar la receta médica antes de que la farmacia la selle.</p>
+        <textarea id="clear-window" spellcheck="false" class="w-full h-[600px] bg-white text-slate-800 font-mono text-xs p-4 rounded-xl border-2 border-slate-300 focus:ring-2 focus:ring-purple-500 outline-none resize-y shadow-inner" placeholder="// Aquí aparecerán los datos médicos legibles y resultados de verificación..."></textarea>
+      </div>
+
+    </div>
+  </div>
+</Layout>
+
+<script>
+  import { CryptoEngine } from '../../crypto';
+  import type { DatosMedicos, RecetaCifrada } from '../../crypto/interfaces';
+
+  const doctor = { priv: "1111111111111111111111111111111111111111111111111111111111111111", pub: "" };
+  const paciente = { priv: "2222222222222222222222222222222222222222222222222222222222222222", pub: "" };
+  const farmacia = { priv: "3333333333333333333333333333333333333333333333333333333333333333", pub: "" };
+
+  doctor.pub = CryptoEngine.getPublicKey(doctor.priv);
+  paciente.pub = CryptoEngine.getPublicKey(paciente.priv);
+  farmacia.pub = CryptoEngine.getPublicKey(farmacia.priv);
+
+  const encryptedWindow = document.getElementById('encrypted-window') as HTMLTextAreaElement;
+  const clearWindow = document.getElementById('clear-window') as HTMLTextAreaElement;
+  const actorSelect = document.getElementById('actor-select') as HTMLSelectElement;
+  
+  const btnEmitir = document.getElementById('btn-emitir');
+  const btnAbrir = document.getElementById('btn-abrir');
+  const btnSellar = document.getElementById('btn-sellar');
+
+  function getEncryptedData(): RecetaCifrada | null {
+    try {
+      return JSON.parse(encryptedWindow.value);
+    } catch (e) {
+      clearWindow.value = "ERROR: El JSON de la ventana de Datos Cifrados es inválido o está mal formateado.\nCorrige las comillas o corchetes e intenta de nuevo.";
+      return null;
+    }
+  }
+
+  // 1. EMITIR
+  btnEmitir?.addEventListener('click', () => {
+    const datos: DatosMedicos = {
+      id_receta: "REC-" + Math.floor(Math.random() * 9999),
+      id_medico: "DOC-001",
+      id_paciente: "PAT-007",
+      fecha_emision: new Date().toISOString(),
+      medicamentos: [{ nombre: "Ibuprofeno", dosis: "400mg", frecuencia: "8h", duracion: "3 días" }],
+    };
+
+    // Aseguramos pasar doctor.pub como 5to parámetro para el auto-envoltorio
+    const paquete = CryptoEngine.emitirRecetaGlobal(datos, doctor.priv, paciente.pub, farmacia.pub, doctor.pub);
+    
+    encryptedWindow.value = JSON.stringify(paquete, null, 2);
+    clearWindow.value = "// Receta Original Generada:\n" + JSON.stringify(datos, null, 2);
+  });
+
+  // 2. DESENCRIPTAR
+  btnAbrir?.addEventListener('click', () => {
+    const paquete = getEncryptedData();
+    if (!paquete) return;
+
+    const rolSeleccionado = actorSelect.value;
+    let llavePrivadaAUsar = "";
+
+    if (rolSeleccionado === 'paciente') llavePrivadaAUsar = paciente.priv;
+    else if (rolSeleccionado === 'farmacia') llavePrivadaAUsar = farmacia.priv;
+    else if (rolSeleccionado === 'doctor') llavePrivadaAUsar = doctor.priv;
+
+    // LÓGICA CLAVE: ¿Quién envolvió la llave? 
+    // Como el método sellar borra el acceso de la farmacia, si no existe, sabemos que la farmacia fue quien selló.
+    const estaSellada = !paquete.accesos.find(a => a.rol === 'farmacia');
+    const llavePublicaDelEmisorDelWrap = estaSellada ? farmacia.pub : doctor.pub;
+
+    try {
+      const acceso = paquete.accesos.find(a => a.rol === rolSeleccionado);
+      if (!acceso) throw new Error(`El rol '${rolSeleccionado}' no tiene acceso (KeyWrap) en este paquete.`);
+
+      // Usamos el nuevo método abrirReceta con ambas llaves públicas
+      const resultado = CryptoEngine.abrirReceta(
+        paquete.capsula_cifrada,
+        paquete.iv_aes_gcm,
+        acceso.wrappedKey,
+        acceso.nonce,
+        llavePrivadaAUsar,
+        llavePublicaDelEmisorDelWrap, // Quien generó este wrap específico
+        doctor.pub                    // Quien firmó el documento (siempre el médico)
+      );
+
+      clearWindow.value = `// ESTADO DE VERIFICACIÓN (Firma del Doctor): ${resultado.valido ? 'VÁLIDA ✓' : 'INVÁLIDA ❌'}\n\n// CONTENIDO:\n` + JSON.stringify(resultado.contenido, null, 2);
+
+    } catch (e: any) {
+      clearWindow.value = `// FALLO CRIPTOGRÁFICO:\n${e.message}\n\nPosibles causas:\n- Alteraste un caracter del texto cifrado (MAC mismatch).\n- Borraste el KeyWrap de este actor.\n- Intentaste descifrar con la llave de alguien más.`;
+    }
+  });
+
+  // 3. SELLAR
+  btnSellar?.addEventListener('click', () => {
+    const paquete = getEncryptedData();
+    if (!paquete) return;
+
+    try {
+      const accesoFarmacia = paquete.accesos.find(a => a.rol === 'farmacia');
+      if (!accesoFarmacia) throw new Error("No se puede sellar: No hay KeyWrap para la farmacia o la receta ya fue sellada.");
+
+      // Adaptado a los parámetros exactos de tu nueva función sellar
+      const paqueteSellado = CryptoEngine.sellar(
+        paquete.capsula_cifrada,
+        paquete.iv_aes_gcm,
+        accesoFarmacia.wrappedKey,
+        accesoFarmacia.nonce,
+        farmacia.priv,
+        doctor.pub,
+        paciente.pub
+      );
+
+      encryptedWindow.value = JSON.stringify(paqueteSellado, null, 2);
+      clearWindow.value = "// EXITO: Receta Sellada.\n// El panel de Datos Cifrados ahora contiene el nuevo IV, el sello interior y los nuevos accesos (Generados por la farmacia).\n// Selecciona 'Paciente' o 'Doctor' y dale a Desencriptar para ver el sello.";
+
+    } catch (e: any) {
+      clearWindow.value = `// ERROR AL SELLAR:\n${e.message}`;
+    }
+  });
+</script>

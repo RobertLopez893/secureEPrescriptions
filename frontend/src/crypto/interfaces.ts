@@ -16,7 +16,7 @@ export interface DatosMedicos {
 
 //  El Sello del Farmacéutico (Prueba de dispensación)
 export interface SelloDispensacion {
-    id_farmacia: string;       // ID de la farmacia que surtió el medicamento
+    id_clinica: string;       // ID de la farmacia que surtió el medicamento
     fecha_surtido: string;     // Timestamp exacto del surtido (ISO 8601)
     hmac_sello: string;        // Sello matemático HMAC-SHA256 (en formato Hexadecimal)
 }
@@ -25,5 +25,16 @@ export interface SelloDispensacion {
 export interface RecetaContainer {
     datos: DatosMedicos;         // Los datos médicos intactos
     firma_medico: string;        // Firma ECDSA calculada estrictamente sobre 'datos'
-    sellos?: SelloDispensacion; // Historial de sellos (se inicializa vacío [] al emitir)
+    sellos?: SelloDispensacion;  // Historial de sellos
+}
+export interface KeyWrapResult {
+    rol: 'paciente' | 'farmaceutico' | 'doctor';
+    wrappedKey: string;
+    nonce: string;
+}
+
+export interface RecetaCifrada {
+    capsula_cifrada: string;
+    iv_aes_gcm: string;
+    accesos: KeyWrapResult[];
 }

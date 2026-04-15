@@ -1,110 +1,102 @@
-/**
- * src/crypto/index.ts
- * Orquestador Global del Motor Criptográfico con KeyWrap (E2EE)
- */
 import { SignatureModule } from './signature';
 import { EncryptionModule } from './encryption';
 import { KeyWrapModule } from './keyWrap';
 import { HmacModule } from './hmac';
-import type { DatosMedicos, RecetaContainer } from './interfaces';
+import type { DatosMedicos, RecetaContainer, RecetaCifrada } from './interfaces';
+import { randomBytes } from '@noble/ciphers/utils.js';
 
 export class CryptoEngine {
-  
-  /**
-   * 1. FLUJO DE EMISIÓN (Médico)
-   * Firma, Cifra y además Envuelve la DEK para el paciente.
-   */
-  static async emitirYEnvolverReceta(
+  static getPublicKey(privadaHex: string): string {
+    return SignatureModule.getPublicKey(privadaHex);
+  }
+  static getDEK(): Uint8Array {
+    return randomBytes(32);
+  }
+  static emitirRecetaGlobal(
     datos: DatosMedicos, 
-    doctorPrivateKey: string, 
-    pacientePublicKey: string,
-    dek: Uint8Array
-  ) {
-    // A. Firmar
-    const firma = SignatureModule.sign(datos, doctorPrivateKey);
-
-    // B. Encapsular
-    const contenedor: RecetaContainer = {
-        datos,
-        firma_medico: firma
-    };
-
-    // C. Cifrar Datos (AES-GCM)
+    doctorPriv: string, 
+    pacientePub: string, 
+    farmaciaPub: string
+  ) : RecetaCifrada {
+    const dek = this.getDEK();
+    const firma = SignatureModule.sign(datos, doctorPriv);
+    const contenedor: RecetaContainer = { datos, firma_medico: firma };
+    
     const cifrado = EncryptionModule.encrypt(contenedor, dek);
 
-    // D. Envolver la DEK para el Paciente (KeyWrap vía ECDH)
-    // Esto genera una "Wrapped Key" que solo el paciente puede abrir
-    const keyWrap = KeyWrapModule.wrap(dek, doctorPrivateKey, pacientePublicKey);
+    // Generamos un KeyWrap independiente para cada uno
+    const kwPaciente = KeyWrapModule.wrap(dek, doctorPriv, pacientePub);
+    const kwFarmacia = KeyWrapModule.wrap(dek, doctorPriv, farmaciaPub);
 
     return {
       ...cifrado,
-      key_wrap: {
-        wrapped_key: keyWrap.wrappedKey,
-        nonce_kw: keyWrap.nonce
-      }
+      accesos: [
+        { rol: 'paciente', ...kwPaciente },
+        { rol: 'farmacia', ...kwFarmacia }
+      ]
     };
   }
+  static abrirReceta(
+    capsulaHex: string, 
+    ivHex: string, 
+    wrappedKeyHex: string, 
+    nonceKwHex: string, 
+    miPriv: string, 
+    emisorWrapPub: string, // <-- NUEVO: Quien generó el KeyWrap
+    doctorPub: string      // <-- NUEVO: Quien firmó la receta original
+  ): { valido: boolean; contenido: RecetaContainer } {
+    // 1. Desenvolvemos usando la llave de quien nos mandó la cápsula
+    const dek = KeyWrapModule.unwrap(wrappedKeyHex, nonceKwHex, miPriv, emisorWrapPub);
+    const contenedor = EncryptionModule.decrypt(capsulaHex, ivHex, dek);
+    // 2. Verificamos la firma usando SIEMPRE la llave del doctor
+    const valido = SignatureModule.verify(contenedor.datos, contenedor.firma_medico, doctorPub);
+    return { valido, contenido: contenedor };
+  }
 
-  /**
-   * 2. FLUJO DE APERTURA (Paciente / Farmacia)
-   * Primero desenvuelve la llave y luego descifra la receta.
-   */
-  static async desencapsularReceta(
+
+  static sellar(
     capsulaHex: string,
     ivHex: string,
     wrappedKeyHex: string,
     nonceKwHex: string,
-    miPrivateKey: string,
-    otraPublicKey: string // La pública de quien envió la llave
-  ): Promise<{ valido: boolean; contenido: RecetaContainer }> {
-    
-    // A. Desenvolver la DEK (ECDH)
-    // Nota: Necesitarás implementar 'unwrap' en tu KeyWrapModule 
-    // usando sharedSecret = p256.getSharedSecret(miPrivada, otraPublica)
-    // Por ahora, asumimos que recuperamos la DEK:
-    const dek = await KeyWrapModule.unwrap(wrappedKeyHex, nonceKwHex, miPrivateKey, otraPublicKey);
-
-    // B. Descifrar Contenedor
+    farmaciaPriv: string,
+    doctorPub: string,
+    pacientePub: string,
+  ) : RecetaCifrada {
+    const dek = KeyWrapModule.unwrap(wrappedKeyHex, nonceKwHex, farmaciaPriv, doctorPub);
     const contenedor = EncryptionModule.decrypt(capsulaHex, ivHex, dek);
 
-    // C. Verificar Firma (Siempre se verifica el origen)
-    const esValida = SignatureModule.verify(
-        contenedor.datos, 
-        contenedor.firma_medico, 
-        otraPublicKey // Pública del médico
+    const fecha = new Date().toISOString();
+    const hmacSello = HmacModule.generateSeal(
+        `${contenedor.datos.id_receta}-${fecha}`, 
+        farmaciaPriv
     );
 
+    if (contenedor.sellos) {
+      throw new Error("RECIPE_ALREADY_SEALED");
+    }
+
+    const contenedorActualizado: RecetaContainer = {
+      ...contenedor,
+      sellos: {
+        id_farmacia: "FARM_ID_001",
+        fecha_surtido: fecha,
+        hmac_sello: hmacSello
+      }
+    };
+    const nuevoCifrado = EncryptionModule.encrypt(contenedorActualizado, dek);
+    const accesoPaciente = KeyWrapModule.wrap(dek, farmaciaPriv, pacientePub);
+    const accesoDoctor = KeyWrapModule.wrap(dek, farmaciaPriv, doctorPub);
+
     return {
-        valido: esValida,
-        contenido: contenedor
+      ...nuevoCifrado,
+      accesos: [
+        { rol: 'paciente', ...accesoPaciente },
+        { rol: 'doctor', ...accesoDoctor }
+      ]
     };
-  }
-
-  /**
-   * 3. FLUJO DE SELLADO (Farmacia)
-   * Firma del surtido y re-cifrado.
-   */
-  static async sellarDispensacion(
-    contenedor: RecetaContainer,
-    idFarmacia: string,
-    secretFarmacia: string,
-    dek: Uint8Array
-  ) {
-    const fecha = new Date().toISOString();
-    const dataToSeal = `${contenedor.datos.id_receta}-${fecha}`;
-    const hmac = HmacModule.generateSeal(dataToSeal, secretFarmacia);
-
-    const contenedorSellado: RecetaContainer = {
-        ...contenedor,
-        sellos: {
-            id_farmacia: idFarmacia,
-            fecha_surtido: fecha,
-            hmac_sello: hmac
-        }
-    };
-
-    return EncryptionModule.encrypt(contenedorSellado, dek);
   }
 }
+
 
 export * from './interfaces';
