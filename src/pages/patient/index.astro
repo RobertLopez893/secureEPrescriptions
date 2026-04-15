@@ -5,6 +5,7 @@ const steps=[{label:'ACCESO',href:'/patient'},{label:'MIS RECETAS',href:'/patien
 <FlowLayout title="Paciente — Acceso" role="patient" steps={steps} currentStep={0}>
 <div class="anim-slide" style="display:flex;flex-direction:column;gap:20px;">
 
+  <!-- Header -->
   <div style="text-align:center;">
     <div class="anim-bounce" style="display:flex;justify-content:center;margin-bottom:14px;">
       <svg width="56" height="66" viewBox="0 0 24 28" style="image-rendering:pixelated;">
@@ -15,78 +16,146 @@ const steps=[{label:'ACCESO',href:'/patient'},{label:'MIS RECETAS',href:'/patien
       ACCESO PACIENTE
     </h1>
     <p style="font-family:'VT323',monospace;font-size:22px;color:#c0cbdc;">
-      Reconocimiento facial o ingresa tu CURP
+      Escanea tu tarjeta digital o ingresa tu CURP
     </p>
   </div>
 
-  <!-- FACE SCANNER — the main access method -->
+  <!-- QR CARD READER -->
   <div style="background:#222639;border:3px solid #41a6f6;box-shadow:4px 4px 0 #1a6eb0;padding:20px;">
 
     <div style="font-family:'Press Start 2P',monospace;font-size:8px;color:#41a6f6;margin-bottom:14px;display:flex;align-items:center;gap:8px;">
       <span class="anim-blink" style="display:inline-block;width:8px;height:8px;background:#41a6f6;"></span>
-      IDENTIFICACIÓN FACIAL
+      LECTOR QR — TARJETA DIGITAL
     </div>
 
-    <!-- Face scanner viewport -->
-    <div id="face-viewport" style="background:#061018;border:3px solid #41a6f6;position:relative;overflow:hidden;margin-bottom:18px;aspect-ratio:1/1;max-height:260px;">
+    <!-- Scanner viewport -->
+    <div id="qr-viewport"
+         style="background:#040c18;border:3px solid #41a6f6;position:relative;overflow:hidden;margin-bottom:18px;height:240px;">
 
-      <!-- Biometric dot grid -->
-      <div class="biometric-grid"></div>
+      <!-- QR grid pattern -->
+      <div class="qr-grid"></div>
 
       <!-- Scan line -->
-      <div class="face-scan-line" id="scan-line"></div>
+      <div class="qr-scan-line" id="qr-scan-line"></div>
 
       <!-- Corner brackets -->
-      <div style="position:absolute;top:10px;left:10px;width:28px;height:28px;border-top:4px solid #41a6f6;border-left:4px solid #41a6f6;"></div>
-      <div style="position:absolute;top:10px;right:10px;width:28px;height:28px;border-top:4px solid #41a6f6;border-right:4px solid #41a6f6;"></div>
-      <div style="position:absolute;bottom:10px;left:10px;width:28px;height:28px;border-bottom:4px solid #41a6f6;border-left:4px solid #41a6f6;"></div>
-      <div style="position:absolute;bottom:10px;right:10px;width:28px;height:28px;border-bottom:4px solid #41a6f6;border-right:4px solid #41a6f6;"></div>
+      <div style="position:absolute;top:10px;left:10px;width:28px;height:28px;border-top:4px solid #41a6f6;border-left:4px solid #41a6f6;z-index:2;"></div>
+      <div style="position:absolute;top:10px;right:10px;width:28px;height:28px;border-top:4px solid #41a6f6;border-right:4px solid #41a6f6;z-index:2;"></div>
+      <div style="position:absolute;bottom:10px;left:10px;width:28px;height:28px;border-bottom:4px solid #41a6f6;border-left:4px solid #41a6f6;z-index:2;"></div>
+      <div style="position:absolute;bottom:10px;right:10px;width:28px;height:28px;border-bottom:4px solid #41a6f6;border-right:4px solid #41a6f6;z-index:2;"></div>
 
-      <!-- Pixel face icon centered -->
-      <div id="face-icon" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;">
-        <svg width="80" height="90" viewBox="0 0 32 36" style="image-rendering:pixelated;color:#41a6f6;">
-          <use href="#ico-face"/>
+      <!-- Pixel art tarjeta digital (idle state) -->
+      <div id="card-idle" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;">
+        <!-- Pixel art credit card -->
+        <svg width="170" height="108" viewBox="0 0 170 108" style="image-rendering:pixelated;filter:drop-shadow(0 0 8px rgba(65,166,246,.4));" class="anim-float">
+          <!-- Card body -->
+          <rect width="170" height="108" rx="5" fill="#0d1a2e"/>
+          <rect width="170" height="108" rx="5" fill="none" stroke="#41a6f6" stroke-width="2"/>
+          <!-- Shimmer stripe -->
+          <rect y="0" width="170" height="36" rx="5" fill="rgba(65,166,246,.06)"/>
+          <!-- Chip -->
+          <rect x="12" y="42" width="32" height="24" rx="2" fill="#ffcd75"/>
+          <rect x="16" y="46" width="24" height="16" rx="1" fill="#c48c00"/>
+          <rect x="20" y="50" width="14" height="2" fill="#ffcd75"/>
+          <rect x="20" y="54" width="14" height="2" fill="#ffcd75"/>
+          <rect x="20" y="58" width="14" height="2" fill="#ffcd75"/>
+          <!-- QR pixel art (right side) -->
+          <g transform="translate(100,34)" fill="#41a6f6" opacity=".9">
+            <!-- Finder top-left -->
+            <rect x="0"  y="0"  width="18" height="18" fill="none" stroke="#41a6f6" stroke-width="2"/>
+            <rect x="4"  y="4"  width="10" height="10"/>
+            <!-- Finder top-right -->
+            <rect x="26" y="0"  width="18" height="18" fill="none" stroke="#41a6f6" stroke-width="2"/>
+            <rect x="30" y="4"  width="10" height="10"/>
+            <!-- Finder bottom-left -->
+            <rect x="0"  y="26" width="18" height="18" fill="none" stroke="#41a6f6" stroke-width="2"/>
+            <rect x="4"  y="30" width="10" height="10"/>
+            <!-- Data pixels -->
+            <rect x="20" y="4"  width="4" height="4"/>
+            <rect x="22" y="10" width="2" height="2"/>
+            <rect x="20" y="14" width="2" height="4"/>
+            <rect x="20" y="26" width="4" height="2"/>
+            <rect x="26" y="20" width="2" height="4"/>
+            <rect x="30" y="20" width="6" height="2"/>
+            <rect x="36" y="22" width="2" height="6"/>
+            <rect x="32" y="24" width="2" height="4"/>
+          </g>
+          <!-- Rx Logo text area -->
+          <text x="12" y="22" fill="#f4f4f4" style="font-family:monospace;font-size:11px;font-weight:bold;letter-spacing:1px;">RxPro</text>
+          <text x="12" y="34" fill="#41a6f6" style="font-family:monospace;font-size:6px;letter-spacing:2px;">TARJETA DIGITAL</text>
+          <!-- Card number (masked) -->
+          <text x="12" y="88" fill="#41a6f6" style="font-family:monospace;font-size:8px;letter-spacing:3px;">████ ████ ████ ••••</text>
+          <!-- Bottom label -->
+          <text x="12" y="100" fill="#29366f" style="font-family:monospace;font-size:5px;letter-spacing:1px;">SEMILLA CIFRADA • E2E</text>
         </svg>
-        <p id="face-status" style="font-family:'Press Start 2P',monospace;font-size:8px;color:#41a6f6;letter-spacing:.08em;" class="anim-blink">
-          ACERQUE SU ROSTRO
+        <p id="qr-status" style="font-family:'Press Start 2P',monospace;font-size:8px;color:#41a6f6;letter-spacing:.08em;" class="anim-blink">
+          ACERQUE TARJETA DIGITAL
         </p>
       </div>
 
-      <!-- Detection dots (shown when scanning) -->
-      <div id="face-dots" style="display:none;position:absolute;inset:0;">
-        <!-- Forehead -->
-        <div class="face-dot" style="top:22%;left:48%;animation-delay:.1s;"></div>
-        <div class="face-dot" style="top:22%;left:52%;animation-delay:.15s;"></div>
-        <!-- Eyes -->
-        <div class="face-dot" style="top:35%;left:35%;animation-delay:.2s;"></div>
-        <div class="face-dot" style="top:35%;left:65%;animation-delay:.25s;"></div>
-        <div class="face-dot" style="top:37%;left:38%;animation-delay:.3s;"></div>
-        <div class="face-dot" style="top:37%;left:62%;animation-delay:.35s;"></div>
-        <!-- Nose -->
-        <div class="face-dot" style="top:52%;left:50%;animation-delay:.4s;"></div>
-        <!-- Mouth corners -->
-        <div class="face-dot" style="top:63%;left:38%;animation-delay:.45s;"></div>
-        <div class="face-dot" style="top:63%;left:62%;animation-delay:.5s;"></div>
-        <div class="face-dot" style="top:65%;left:42%;animation-delay:.55s;"></div>
-        <div class="face-dot" style="top:65%;left:58%;animation-delay:.6s;"></div>
-        <!-- Chin -->
-        <div class="face-dot" style="top:75%;left:50%;animation-delay:.65s;"></div>
-        <!-- Jaw -->
-        <div class="face-dot" style="top:70%;left:32%;animation-delay:.7s;"></div>
-        <div class="face-dot" style="top:70%;left:68%;animation-delay:.75s;"></div>
+      <!-- Processing state (shown during scan) -->
+      <div id="card-scanning" style="display:none;position:absolute;inset:0;align-items:center;justify-content:center;flex-direction:column;gap:16px;">
+        <!-- Spinning derivation ring -->
+        <div style="position:relative;width:72px;height:72px;">
+          <div id="spin-ring" style="position:absolute;inset:0;border:4px solid #29366f;border-top-color:#41a6f6;animation:spinnerRot .6s steps(8,end) infinite;"></div>
+          <div style="position:absolute;inset:8px;display:flex;align-items:center;justify-content:center;">
+            <svg width="28" height="20" viewBox="0 0 28 16" style="image-rendering:pixelated;color:#41a6f6;">
+              <use href="#ico-key"/>
+            </svg>
+          </div>
+        </div>
+        <p id="derive-status" style="font-family:'Press Start 2P',monospace;font-size:8px;color:#41a6f6;letter-spacing:.06em;text-align:center;max-width:220px;line-height:1.8;" class="anim-blink">
+          LEYENDO QR...
+        </p>
+      </div>
+
+      <!-- Key preview (shown after success) -->
+      <div id="card-success" style="display:none;position:absolute;inset:0;align-items:center;justify-content:center;flex-direction:column;gap:12px;padding:16px;">
+        <svg width="40" height="46" viewBox="0 0 24 28" style="image-rendering:pixelated;color:#38b764;">
+          <use href="#ico-shield"/>
+        </svg>
+        <p style="font-family:'Press Start 2P',monospace;font-size:9px;color:#38b764;">LLAVE ACTIVA</p>
+        <div style="background:#0a1a0a;border:2px solid #38b764;padding:8px 12px;width:100%;text-align:center;">
+          <span id="key-preview" style="font-family:'VT323',monospace;font-size:16px;color:#38b764;letter-spacing:.1em;word-break:break-all;">
+            ••••••••••••••••
+          </span>
+        </div>
+        <p style="font-family:'Press Start 2P',monospace;font-size:6px;color:#257a43;line-height:1.8;text-align:center;">
+          ACCEDIENDO...
+        </p>
       </div>
 
       <!-- Progress bar inside viewport -->
-      <div id="scan-progress-track" style="display:none;position:absolute;bottom:12px;left:20px;right:20px;height:6px;border:2px solid #41a6f6;background:#0d0e1a;">
-        <div id="scan-progress-fill" style="height:100%;width:0%;background:#41a6f6;transition:width .05s steps(1,end);"></div>
+      <div id="scan-progress-track" style="display:none;position:absolute;bottom:10px;left:16px;right:16px;height:6px;border:2px solid #41a6f6;background:#0d0e1a;z-index:3;">
+        <div id="scan-progress-fill" style="height:100%;width:0%;background:repeating-linear-gradient(90deg,#41a6f6 0px,#41a6f6 6px,#1a6eb0 6px,#1a6eb0 12px);"></div>
       </div>
     </div>
 
-    <!-- Simulate scan button -->
+    <!-- Info strip -->
+    <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
+      {['QR SEED','HKDF-SHA256','P-256','E2E'].map(t => (
+        <span style="font-family:'Press Start 2P',monospace;font-size:6px;padding:3px 6px;border:2px solid #29366f;color:#41a6f6;background:#29366f22;">{t}</span>
+      ))}
+    </div>
+
+    <!-- Scan button -->
     <button type="button" id="scan-btn"
-            style="width:100%;padding:14px;background:#0a1525;border:3px solid #41a6f6;box-shadow:4px 4px 0 #1a6eb0;font-family:'Press Start 2P',monospace;font-size:9px;color:#41a6f6;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:16px;">
-      <svg width="20" height="22" viewBox="0 0 32 36" style="image-rendering:pixelated;color:#41a6f6;"><use href="#ico-face"/></svg>
-      INICIAR ESCANEO
+            style="width:100%;padding:14px;background:#0a1525;border:3px solid #41a6f6;box-shadow:4px 4px 0 #1a6eb0;font-family:'Press Start 2P',monospace;font-size:9px;color:#41a6f6;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:16px;transition:background .1s;">
+      <!-- QR icon pixel art -->
+      <svg width="20" height="20" viewBox="0 0 20 20" style="image-rendering:pixelated;flex-shrink:0;">
+        <rect x="0" y="0" width="8" height="8" fill="none" stroke="#41a6f6" stroke-width="1.5"/>
+        <rect x="2" y="2" width="4" height="4" fill="#41a6f6"/>
+        <rect x="12" y="0" width="8" height="8" fill="none" stroke="#41a6f6" stroke-width="1.5"/>
+        <rect x="14" y="2" width="4" height="4" fill="#41a6f6"/>
+        <rect x="0" y="12" width="8" height="8" fill="none" stroke="#41a6f6" stroke-width="1.5"/>
+        <rect x="2" y="14" width="4" height="4" fill="#41a6f6"/>
+        <rect x="12" y="12" width="2" height="2" fill="#41a6f6"/>
+        <rect x="16" y="12" width="2" height="4" fill="#41a6f6"/>
+        <rect x="12" y="16" width="6" height="2" fill="#41a6f6"/>
+        <rect x="10" y="10" width="2" height="2" fill="#41a6f6"/>
+        <rect x="10" y="4"  width="2" height="4" fill="#41a6f6"/>
+      </svg>
+      ESCANEAR TARJETA
     </button>
 
     <!-- Divider -->
@@ -96,6 +165,7 @@ const steps=[{label:'ACCESO',href:'/patient'},{label:'MIS RECETAS',href:'/patien
       <div style="flex:1;height:2px;background:#29366f;"></div>
     </div>
 
+    <!-- Fallback CURP form -->
     <form action="/patient/dashboard" method="GET" id="curp-form" style="display:flex;flex-direction:column;gap:14px;">
       <div>
         <label style="font-family:'Press Start 2P',monospace;font-size:8px;color:#41a6f6;display:block;margin-bottom:8px;letter-spacing:.06em;">TU CURP</label>
@@ -104,7 +174,7 @@ const steps=[{label:'ACCESO',href:'/patient'},{label:'MIS RECETAS',href:'/patien
                maxlength="18" required/>
       </div>
       <button type="submit" class="px-btn px-btn-blue px-btn-lg" style="width:100%;justify-content:center;">
-        <svg width="14" height="11" viewBox="0 0 16 12" style="image-rendering:pixelated;color:white;">
+        <svg width="14" height="11" viewBox="0 0 16 12" style="image-rendering:pixelated;color:#1a1c2c;">
           <rect x="0" y="4" width="12" height="4" fill="currentColor"/>
           <rect x="8" y="0" width="4" height="4" fill="currentColor"/>
           <rect x="8" y="8" width="4" height="4" fill="currentColor"/>
@@ -117,72 +187,109 @@ const steps=[{label:'ACCESO',href:'/patient'},{label:'MIS RECETAS',href:'/patien
     </form>
   </div>
 
-  <div style="display:flex;align-items:center;justify-content:center;gap:8px;">
-    <svg width="16" height="20" viewBox="0 0 20 24" style="image-rendering:pixelated;color:#29366f;"><use href="#ico-lock"/></svg>
-    <p style="font-family:'Press Start 2P',monospace;font-size:7px;color:#29366f;line-height:1.8;">
-      DATOS BIOMÉTRICOS NO SE ALMACENAN · CIFRADO E2E
+  <!-- Security notice -->
+  <div style="display:flex;align-items:flex-start;gap:10px;padding:12px 14px;border:2px solid #29366f;background:#29366f18;">
+    <svg width="16" height="20" viewBox="0 0 20 24" style="image-rendering:pixelated;color:#29366f;flex-shrink:0;margin-top:2px;">
+      <use href="#ico-lock"/>
+    </svg>
+    <p style="font-family:'Press Start 2P',monospace;font-size:6px;color:#29366f;line-height:2;">
+      LLAVE PRIVADA NUNCA SE ALMACENA · DERIVADA EN MEMORIA DESDE SEMILLA QR · CIFRADO E2E
     </p>
   </div>
 </div>
 </FlowLayout>
 
 <script>
-  const btn        = document.getElementById('scan-btn')
-  const viewport   = document.getElementById('face-viewport')
-  const status     = document.getElementById('face-status')
-  const dots       = document.getElementById('face-dots')
-  const scanLine   = document.getElementById('scan-line')
-  const progTrack  = document.getElementById('scan-progress-track')
-  const progFill   = document.getElementById('scan-progress-fill')
-  const form       = document.getElementById('curp-form')
+  // ── Elementos ─────────────────────────────────────────────────────────────
+  const btn          = document.getElementById('scan-btn')     as HTMLButtonElement
+  const viewport     = document.getElementById('qr-viewport')  as HTMLDivElement
+  const scanLine     = document.getElementById('qr-scan-line') as HTMLDivElement
+  const cardIdle     = document.getElementById('card-idle')    as HTMLDivElement
+  const cardScanning = document.getElementById('card-scanning')as HTMLDivElement
+  const cardSuccess  = document.getElementById('card-success') as HTMLDivElement
+  const deriveStatus = document.getElementById('derive-status')as HTMLParagraphElement
+  const keyPreview   = document.getElementById('key-preview')  as HTMLSpanElement
+  const progTrack    = document.getElementById('scan-progress-track') as HTMLDivElement
+  const progFill     = document.getElementById('scan-progress-fill')  as HTMLDivElement
 
+  // ── Fases de escaneo ──────────────────────────────────────────────────────
   const phases = [
-    { msg:'DETECTANDO ROSTRO...', color:'#41a6f6', dur:800  },
-    { msg:'MAPEANDO PUNTOS...',   color:'#41a6f6', dur:1000 },
-    { msg:'VERIFICANDO...',       color:'#ffcd75', dur:800  },
-    { msg:'IDENTIDAD CONFIRMADA', color:'#38b764', dur:600  },
+    { msg: 'LEYENDO QR...',          color: '#41a6f6', dur: 700  },
+    { msg: 'EXTRAYENDO SEMILLA...',  color: '#41a6f6', dur: 900  },
+    { msg: 'DERIVANDO LLAVE...',     color: '#ffcd75', dur: 900  },
+    { msg: 'VERIFICANDO FIRMA...',   color: '#ffcd75', dur: 700  },
+    { msg: 'LLAVE ACTIVA ✓',         color: '#38b764', dur: 500  },
   ]
+  const totalDur = phases.reduce((s, p) => s + p.dur, 0)
 
+  // ── Helpers ───────────────────────────────────────────────────────────────
+  function showPanel(panel: 'idle' | 'scanning' | 'success') {
+    cardIdle.style.display     = panel === 'idle'     ? 'flex' : 'none'
+    cardScanning.style.display = panel === 'scanning' ? 'flex' : 'none'
+    cardSuccess.style.display  = panel === 'success'  ? 'flex' : 'none'
+  }
+
+  function maskKey(hex: string): string {
+    // Mostrar primeros 8 y últimos 4 chars, resto como puntos
+    return hex.slice(0, 8) + '••••••••••••••••••••••••••••••••••••••••••••••••' + hex.slice(-4)
+  }
+
+  // Semilla demo (en producción vendría del lector QR real)
+  const DEMO_SEED = 'a3f8c2d1e4b5096f7a8b9c0d1e2f3a4b5c6d7e8f9001122334455667788990a'
+
+  // ── Handler del botón ─────────────────────────────────────────────────────
   btn.addEventListener('click', () => {
     btn.disabled = true
     btn.textContent = 'ESCANEANDO...'
     btn.style.color = '#ffcd75'
     btn.style.borderColor = '#ffcd75'
 
-    dots.style.display = 'block'
+    // Mostrar panel de escaneo y barra de progreso
+    showPanel('scanning')
     progTrack.style.display = 'block'
+    scanLine.style.display  = 'block'
 
-    let pct = 0
-    const phaseDurs = phases.map(p=>p.dur)
-    const total = phaseDurs.reduce((a,b)=>a+b, 0)
+    // Animar progreso
     let elapsed = 0
-
-    phases.forEach((ph, i) => {
-      const delay = phaseDurs.slice(0, i).reduce((a,b)=>a+b, 0)
-      setTimeout(() => {
-        status.textContent = ph.msg
-        status.style.color = ph.color
-        scanLine.style.boxShadow = `0 0 10px ${ph.color}`
-        scanLine.style.background = `linear-gradient(90deg,transparent,${ph.color},transparent)`
-        viewport.style.borderColor = ph.color
-        if (i === phases.length - 1) {
-          setTimeout(() => {
-            status.classList.remove('anim-blink')
-            viewport.style.background = '#061810'
-            status.textContent = 'ACCESO CONCEDIDO'
-            // Navigate after brief success state
-            setTimeout(() => { window.location.href = '/patient/dashboard' }, 400)
-          }, ph.dur * 0.6)
-        }
-      }, delay)
-    })
-
-    // Animate progress bar
     const pti = setInterval(() => {
-      elapsed += 50
-      pct = Math.min(100, Math.round((elapsed / total) * 100))
+      elapsed += 40
+      const pct = Math.min(100, Math.round((elapsed / totalDur) * 100))
       progFill.style.width = pct + '%'
       if (pct >= 100) clearInterval(pti)
-    }, 50)
+    }, 40)
+
+    // Fases
+    let delay = 0
+    phases.forEach((ph, i) => {
+      setTimeout(() => {
+        deriveStatus.textContent  = ph.msg
+        deriveStatus.style.color  = ph.color
+        scanLine.style.boxShadow  = `0 0 12px ${ph.color}`
+        scanLine.style.background = `linear-gradient(90deg,transparent,${ph.color},transparent)`
+        viewport.style.borderColor = ph.color
+
+        // Última fase → mostrar éxito
+        if (i === phases.length - 1) {
+          setTimeout(() => {
+            // Simular derivación: mostrar llave pública enmascarada
+            // En producción: import { deriveKeysFromSeed } y pasar la semilla real
+            const fakePub = '04' + DEMO_SEED + DEMO_SEED.slice(0, 64)
+            keyPreview.textContent = maskKey('04a3f8c2d1e4b5096f7a8b9c0d1e2f3a4b5c6d7e8f9001122334455667788990a')
+            showPanel('success')
+            viewport.style.borderColor = '#38b764'
+            viewport.style.background  = '#04100a'
+
+            // Guardar en sesión (en producción: derivar llave real en memoria)
+            sessionStorage.setItem('rxpro_auth_method', 'qr_card')
+            sessionStorage.setItem('rxpro_seed_loaded', '1')
+
+            setTimeout(() => {
+              window.location.href = '/patient/dashboard'
+            }, 900)
+          }, ph.dur * 0.5)
+        }
+      }, delay)
+      delay += ph.dur
+    })
   })
 </script>
