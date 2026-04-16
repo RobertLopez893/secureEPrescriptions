@@ -7,8 +7,8 @@ export class KeyWrapModule {
   static wrap(dek: Uint8Array, senderPrivateKeyHex: string, recipientPublicKeyHex: string) {
     const sharedSecret = p256.getSharedSecret(hexToBytes(senderPrivateKeyHex), hexToBytes(recipientPublicKeyHex));
     const kek = sha256(sharedSecret);
-
     const nonce = randomBytes(12);
+
     const aes = gcm(kek, nonce);
     return {
       wrappedKey: bytesToHex(aes.encrypt(dek)),

@@ -5,8 +5,10 @@ export interface DatosMedicos {
     id_medico: string;         // ID del médico emisor
     id_paciente: string;       // ID del paciente receptor
     fecha_emision: string;     // Timestamp en formato estandarizado ISO 8601
+    fecha_vencimiento: string; // Timestamp en formato estandarizado ISO 8601
     medicamentos: Array<{
         nombre: string;
+        forma: string;
         dosis: string;
         frecuencia: string;
         duracion: string;

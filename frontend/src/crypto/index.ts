@@ -14,25 +14,29 @@ export class CryptoEngine {
   }
   static emitirRecetaGlobal(
     datos: DatosMedicos, 
-    doctorPriv: string, 
+    keyPrivFirma: string, 
+    keyPrivCifrado: string,
     pacientePub: string, 
-    farmaciaPub: string
+    farmaceuticoPub: string,
+    doctorPub: string
   ) : RecetaCifrada {
     const dek = this.getDEK();
-    const firma = SignatureModule.sign(datos, doctorPriv);
+    const firma = SignatureModule.sign(datos, keyPrivFirma);
     const contenedor: RecetaContainer = { datos, firma_medico: firma };
     
     const cifrado = EncryptionModule.encrypt(contenedor, dek);
 
     // Generamos un KeyWrap independiente para cada uno
-    const kwPaciente = KeyWrapModule.wrap(dek, doctorPriv, pacientePub);
-    const kwFarmacia = KeyWrapModule.wrap(dek, doctorPriv, farmaciaPub);
+    const kwPaciente = KeyWrapModule.wrap( dek, keyPrivCifrado, pacientePub);
+    const kwFarmacia = KeyWrapModule.wrap( dek, keyPrivCifrado, farmaceuticoPub);
+    const kwDoctor = KeyWrapModule.wrap( dek, keyPrivCifrado, doctorPub);
 
     return {
       ...cifrado,
       accesos: [
         { rol: 'paciente', ...kwPaciente },
-        { rol: 'farmacia', ...kwFarmacia }
+        { rol: 'farmaceutico', ...kwFarmacia },
+        { rol: 'doctor', ...kwDoctor }
       ]
     };
   }
@@ -79,7 +83,7 @@ export class CryptoEngine {
     const contenedorActualizado: RecetaContainer = {
       ...contenedor,
       sellos: {
-        id_farmacia: "FARM_ID_001",
+        id_clinica: "FARM_ID_001",
         fecha_surtido: fecha,
         hmac_sello: hmacSello
       }
