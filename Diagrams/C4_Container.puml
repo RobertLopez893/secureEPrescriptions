@@ -1,0 +1,33 @@
+@startuml
+!include <C4/C4_Container>
+
+' Configuraciones visuales para que luzca impecable
+skinparam wrapWidth 250        ' Permite cajas más anchas para el texto
+skinparam maxMessageSize 200   ' Da más espacio a los textos de las flechas
+skinparam nodesep 80           ' Fuerza separación HORIZONTAL entre las cajas
+skinparam ranksep 90           ' Fuerza separación VERTICAL entre los niveles
+
+title Diagrama de Contenedores (Nivel 2) - Secure E-Prescription System
+
+Person(medico, "Médico", "Posee llave privada.\nEmite y firma recetas digitalmente.")
+Person(paciente, "Paciente", "Posee llave privada.\nConsulta y presenta su receta.")
+Person(farmaceutico, "Farmacéutico", "Posee llave privada.\nVerifica firmas, dispensa y sella.")
+
+System_Boundary(sistema, "Secure E-Prescription") {
+    
+    Container(spa, "Frontend Web App", "Astro, TS", "Interfaz de usuario que permite a los usuarios autenticarse, firmar digitalmente,\n enviar y recibir archivos cifrados.")
+    
+    Container(api, "Backend API", "Python", "Endpoints REST. Gestiona la autenticación y enruta las cápsulas. No tiene acceso a datos en texto plano.")
+    
+    ContainerDb(db, "Base de Datos", "PostgreSQL", "Almacena perfiles, Unidad Medica, \nllaves públicas y recetas cifradas.\n")
+}
+
+Rel_D(medico, spa, "Emite y firma", "HTTPS/TLS")
+Rel_D(paciente, spa, "Consulta historial", "HTTPS/TLS")
+Rel_D(farmaceutico, spa, "Verifica y sella", "HTTPS/TLS")
+
+Rel_D(spa, api, "Envía/Solicita cápsulas", "JSON sobre TLS")
+Rel_D(api, db, "Lee/Escribe registros", "SQL")
+
+SHOW_LEGEND()
+@enduml
