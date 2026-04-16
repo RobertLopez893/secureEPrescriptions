@@ -1,6 +1,7 @@
-from typing import List, Optional
+from typing import Any, List, Optional
 from datetime import datetime, date
-from sqlmodel import Field, SQLModel, Relationship
+from sqlmodel import Field, SQLModel, Relationship, Column
+from sqlalchemy import JSON
 
 # ==========================================
 # 1. INFRAESTRUCTURA
@@ -138,12 +139,9 @@ class Receta(SQLModel, table=True):
     id_paciente: int = Field(foreign_key="usuarios.id_usuario", index=True)
     id_farmaceutico: Optional[int] = Field(default=None, foreign_key="usuarios.id_usuario", index=True)
 
-    capsula: bytes # JSON cifrado
-    iv: bytes # Vector de inicialización
-    
-    dek_medico: bytes
-    dek_paciente: bytes
-    dek_farmaceutico: bytes
+    capsula: str      # Ciphertext hex del contenedor cifrado
+    iv: str           # Nonce AES-GCM hex
+    accesos: Any = Field(default=[], sa_column=Column(JSON))  # [{rol, wrappedKey, nonce}]
 
     estado: str = Field(default="activa")
     creada_en: datetime = Field(default_factory=datetime.utcnow)

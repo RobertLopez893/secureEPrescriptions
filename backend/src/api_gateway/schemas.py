@@ -1,23 +1,26 @@
 from pydantic import BaseModel
 from datetime import datetime, date
-from typing import Optional
+from typing import List, Optional
+
+
+class AccesoCreate(BaseModel):
+    rol: str           # "paciente" | "farmaceutico" | "doctor"
+    wrappedKey: str    # DEK envuelta en hex
+    nonce: str         # Nonce del KeyWrap en hex
 
 class RecetaCreate(BaseModel):
-    """
-    Schema para recibir los datos de una nueva receta desde el frontend.
-    Los campos criptográficos se reciben como strings (Base64) y se convertirán a bytes en el backend.
-    """
     id_medico: int
     id_paciente: int
     expira_en: datetime
+    capsula: str       # Ciphertext hex
+    iv: str            # Nonce AES-GCM hex
+    accesos: List[AccesoCreate]
 
-    # Campos criptográficos (en formato Base64)
-    capsula: str
-    iv: str
-    dek_medico: str
-    dek_paciente: str
-    dek_farmaceutico: str
 
+class AccesoPublic(BaseModel):
+    rol: str
+    wrappedKey: str
+    nonce: str
 
 class RecetaPublic(BaseModel):
     id_receta: int
@@ -32,6 +35,20 @@ class RecetaDetailPublic(RecetaPublic):
     expira_en: datetime
     medico: UserInfo
     paciente: UserInfo
+
+
+class RecetaCriptoPublic(BaseModel):
+    id_receta: int
+    capsula: str
+    iv: str
+    accesos: List[AccesoPublic]
+    estado: str
+
+class RecetaSellarRequest(BaseModel):
+    id_farmaceutico: int
+    capsula: str
+    iv: str
+    accesos: List[AccesoCreate]
 
 
 class LoginRequest(BaseModel):

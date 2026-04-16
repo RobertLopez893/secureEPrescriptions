@@ -1,4 +1,3 @@
-import base64
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session
 
@@ -14,28 +13,18 @@ def emitir_receta(
     session: Session = Depends(get_session),
     receta_in: schemas.RecetaCreate
 ):
-    """
-    Endpoint para que un médico emita una nueva receta.
-    Recibe los datos y el paquete criptográfico desde el frontend.
-    """
-    try:
-        # Decodificar los datos de Base64 a bytes antes de guardarlos
-        db_receta = Receta.model_validate(
-            receta_in,
-            update={
-                "capsula": base64.b64decode(receta_in.capsula),
-                "iv": base64.b64decode(receta_in.iv),
-                "dek_medico": base64.b64decode(receta_in.dek_medico),
-                "dek_paciente": base64.b64decode(receta_in.dek_paciente),
-                "dek_farmaceutico": base64.b64decode(receta_in.dek_farmaceutico),
-            }
-        )
-        session.add(db_receta)
-        session.commit()
-        session.refresh(db_receta)
-        return db_receta
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Error al procesar la receta: {e}")
+    db_receta = Receta(
+        id_medico=receta_in.id_medico,
+        id_paciente=receta_in.id_paciente,
+        expira_en=receta_in.expira_en,
+        capsula=receta_in.capsula,
+        iv=receta_in.iv,
+        accesos=[a.model_dump() for a in receta_in.accesos],
+    )
+    session.add(db_receta)
+    session.commit()
+    session.refresh(db_receta)
+    return db_receta
 
 
 @router.get("/recetas/{id_receta}", response_model=schemas.RecetaDetailPublic)
@@ -44,23 +33,16 @@ def obtener_info_publica_receta(
     session: Session = Depends(get_session),
     id_receta: int
 ):
-    """
-    Endpoint público para verificación por QR.
-    Devuelve información no sensible de la receta para que el farmacéutico verifique.
-    """
-    # 1. Obtener la receta por su ID
     receta = session.get(Receta, id_receta)
     if not receta:
         raise HTTPException(status_code=404, detail="Receta no encontrada")
 
-    # 2. Obtener la información del médico y del paciente usando los IDs de la receta
     medico = session.get(Usuario, receta.id_medico)
     paciente = session.get(Usuario, receta.id_paciente)
 
     if not medico or not paciente:
         raise HTTPException(status_code=404, detail="No se encontró la información del médico o paciente asociado.")
 
-    # 3. Construir y devolver la respuesta pública
     return schemas.RecetaDetailPublic(
         id_receta=receta.id_receta,
         estado=receta.estado,
@@ -69,3 +51,50 @@ def obtener_info_publica_receta(
         medico=schemas.UserInfo(nombre_completo=f"{medico.nombre} {medico.paterno}"),
         paciente=schemas.UserInfo(nombre_completo=f"{paciente.nombre} {paciente.paterno}")
     )
+
+
+@router.get("/recetas/{id_receta}/cripto", response_model=schemas.RecetaCriptoPublic)
+def obtener_cripto_receta(
+    *,
+    session: Session = Depends(get_session),
+    id_receta: int
+):
+    """Devuelve la cápsula cifrada y los accesos para desencriptar en el frontend."""
+    receta = session.get(Receta, id_receta)
+    if not receta:
+        raise HTTPException(status_code=404, detail="Receta no encontrada")
+
+    return schemas.RecetaCriptoPublic(
+        id_receta=receta.id_receta,
+        capsula=receta.capsula,
+        iv=receta.iv,
+        accesos=[schemas.AccesoPublic(**a) for a in receta.accesos],
+        estado=receta.estado,
+    )
+
+
+@router.put("/recetas/{id_receta}/sellar", response_model=schemas.RecetaPublic)
+def sellar_receta(
+    *,
+    session: Session = Depends(get_session),
+    id_receta: int,
+    sello_in: schemas.RecetaSellarRequest
+):
+    """Actualiza la receta después del sellado por la farmacia."""
+    receta = session.get(Receta, id_receta)
+    if not receta:
+        raise HTTPException(status_code=404, detail="Receta no encontrada")
+
+    if receta.estado != "activa":
+        raise HTTPException(status_code=400, detail="La receta ya fue surtida o está inactiva.")
+
+    receta.capsula = sello_in.capsula
+    receta.iv = sello_in.iv
+    receta.accesos = [a.model_dump() for a in sello_in.accesos]
+    receta.id_farmaceutico = sello_in.id_farmaceutico
+    receta.estado = "surtida"
+
+    session.add(receta)
+    session.commit()
+    session.refresh(receta)
+    return receta
