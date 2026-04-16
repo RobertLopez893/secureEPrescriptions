@@ -1,32 +1,56 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from contextlib import asynccontextmanager
+from sqlmodel import SQLModel
 
-# 1. Crear la aplicación principal de FastAPI
+# Importamos el motor de conexión
+from src.database.database import engine
+
+# IMPORTANTE: Debes importar todos los modelos aquí para que SQLModel los registre 
+# en su Metadata antes de ejecutar create_all()
+from src.database import models
+from src.api_gateway.routers import recetas, auth
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # --- Lógica de Inicio (Startup) ---
+    print("Verificando y creando tablas de la base de datos...")
+    # SQLModel.metadata contiene la definición de todas las clases con 'table=True' 
+    # que hayan sido importadas en este archivo.
+    SQLModel.metadata.create_all(engine)
+    print("Base de datos sincronizada.")
+    
+    yield  # Aquí es donde el servidor "vive" y acepta peticiones
+    
+    # --- Lógica de Cierre (Shutdown) ---
+    print("Cerrando recursos...")
+
+# Inicialización de la App con el ciclo de vida (Lifespan)
 app = FastAPI(
-    title="Secure E-Prescriptions API",
-    description="API Gateway para el sistema de recetas médicas seguras",
-    version="1.0.0"
+    title="Secure E-Prescription API",
+    description="Backend Zero-Knowledge para recetas médicas seguras",
+    version="1.0.0",
+    lifespan=lifespan
 )
 
-# 2. Configurar CORS (Crucial para conectar el Frontend y el Backend)
-# Esto permite que tu frontend en Astro (localhost:4321) haga peticiones al backend
+# Configuración de CORS (Permite que Astro se comunique con la API)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # ⚠️ En producción, cambia "*" por ["http://localhost:3000", "tu-dominio.com"]
+    allow_origins=["http://localhost:4321", "http://127.0.0.1:4321"], # Puerto por defecto de Astro
     allow_credentials=True,
-    allow_methods=["*"],  # Permite todos los métodos (GET, POST, PUT, DELETE)
-    allow_headers=["*"],  # Permite todos los headers
+    allow_methods=["*"], # Permite GET, POST, PUT, DELETE, etc.
+    allow_headers=["*"], # Permite todos los headers (incluyendo Authorization para JWT)
 )
 
-# 3. Crear un Endpoint (Ruta) de inicio
 @app.get("/")
-def read_root():
+async def root():
     return {
-        "status": "success",
-        "message": "¡El backend de Secure E-Prescriptions está funcionando correctamente! 🚀"
+        "message": "Bienvenido a Secure E-Prescription API",
+        "docs": "/docs",
+        "status": "online"
     }
 
-# 4. Crear un Endpoint de prueba para la salud del servidor (Health check)
-@app.get("/health")
-def health_check():
-    return {"status": "ok", "db_connection": "Pendiente de configurar"}
+# Incluimos el router de recetas en nuestra aplicación principal (el Gateway)
+app.include_router(recetas.router, prefix="/api/v1", tags=["Recetas"])
+# Incluimos el router de autenticación
+app.include_router(auth.router, prefix="/api/v1/auth", tags=["Autenticación"])

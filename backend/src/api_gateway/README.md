@@ -1,1 +1,1 @@
-"Endpoints principales de FastAPI y gesti¢n de sesiones" 
+"Endpoints principales de FastAPI y gestiï¿½n de sesiones" 

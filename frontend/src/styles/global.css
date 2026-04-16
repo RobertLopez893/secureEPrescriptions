@@ -345,7 +345,38 @@
   animation: spinnerRot .5s steps(4,end) infinite;
 }
 
-/* ── Face scan animation ── */
+/* ── QR scan line — lector de tarjeta digital ── */
+.qr-scan-line {
+  position: absolute;
+  left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, var(--blue), transparent);
+  box-shadow: 0 0 14px var(--blue), 0 0 4px var(--blue);
+  animation: qrScan 2.2s linear infinite;
+}
+@keyframes qrScan {
+  0%   { top: 0%;   opacity: .25; }
+  8%   { opacity: 1; }
+  92%  { opacity: 1; }
+  100% { top: 100%; opacity: .25; }
+}
+
+/* QR dot-matrix grid overlay */
+.qr-grid {
+  position: absolute; inset: 0;
+  background-image:
+    linear-gradient(rgba(65,166,246,.12) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(65,166,246,.12) 1px, transparent 1px);
+  background-size: 16px 16px;
+  opacity: 0;
+  animation: qrGridPulse 2.8s ease-in-out infinite;
+}
+@keyframes qrGridPulse {
+  0%,100% { opacity: 0; }
+  50%     { opacity: 1; }
+}
+
+/* ── Legacy face scan (kept for backward compat) ── */
 .face-scan-line {
   position: absolute;
   left: 12%; right: 12%;
@@ -360,8 +391,6 @@
   80%  { opacity: 1; }
   100% { top: 85%; opacity: .3; }
 }
-
-/* Biometric dot grid overlay */
 .biometric-grid {
   position: absolute; inset: 0;
   background-image: radial-gradient(circle, var(--blue) 1px, transparent 1px);
@@ -372,18 +401,6 @@
 @keyframes biometricPulse {
   0%,100% { opacity: 0; }
   50%     { opacity: .18; }
-}
-
-/* Face recognition dots */
-.face-dot {
-  position: absolute;
-  width: 4px; height: 4px;
-  background: var(--blue);
-  animation: faceDotPop .3s steps(2,end) both;
-}
-@keyframes faceDotPop {
-  from { transform: scale(0); opacity: 0; }
-  to   { transform: scale(1); opacity: 1; }
 }
 
 /* Processing state */
