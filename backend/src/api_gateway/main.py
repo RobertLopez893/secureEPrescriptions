@@ -8,7 +8,8 @@ from src.database.database import engine
 
 # IMPORTANTE: Debes importar todos los modelos aquí para que SQLModel los registre 
 # en su Metadata antes de ejecutar create_all()
-from src.database import models 
+from src.database import models
+from src.api_gateway.routers import recetas, auth
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -49,5 +50,7 @@ async def root():
         "status": "online"
     }
 
-# Aquí puedes incluir tus routers modularizados más adelante
-# app.include_router(recetas.router, prefix="/api/v1")
+# Incluimos el router de recetas en nuestra aplicación principal (el Gateway)
+app.include_router(recetas.router, prefix="/api/v1", tags=["Recetas"])
+# Incluimos el router de autenticación
+app.include_router(auth.router, prefix="/api/v1/auth", tags=["Autenticación"])

@@ -136,6 +136,7 @@ class Receta(SQLModel, table=True):
     id_receta: Optional[int] = Field(default=None, primary_key=True)
     id_medico: int = Field(foreign_key="usuarios.id_usuario", index=True)
     id_paciente: int = Field(foreign_key="usuarios.id_usuario", index=True)
+    id_farmaceutico: Optional[int] = Field(default=None, foreign_key="usuarios.id_usuario", index=True)
 
     capsula: bytes # JSON cifrado
     iv: bytes # Vector de inicialización

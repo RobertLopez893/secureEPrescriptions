@@ -17,7 +17,9 @@ export class CryptoEngine {
   static async emitirYEnvolverReceta(
     datos: DatosMedicos, 
     doctorPrivateKey: string, 
+    doctorPublicKey: string,
     pacientePublicKey: string,
+    farmaceuticoPublicKey: string,
     dek: Uint8Array
   ) {
     // A. Firmar
@@ -32,16 +34,19 @@ export class CryptoEngine {
     // C. Cifrar Datos (AES-GCM)
     const cifrado = EncryptionModule.encrypt(contenedor, dek);
 
-    // D. Envolver la DEK para el Paciente (KeyWrap vía ECDH)
-    // Esto genera una "Wrapped Key" que solo el paciente puede abrir
-    const keyWrap = KeyWrapModule.wrap(dek, doctorPrivateKey, pacientePublicKey);
+    // D. Envolver la DEK para cada rol (KeyWrap vía ECDH)
+    // Esto genera una "Wrapped Key" que solo el destinatario puede abrir.
+    const dekMedico = KeyWrapModule.wrap(dek, doctorPrivateKey, doctorPublicKey);
+    const dekPaciente = KeyWrapModule.wrap(dek, doctorPrivateKey, pacientePublicKey);
+    const dekFarmaceutico = KeyWrapModule.wrap(dek, doctorPrivateKey, farmaceuticoPublicKey);
 
     return {
       ...cifrado,
-      key_wrap: {
-        wrapped_key: keyWrap.wrappedKey,
-        nonce_kw: keyWrap.nonce
-      }
+      capsula: cifrado.ciphertext,
+      iv: cifrado.iv,
+      dek_medico: dekMedico,
+      dek_paciente: dekPaciente,
+      dek_farmaceutico: dekFarmaceutico
     };
   }
 
