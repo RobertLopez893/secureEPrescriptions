@@ -25,3 +25,4 @@ uvicorn[standard]==0.29.0
 Werkzeug==3.1.6
 python-jose[cryptography]==3.5.0
 passlib[bcrypt]==1.7.4
+pydantic-settings>=2.0.0
