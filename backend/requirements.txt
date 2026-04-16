@@ -23,3 +23,5 @@ typing-inspection==0.4.2
 typing_extensions==4.15.0
 uvicorn[standard]==0.29.0
 Werkzeug==3.1.6
+python-jose[cryptography]==3.5.0
+passlib[bcrypt]==1.7.4

@@ -8,7 +8,7 @@ from src.api_gateway import schemas
 
 router = APIRouter()
 
-@router.post("/recetas", response_model=RecetaPublic, status_code=201)
+@router.post("/recetas", response_model=schemas.RecetaPublic, status_code=201)
 def emitir_receta(
     *,
     session: Session = Depends(get_session),
