@@ -26,10 +26,12 @@ def registrar_paciente(*, session: Session = Depends(get_session), paciente_in: 
 
     rol_paciente = get_rol_by_name(session, "Paciente")
 
-    # SQLModel es inteligente: crea el perfil y lo asigna al usuario
-    perfil_paciente = Paciente.model_validate(paciente_in)
-    
-    usuario_data = paciente_in.model_dump(exclude={"curp", "nacimiento", "sexo", "tel_emergencia"})
+    perfil_paciente = Paciente(
+        curp=paciente_in.curp, nacimiento=paciente_in.nacimiento,
+        sexo=paciente_in.sexo, tel_emergencia=paciente_in.tel_emergencia,
+    )
+
+    usuario_data = paciente_in.model_dump(exclude={"curp", "nacimiento", "sexo", "tel_emergencia", "contrasena"})
     db_usuario = Usuario(
         **usuario_data,
         contrasena=security.get_password_hash(paciente_in.contrasena),
@@ -53,9 +55,12 @@ def registrar_medico(*, session: Session = Depends(get_session), medico_in: sche
 
     rol_medico = get_rol_by_name(session, "Medico")
 
-    perfil_medico = Medico.model_validate(medico_in)
-    
-    usuario_data = medico_in.model_dump(exclude={"cedula", "especialidad", "universidad"})
+    perfil_medico = Medico(
+        cedula=medico_in.cedula, especialidad=medico_in.especialidad,
+        universidad=medico_in.universidad,
+    )
+
+    usuario_data = medico_in.model_dump(exclude={"cedula", "especialidad", "universidad", "contrasena"})
     db_usuario = Usuario(
         **usuario_data,
         contrasena=security.get_password_hash(medico_in.contrasena),

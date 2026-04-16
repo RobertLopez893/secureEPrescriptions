@@ -25,4 +25,7 @@ uvicorn[standard]==0.29.0
 Werkzeug==3.1.6
 python-jose[cryptography]==3.5.0
 passlib[bcrypt]==1.7.4
+bcrypt==4.0.1
 pydantic-settings>=2.0.0
+pytest>=8.0.0
+httpx>=0.27.0

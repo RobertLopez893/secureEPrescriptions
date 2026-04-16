@@ -10,12 +10,12 @@ from sqlmodel import create_engine, Session
 
 
 
-DATABASE_URL = os.getenv("DATABASE_URL")
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./test.db")
 
 # ==========================================
 # CREACIÓN DEL MOTOR (ENGINE)
 # ==========================================
-# El motor es la fábrica de conexiones de tu aplicación. 
+# El motor es la fábrica de conexiones de tu aplicación.
 # Solo se crea una vez al iniciar FastAPI.
 # echo=True hace que SQLAlchemy imprima en la consola todas las consultas SQL que ejecuta (muy útil en desarrollo).
 
