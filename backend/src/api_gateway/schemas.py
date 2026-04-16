@@ -12,8 +12,8 @@ class RecetaCreate(BaseModel):
     id_medico: int
     id_paciente: int
     expira_en: datetime
-    capsula: str       # Ciphertext hex
-    iv: str            # Nonce AES-GCM hex
+    capsula_cifrada: str   # Ciphertext hex
+    iv_aes_gcm: str        # Nonce AES-GCM hex
     accesos: List[AccesoCreate]
 
 
@@ -39,15 +39,15 @@ class RecetaDetailPublic(RecetaPublic):
 
 class RecetaCriptoPublic(BaseModel):
     id_receta: int
-    capsula: str
-    iv: str
+    capsula_cifrada: str
+    iv_aes_gcm: str
     accesos: List[AccesoPublic]
     estado: str
 
 class RecetaSellarRequest(BaseModel):
     id_farmaceutico: int
-    capsula: str
-    iv: str
+    capsula_cifrada: str
+    iv_aes_gcm: str
     accesos: List[AccesoCreate]
 
 

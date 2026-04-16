@@ -139,8 +139,8 @@ class Receta(SQLModel, table=True):
     id_paciente: int = Field(foreign_key="usuarios.id_usuario", index=True)
     id_farmaceutico: Optional[int] = Field(default=None, foreign_key="usuarios.id_usuario", index=True)
 
-    capsula: str      # Ciphertext hex del contenedor cifrado
-    iv: str           # Nonce AES-GCM hex
+    capsula_cifrada: str   # Ciphertext hex del contenedor cifrado
+    iv_aes_gcm: str        # Nonce AES-GCM hex
     accesos: Any = Field(default=[], sa_column=Column(JSON))  # [{rol, wrappedKey, nonce}]
 
     estado: str = Field(default="activa")

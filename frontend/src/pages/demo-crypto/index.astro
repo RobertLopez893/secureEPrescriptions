@@ -96,11 +96,12 @@ const steps=[{label:'LOGIN',href:'/doctor'},{label:'PACIENTE',href:'/doctor/pati
       id_medico: "DOC-001",
       id_paciente: "PAT-007",
       fecha_emision: new Date().toISOString(),
-      medicamentos: [{ nombre: "Ibuprofeno", dosis: "400mg", frecuencia: "8h", duracion: "3 días" }],
+      fecha_vencimiento: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+      medicamentos: [{ nombre: "Ibuprofeno", forma: "Tableta", dosis: "400mg", frecuencia: "8h", duracion: "3 días" }],
     };
 
-    // Aseguramos pasar doctor.pub como 5to parámetro para el auto-envoltorio
-    const paquete = CryptoEngine.emitirRecetaGlobal(datos, doctor.priv, paciente.pub, farmacia.pub, doctor.pub);
+    // keyPrivFirma, keyPrivCifrado (ambas del doctor), luego las 3 públicas
+    const paquete = CryptoEngine.emitirRecetaGlobal(datos, doctor.priv, doctor.priv, paciente.pub, farmacia.pub, doctor.pub);
     
     encryptedWindow.value = JSON.stringify(paquete, null, 2);
     clearWindow.value = "// Receta Original Generada:\n" + JSON.stringify(datos, null, 2);

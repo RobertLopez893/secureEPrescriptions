@@ -17,8 +17,8 @@ def emitir_receta(
         id_medico=receta_in.id_medico,
         id_paciente=receta_in.id_paciente,
         expira_en=receta_in.expira_en,
-        capsula=receta_in.capsula,
-        iv=receta_in.iv,
+        capsula_cifrada=receta_in.capsula_cifrada,
+        iv_aes_gcm=receta_in.iv_aes_gcm,
         accesos=[a.model_dump() for a in receta_in.accesos],
     )
     session.add(db_receta)
@@ -66,8 +66,8 @@ def obtener_cripto_receta(
 
     return schemas.RecetaCriptoPublic(
         id_receta=receta.id_receta,
-        capsula=receta.capsula,
-        iv=receta.iv,
+        capsula_cifrada=receta.capsula_cifrada,
+        iv_aes_gcm=receta.iv_aes_gcm,
         accesos=[schemas.AccesoPublic(**a) for a in receta.accesos],
         estado=receta.estado,
     )
@@ -88,8 +88,8 @@ def sellar_receta(
     if receta.estado != "activa":
         raise HTTPException(status_code=400, detail="La receta ya fue surtida o está inactiva.")
 
-    receta.capsula = sello_in.capsula
-    receta.iv = sello_in.iv
+    receta.capsula_cifrada = sello_in.capsula_cifrada
+    receta.iv_aes_gcm = sello_in.iv_aes_gcm
     receta.accesos = [a.model_dump() for a in sello_in.accesos]
     receta.id_farmaceutico = sello_in.id_farmaceutico
     receta.estado = "surtida"
