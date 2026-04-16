@@ -1,5 +1,6 @@
 from pydantic import BaseModel
-from datetime import datetime
+from datetime import datetime, date
+from typing import Optional
 
 class RecetaCreate(BaseModel):
     """
@@ -40,3 +41,39 @@ class LoginRequest(BaseModel):
 class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
+
+# --- Schemas de Creación de Usuarios ---
+
+class UsuarioPublic(BaseModel):
+    id_usuario: int
+    correo: str
+    nombre: str
+    paterno: str
+    rol_nombre: str
+
+class PacienteCreate(BaseModel):
+    # Datos del usuario base
+    nombre: str
+    paterno: str
+    materno: Optional[str] = None
+    correo: str
+    contrasena: str
+    id_clinica: Optional[int] = None
+    # Datos del perfil de paciente
+    curp: str
+    nacimiento: date
+    sexo: str
+    tel_emergencia: str
+
+class MedicoCreate(BaseModel):
+    # Datos del usuario base
+    nombre: str
+    paterno: str
+    materno: Optional[str] = None
+    correo: str
+    contrasena: str
+    id_clinica: int # Requerido para médicos
+    # Datos del perfil de médico
+    cedula: str
+    especialidad: str
+    universidad: str
