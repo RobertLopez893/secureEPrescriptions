@@ -12,11 +12,14 @@ idna==3.11
 itsdangerous==2.2.0
 Jinja2==3.1.6
 MarkupSafe==3.0.3
+psycopg2-binary==2.9.9
 pycparser==3.0
 pycryptodome==3.23.0
 pydantic==2.12.5
 pydantic_core==2.41.5
+sqlmodel==0.0.16
 starlette==0.52.1
 typing-inspection==0.4.2
 typing_extensions==4.15.0
+uvicorn[standard]==0.29.0
 Werkzeug==3.1.6

@@ -1,0 +1,60 @@
+---
+// PageLoader.astro — Pixel art loading screen
+// Shows on every page load, auto-dismisses after 0.8s
+interface Props {
+  message?: string
+  color?: string
+}
+const { message = 'CARGANDO...', color = '#38b764' } = Astro.props
+---
+
+<div class="px-loader" id="px-loader">
+  <!-- Animated pill sprite -->
+  <div id="loader-pill" style="animation: px-bounce 0.5s ease-in-out infinite;">
+    <svg width="80" height="40" viewBox="0 0 32 16" style="image-rendering:pixelated;">
+      <rect x="1"  y="3" width="14" height="10" rx="5" fill="#e8003d"/>
+      <rect x="17" y="3" width="14" height="10" rx="5" fill="#f4f4f4"/>
+      <rect x="15" y="3" width="2"  height="10" fill="#1a1c2c"/>
+      <rect x="2"  y="3" width="12" height="4"  rx="3" fill="rgba(255,255,255,.25)"/>
+      <rect x="18" y="3" width="12" height="4"  rx="3" fill="rgba(255,255,255,.35)"/>
+    </svg>
+  </div>
+
+  <!-- Loading text with cursor -->
+  <div style={"font-family:'Press Start 2P',monospace; font-size:10px; color:"+color+"; letter-spacing:.1em;"}
+       id="loader-text">
+    {message}
+  </div>
+
+  <!-- Pixel progress bar -->
+  <div class="px-progress-track">
+    <div class="px-progress-fill" style={'background: repeating-linear-gradient(90deg, '+color+' 0px, '+color+' 8px, color-mix(in srgb, '+color+' 70%, black) 8px, color-mix(in srgb, '+color+' 70%, black) 16px);'}>
+    </div>
+  </div>
+
+  <!-- Tiny virus mascot -->
+  <div style="opacity:.4; animation: virus-wiggle 1s ease-in-out infinite;">
+    <svg width="28" height="28" viewBox="0 0 20 20" style="image-rendering:pixelated; color:#41a6f6;">
+      <use href="#ico-virus"/>
+    </svg>
+  </div>
+</div>
+
+<script>
+  // Cycling load messages for fun
+  const messages = [
+    'CARGANDO...',
+    'VERIFICANDO FIRMA...',
+    'DESCIFRANDO...',
+    'CASI LISTO...',
+  ]
+  let i = 0
+  const el = document.getElementById('loader-text')
+  if (el) {
+    const interval = setInterval(() => {
+      i = (i + 1) % messages.length
+      el.textContent = messages[i]
+    }, 200)
+    setTimeout(() => clearInterval(interval), 800)
+  }
+</script>

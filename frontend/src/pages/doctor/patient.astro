@@ -1,0 +1,60 @@
+---
+import FlowLayout from '../../layouts/FlowLayout.astro'
+const steps=[{label:'LOGIN',href:'/doctor'},{label:'PACIENTE',href:'/doctor/patient'},{label:'MEDICAMENTO',href:'/doctor/medication'},{label:'FIRMA',href:'/doctor/sign'}]
+---
+<FlowLayout title="Médico — Paciente" role="doctor" steps={steps} currentStep={1} back="/doctor">
+<div class="anim-slide" style="display:flex;flex-direction:column;gap:20px;">
+  <div>
+    <h1 style="font-family:'Press Start 2P',monospace;font-size:13px;color:#f4f4f4;margin-bottom:6px;">DATOS DEL PACIENTE</h1>
+    <p style="font-family:'VT323',monospace;font-size:22px;color:#c0cbdc;">¿A quién va dirigida la receta?</p>
+  </div>
+
+  <div class="px-card" style="padding:24px;background:#222639;border-color:#38b764;box-shadow:4px 4px 0 #257a43;">
+    <form action="/doctor/medication" method="GET" style="display:flex;flex-direction:column;gap:18px;">
+      <div>
+        <label class="px-label" style="color:#38b764;">CURP DEL PACIENTE *</label>
+        <input type="text" name="curp" placeholder="RAEG920315HMCRND07"
+               class="px-input green" style="text-align:center;letter-spacing:.15em;font-size:22px;text-transform:uppercase;"
+               maxlength="18" required/>
+        <p style="font-family:'VT323',monospace;font-size:18px;color:#5b6ee1;margin-top:6px;text-align:center;">
+          18 caracteres · los datos se llenan automáticamente
+        </p>
+      </div>
+
+      <div style="height:2px;background:#29366f;"></div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+        <div style="grid-column:1/-1;">
+          <label class="px-label" style="color:#38b764;">NOMBRE COMPLETO *</label>
+          <input type="text" name="name" placeholder="Nombre del paciente" class="px-input green" required/>
+        </div>
+        <div>
+          <label class="px-label" style="color:#38b764;">FECHA NACIMIENTO *</label>
+          <input type="date" name="dob" class="px-input green" required/>
+        </div>
+        <div>
+          <label class="px-label" style="color:#38b764;">SEXO</label>
+          <select name="sex" class="px-input green">
+            <option value="">SELECCIONAR</option>
+            <option>MASCULINO</option>
+            <option>FEMENINO</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Info box -->
+      <div style="background:#1a2e1a;border:3px solid #38b764;padding:14px;display:flex;gap:12px;align-items:flex-start;">
+        <span style="font-size:20px;flex-shrink:0;">💡</span>
+        <div>
+          <p style="font-family:'Press Start 2P',monospace;font-size:7px;color:#38b764;margin-bottom:6px;">BÚSQUEDA AUTOMÁTICA</p>
+          <p style="font-family:'VT323',monospace;font-size:19px;color:#c0cbdc;line-height:1.5;">Al ingresar el CURP, el sistema busca al paciente. Si existe, los datos se llenan solos.</p>
+        </div>
+      </div>
+
+      <button type="submit" class="px-btn px-btn-green px-btn-lg" style="width:100%;justify-content:center;">
+        ► CONTINUAR AL MEDICAMENTO
+      </button>
+    </form>
+  </div>
+</div>
+</FlowLayout>

@@ -1,0 +1,55 @@
+@startuml
+!include <C4/C4_Component>
+
+' ==========================================
+' CONFIGURACIÓN AVANZADA DE LAYOUT
+' ==========================================
+skinparam wrapWidth 250
+skinparam maxMessageSize 150
+skinparam nodesep 150
+skinparam ranksep 100
+skinparam linetype ortho
+
+title Diagrama de Componentes (Nivel 3) - Flujos Bidireccionales del Frontend
+
+' ==========================================
+' SISTEMA WEB (FRONTEND)
+' ==========================================
+Container_Boundary(spa, "Frontend Web App (Astro, TypeScript, Web Crypto)") {
+    
+    ' FILA 1
+    Component(ui, "Interfaz de Usuario", "Astro / UI", "Maneja vistas para autentificación, emisión, consulta y dispensación.")
+    Component(authMgr, "Gestor de Acceso a Llave", "Hardware/API", "Lee y carga en memoria la llave privada (QR / Tarjeta inteligente).")
+    
+    ' FILA 2
+    Component(signerVerifier, "Módulo de Firma", "ECDSA-P256", "Canoniza y firma JSON, y verifica firmas de terceros.")
+    Component(cipherEngine, "Motor AES-GCM", "AES-GCM", "Cifra y descifra el payload usando la llave simétrica (DEK).")
+    Component(keyWrapper, "Gestor Key Wrap", "AES-KW / ECDH", "Envuelve y desenvuelve la DEK usando claves derivadas (KEK).")
+    
+    ' FILA 3
+    Component(hmac, "Módulo de Sellado", "HMAC-SHA256", "Genera y verifica el sello de dispensación del farmacéutico.")
+    Component(network, "Cliente HTTP", "Fetch API", "Gestiona comunicación con la API Backend.")
+
+    ' ==========================================
+    ' RELACIONES BIDIRECCIONALES (Textos optimizados)
+    ' ==========================================
+    
+    BiRel_R(ui, authMgr, "Solicita acceso\n/ Carga llave")
+    
+    BiRel_D(ui, signerVerifier, "Datos crudos\n/ Datos validados")
+    BiRel_R(signerVerifier, cipherEngine, "JSON firmado\n/ JSON descifrado")
+    BiRel_R(cipherEngine, keyWrapper, "DEK plana\n/ DEK desenvuelta")
+    
+    BiRel_D(cipherEngine, hmac, "Solicita sello\n/ Verifica sello")
+    BiRel_D(keyWrapper, network, "Exporta cápsula\n/ Importa cápsula")
+    
+    ' ==========================================
+    ' TRUCOS DE LAYOUT: CUADRÍCULA INVISIBLE 3x3
+    ' ==========================================
+    Lay_D(authMgr, cipherEngine)
+    Lay_D(signerVerifier, hmac)
+    Lay_R(hmac, network)
+}
+
+SHOW_LEGEND()
+@enduml

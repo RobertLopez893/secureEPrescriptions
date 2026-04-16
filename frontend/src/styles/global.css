@@ -1,0 +1,452 @@
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ════════════════════════════════════════════
+   DR. MARIO PIXEL ART — DESIGN SYSTEM
+   ════════════════════════════════════════════ */
+
+:root {
+  --bg:     #1a1c2c;
+  --navy:   #29366f;
+  --blue:   #41a6f6;
+  --red:    #e8003d;
+  --yellow: #ffcd75;
+  --green:  #38b764;
+  --white:  #f4f4f4;
+  --gray:   #c0cbdc;
+  --dark:   #1a1c2c;
+  --shadow: 4px 4px 0 0 #1a1c2c;
+  --shadow-blue:   4px 4px 0 0 #1a6eb0;
+  --shadow-green:  4px 4px 0 0 #257a43;
+  --shadow-red:    4px 4px 0 0 #8c0025;
+  --shadow-yellow: 4px 4px 0 0 #c48c00;
+}
+
+@layer base {
+  html { -webkit-font-smoothing: none; image-rendering: pixelated; }
+  body {
+    background: var(--bg);
+    color: var(--white);
+    font-family: 'VT323', monospace;
+    font-size: 20px;
+    min-height: 100vh;
+    /* Pixel grid texture */
+    background-image:
+      radial-gradient(circle, rgba(65,166,246,.06) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+  * { box-sizing: border-box; image-rendering: pixelated; }
+  ::-webkit-scrollbar { width: 8px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--navy); border: 2px solid var(--bg); }
+  ::-webkit-scrollbar-thumb:hover { background: var(--blue); }
+  input, select, textarea { outline: none; font-family: 'VT323', monospace; font-size: 20px; }
+}
+
+@layer components {
+
+  /* ── PIXEL CARD ──────────────────────────── */
+  .px-card {
+    background: var(--white);
+    color: var(--dark);
+    border: 3px solid var(--dark);
+    box-shadow: var(--shadow);
+  }
+  .px-card-navy {
+    background: var(--navy);
+    color: var(--white);
+    border: 3px solid var(--dark);
+    box-shadow: var(--shadow);
+  }
+  .px-card-dark {
+    background: #222639;
+    color: var(--white);
+    border: 3px solid var(--navy);
+    box-shadow: 4px 4px 0 0 #0d0e1a;
+  }
+
+  /* ── PIXEL BUTTON ────────────────────────── */
+  .px-btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 10px;
+    border: 3px solid var(--dark);
+    cursor: pointer;
+    transition: transform .05s, box-shadow .05s;
+    user-select: none;
+    white-space: nowrap;
+    padding: 14px 24px;
+    line-height: 1.4;
+    letter-spacing: .03em;
+  }
+  .px-btn:active {
+    transform: translate(4px, 4px) !important;
+    box-shadow: none !important;
+  }
+  .px-btn-lg { padding: 16px 32px; font-size: 11px; }
+  .px-btn-sm { padding: 10px 16px; font-size: 9px; }
+
+  .px-btn-green  { background: var(--green);  color: var(--white); box-shadow: var(--shadow-green); }
+  .px-btn-green:hover  { background: #44cc77; }
+  .px-btn-red    { background: var(--red);    color: var(--white); box-shadow: var(--shadow-red); }
+  .px-btn-red:hover    { background: #ff2255; }
+  .px-btn-blue   { background: var(--blue);   color: var(--dark);  box-shadow: var(--shadow-blue); }
+  .px-btn-blue:hover   { background: #66bbff; }
+  .px-btn-yellow { background: var(--yellow); color: var(--dark);  box-shadow: var(--shadow-yellow); }
+  .px-btn-yellow:hover { background: #ffdd99; }
+  .px-btn-ghost  {
+    background: transparent; color: var(--white);
+    border: 3px solid var(--gray);
+    box-shadow: 4px 4px 0 0 rgba(255,255,255,.15);
+  }
+  .px-btn-ghost:hover { background: rgba(255,255,255,.08); }
+  .px-btn-white  { background: var(--white); color: var(--dark); box-shadow: var(--shadow); }
+  .px-btn-white:hover { background: #ffffee; }
+
+  /* ── PIXEL INPUT ─────────────────────────── */
+  .px-input {
+    width: 100%;
+    background: #f8f8f0;
+    color: var(--dark);
+    border: 3px solid var(--dark);
+    padding: 12px 14px;
+    font-family: 'VT323', monospace;
+    font-size: 22px;
+    box-shadow: inset 2px 2px 0 rgba(0,0,0,.15);
+    transition: border-color .1s;
+  }
+  .px-input:focus { border-color: var(--blue); box-shadow: inset 2px 2px 0 rgba(0,0,0,.1), 0 0 0 3px rgba(65,166,246,.3); }
+  .px-input.green:focus { border-color: var(--green); box-shadow: inset 2px 2px 0 rgba(0,0,0,.1), 0 0 0 3px rgba(56,183,100,.3); }
+  .px-input.red:focus   { border-color: var(--red);   box-shadow: inset 2px 2px 0 rgba(0,0,0,.1), 0 0 0 3px rgba(232,0,61,.3); }
+  select.px-input { cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M0 0h2v2H0zm2 2h2v2H2zm2 2h2v2H4z' fill='%231a1c2c'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; background-size: 12px; padding-right: 36px; }
+  textarea.px-input { resize: none; }
+
+  /* ── PIXEL LABEL ─────────────────────────── */
+  .px-label {
+    display: block;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    color: var(--navy);
+    letter-spacing: .08em;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+  }
+  .px-label-light {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    color: var(--gray);
+    letter-spacing: .08em;
+    text-transform: uppercase;
+  }
+
+  /* ── PIXEL BADGE ─────────────────────────── */
+  .px-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 7px;
+    border: 2px solid currentColor;
+    padding: 4px 8px;
+    letter-spacing: .04em;
+  }
+  .px-badge-green  { color: var(--green);  background: rgba(56,183,100,.15);  border-color: var(--green); }
+  .px-badge-red    { color: var(--red);    background: rgba(232,0,61,.15);    border-color: var(--red); }
+  .px-badge-yellow { color: var(--yellow); background: rgba(255,205,117,.15); border-color: var(--yellow); }
+  .px-badge-blue   { color: var(--blue);   background: rgba(65,166,246,.15);  border-color: var(--blue); }
+
+  /* ── PIXEL DIVIDER ───────────────────────── */
+  .px-divider {
+    border: none;
+    border-top: 3px solid var(--navy);
+    margin: 20px 0;
+  }
+  .px-divider-light { border-top-color: rgba(255,255,255,.12); }
+
+  /* ── STAT BOX ────────────────────────────── */
+  .px-stat {
+    background: var(--navy);
+    border: 3px solid var(--dark);
+    box-shadow: var(--shadow);
+    padding: 16px;
+    text-align: center;
+  }
+  .px-stat-num   { font-family: 'Press Start 2P', monospace; font-size: 28px; display: block; }
+  .px-stat-label { font-family: 'VT323', monospace; font-size: 18px; color: var(--gray); display: block; margin-top: 4px; }
+
+  /* ── STEP DOT ────────────────────────────── */
+  .px-step {
+    width: 36px; height: 36px;
+    border: 3px solid currentColor;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 10px;
+    flex-shrink: 0;
+  }
+  .px-step.done   { background: var(--green);  border-color: var(--green);  color: var(--white); box-shadow: 3px 3px 0 var(--shadow-green); }
+  .px-step.active { background: var(--yellow); border-color: var(--dark);   color: var(--dark);  box-shadow: 3px 3px 0 var(--shadow-yellow); }
+  .px-step.wait   { background: var(--navy);   border-color: var(--navy);   color: var(--gray); }
+
+  /* ── STEP LINE ───────────────────────────── */
+  .px-step-line { flex:1; height:3px; background: var(--navy); min-width: 8px; }
+  .px-step-line.done { background: var(--green); }
+
+  /* ── TABLE ───────────────────────────────── */
+  .px-table { width: 100%; border-collapse: collapse; }
+  .px-table thead { background: var(--navy); border-bottom: 3px solid var(--dark); }
+  .px-table thead th { padding: 10px 14px; text-align: left; font-family: 'Press Start 2P', monospace; font-size: 8px; color: var(--gray); letter-spacing: .06em; }
+  .px-table tbody tr { border-bottom: 2px solid rgba(255,255,255,.08); cursor: pointer; transition: background .1s; }
+  .px-table tbody tr:hover { background: rgba(65,166,246,.1); }
+  .px-table tbody tr.selected { background: rgba(65,166,246,.2); border-left: 4px solid var(--blue); }
+  .px-table tbody td { padding: 14px 14px; font-family: 'VT323', monospace; font-size: 20px; color: var(--white); }
+  .px-table tbody tr:last-child { border-bottom: none; }
+}
+
+/* ════════════════════════════════════════════
+   PIXEL ART ANIMATIONS
+   ════════════════════════════════════════════ */
+
+/* Falling pills background */
+@keyframes pill-fall {
+  0%   { transform: translateY(-80px) rotate(0deg);   opacity: 0; }
+  5%   { opacity: .7; }
+  95%  { opacity: .5; }
+  100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+}
+
+/* Virus wiggle */
+@keyframes virus-wiggle {
+  0%,100% { transform: scale(1)    rotate(0deg);  }
+  20%     { transform: scale(1.12) rotate(-8deg); }
+  40%     { transform: scale(.92)  rotate(6deg);  }
+  60%     { transform: scale(1.08) rotate(-4deg); }
+  80%     { transform: scale(.96)  rotate(3deg);  }
+}
+
+/* Pixel bounce */
+@keyframes px-bounce {
+  0%,100% { transform: translateY(0);    }
+  30%     { transform: translateY(-12px); }
+  50%     { transform: translateY(-20px); }
+  70%     { transform: translateY(-8px);  }
+}
+
+/* Pop in */
+@keyframes px-pop {
+  0%  { transform: scale(0) rotate(-10deg); opacity: 0; }
+  60% { transform: scale(1.15) rotate(3deg); }
+  80% { transform: scale(.95); }
+  100%{ transform: scale(1) rotate(0);  opacity: 1; }
+}
+
+/* Slide up */
+@keyframes px-slide {
+  from { transform: translateY(24px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+/* Pulse glow */
+@keyframes px-glow {
+  0%,100% { box-shadow: 0 0 0 0 currentColor; }
+  50%     { box-shadow: 0 0 12px 4px currentColor; }
+}
+
+/* Score counter */
+@keyframes px-score {
+  0%  { transform: scale(1.4) translateY(-8px); opacity: 0; color: var(--yellow); }
+  40% { transform: scale(1.1) translateY(0); opacity: 1; }
+  100%{ transform: scale(1) translateY(0); opacity: 1; }
+}
+
+/* Blink */
+@keyframes px-blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+/* Scanline sweep */
+@keyframes px-scan { 0%{top:0%} 100%{top:100%} }
+
+/* Float */
+@keyframes px-float {
+  0%,100%{ transform: translateY(0);    }
+  50%    { transform: translateY(-10px); }
+}
+
+.anim-slide  { animation: px-slide  .35s cubic-bezier(.22,1,.36,1) both; }
+.anim-pop    { animation: px-pop    .45s cubic-bezier(.22,1,.36,1) both; }
+.anim-bounce { animation: px-bounce  1s ease-in-out infinite; }
+.anim-wiggle { animation: virus-wiggle 1.2s ease-in-out infinite; }
+.anim-float  { animation: px-float   3s ease-in-out infinite; }
+.anim-blink  { animation: px-blink   1s step-end infinite; }
+.anim-score  { animation: px-score   .5s cubic-bezier(.22,1,.36,1) both; }
+
+/* stagger helpers */
+.d1 { animation-delay: .08s; }
+.d2 { animation-delay: .16s; }
+.d3 { animation-delay: .24s; }
+.d4 { animation-delay: .32s; }
+
+/* ════════════════════════════════════════════
+   LOADING SCREENS & TRANSITIONS
+   ════════════════════════════════════════════ */
+
+/* ── Page loader overlay ── */
+.px-loader {
+  position: fixed; inset: 0; z-index: 9000;
+  background: var(--bg);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 24px;
+  animation: loaderOut .3s ease .8s both;
+}
+@keyframes loaderOut {
+  to { opacity: 0; pointer-events: none; visibility: hidden; }
+}
+
+/* ── Progress bar ── */
+.px-progress-track {
+  width: 200px; height: 12px;
+  border: 3px solid var(--navy);
+  background: #0d0e1a;
+  overflow: hidden;
+  image-rendering: pixelated;
+}
+.px-progress-fill {
+  height: 100%;
+  background: repeating-linear-gradient(90deg,
+    var(--green) 0px, var(--green) 8px,
+    #257a43 8px, #257a43 16px);
+  animation: progressFill .7s steps(8, end) .05s both;
+}
+@keyframes progressFill { from { width:0 } to { width:100% } }
+
+/* ── Spinner (rotating pill) ── */
+.px-spinner {
+  width: 32px; height: 32px;
+  border: 3px solid var(--navy);
+  border-top-color: var(--green);
+  animation: spinnerRot .6s steps(8, end) infinite;
+  image-rendering: pixelated;
+}
+@keyframes spinnerRot { to { transform: rotate(360deg); } }
+
+/* ── Inline button loader ── */
+.px-btn-loading {
+  position: relative;
+  pointer-events: none;
+  opacity: .7;
+}
+.px-btn-loading::after {
+  content: '';
+  position: absolute; right: 12px; top: 50%;
+  transform: translateY(-50%);
+  width: 10px; height: 10px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  animation: spinnerRot .5s steps(4,end) infinite;
+}
+
+/* ── Face scan animation ── */
+.face-scan-line {
+  position: absolute;
+  left: 12%; right: 12%;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, var(--blue), transparent);
+  box-shadow: 0 0 10px var(--blue);
+  animation: faceScan 1.8s ease-in-out infinite;
+}
+@keyframes faceScan {
+  0%   { top: 15%; opacity: .3; }
+  20%  { opacity: 1; }
+  80%  { opacity: 1; }
+  100% { top: 85%; opacity: .3; }
+}
+
+/* Biometric dot grid overlay */
+.biometric-grid {
+  position: absolute; inset: 0;
+  background-image: radial-gradient(circle, var(--blue) 1px, transparent 1px);
+  background-size: 12px 12px;
+  opacity: 0;
+  animation: biometricPulse 2s ease-in-out infinite;
+}
+@keyframes biometricPulse {
+  0%,100% { opacity: 0; }
+  50%     { opacity: .18; }
+}
+
+/* Face recognition dots */
+.face-dot {
+  position: absolute;
+  width: 4px; height: 4px;
+  background: var(--blue);
+  animation: faceDotPop .3s steps(2,end) both;
+}
+@keyframes faceDotPop {
+  from { transform: scale(0); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+
+/* Processing state */
+.px-processing {
+  background: #0a1a0a;
+  border-color: var(--green) !important;
+  animation: processingPulse .5s ease infinite;
+}
+@keyframes processingPulse {
+  0%,100% { border-color: var(--green); }
+  50%     { border-color: #257a43; }
+}
+
+/* ── Success explosion ── */
+.px-confetti-piece {
+  position: absolute;
+  width: 6px; height: 6px;
+  animation: confettiFall 1.2s ease both;
+}
+@keyframes confettiFall {
+  from { transform: translate(0,0) rotate(0);   opacity: 1; }
+  to   { transform: translate(var(--tx), 60px)  rotate(360deg); opacity: 0; }
+}
+
+/* ── Typing cursor ── */
+.px-cursor::after {
+  content: '█';
+  animation: px-blink 1s step-end infinite;
+  color: var(--green);
+  font-family: 'Press Start 2P', monospace;
+}
+
+/* ── Glitch text effect ── */
+.px-glitch {
+  position: relative;
+}
+.px-glitch::before, .px-glitch::after {
+  content: attr(data-text);
+  position: absolute; inset: 0;
+  animation: glitch .4s steps(2,end) infinite;
+}
+.px-glitch::before { color: var(--red);  clip-path: polygon(0 30%,100% 30%,100% 50%,0 50%); animation-delay: .1s; transform: translateX(-2px); }
+.px-glitch::after  { color: var(--blue); clip-path: polygon(0 60%,100% 60%,100% 80%,0 80%); animation-delay: .2s; transform: translateX(2px); }
+@keyframes glitch {
+  0%  { opacity: 1; }
+  20% { opacity: .8; transform: translateX(-2px) scaleX(.99); }
+  40% { opacity: 1; transform: none; }
+  60% { opacity: .9; transform: translateX(2px); }
+  80% { opacity: 1; transform: none; }
+}
+
+/* ── Notification pop ── */
+.px-toast {
+  position: fixed; bottom: 24px; right: 24px; z-index: 8000;
+  background: var(--navy);
+  border: 3px solid var(--green);
+  box-shadow: 4px 4px 0 var(--shadow-green);
+  padding: 14px 18px;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 8px;
+  color: var(--green);
+  animation: toastIn .25s steps(4,end) both, toastOut .25s steps(4,end) 2.5s both;
+  min-width: 200px;
+}
+@keyframes toastIn  { from { transform: translateX(120%); } to   { transform: none; } }
+@keyframes toastOut { to   { transform: translateX(120%); opacity: 0; } }

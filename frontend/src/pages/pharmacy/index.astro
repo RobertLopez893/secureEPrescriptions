@@ -1,0 +1,56 @@
+---
+import FlowLayout from '../../layouts/FlowLayout.astro'
+const steps=[{label:'ESCANEAR',href:'/pharmacy'},{label:'VERIFICAR',href:'/pharmacy/verify'},{label:'DISPENSAR',href:'/pharmacy/seal'}]
+---
+<FlowLayout title="Farmacia — Escanear" role="pharmacy" steps={steps} currentStep={0}>
+<div class="anim-slide" style="display:flex;flex-direction:column;gap:20px;">
+  <div style="text-align:center;">
+    <div class="anim-bounce" style="font-size:56px;margin-bottom:12px;">💊</div>
+    <h1 style="font-family:'Press Start 2P',monospace;font-size:13px;color:#f4f4f4;margin-bottom:8px;">ESCANEAR RECETA</h1>
+    <p style="font-family:'VT323',monospace;font-size:22px;color:#c0cbdc;">Pide al paciente que muestre su código QR</p>
+  </div>
+
+  <!-- Pharmacist chip -->
+  <div style="background:#1a0d0d;border:3px solid #e8003d;box-shadow:4px 4px 0 #8c0025;padding:14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <span style="font-size:28px;">💊</span>
+      <div>
+        <p style="font-family:'Press Start 2P',monospace;font-size:9px;color:#e8003d;">QFB. LAURA SÁNCHEZ</p>
+        <p style="font-family:'VT323',monospace;font-size:19px;color:#c0cbdc;margin-top:3px;">Farmacia Central · Turno matutino</p>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <span class="anim-blink" style="display:inline-block;width:8px;height:8px;background:#38b764;"></span>
+      <span style="font-family:'Press Start 2P',monospace;font-size:7px;color:#38b764;">EN LÍNEA</span>
+    </div>
+  </div>
+
+  <div style="background:#222639;border:3px solid #e8003d;box-shadow:4px 4px 0 #8c0025;padding:24px;">
+    <!-- Scanner -->
+    <div style="aspect-ratio:16/9;background:#1a0d0d;border:3px solid #e8003d;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;margin-bottom:20px;">
+      <div style="position:absolute;top:10px;left:10px;width:24px;height:24px;border-top:4px solid #e8003d;border-left:4px solid #e8003d;"></div>
+      <div style="position:absolute;top:10px;right:10px;width:24px;height:24px;border-top:4px solid #e8003d;border-right:4px solid #e8003d;"></div>
+      <div style="position:absolute;bottom:10px;left:10px;width:24px;height:24px;border-bottom:4px solid #e8003d;border-left:4px solid #e8003d;"></div>
+      <div style="position:absolute;bottom:10px;right:10px;width:24px;height:24px;border-bottom:4px solid #e8003d;border-right:4px solid #e8003d;"></div>
+      <div style="position:absolute;left:20px;right:20px;height:2px;background:#e8003d;box-shadow:0 0 8px #e8003d;animation:px-scan 1.8s linear infinite;"></div>
+      <div style="text-align:center;">
+        <div style="font-size:36px;margin-bottom:8px;">📱</div>
+        <p style="font-family:'Press Start 2P',monospace;font-size:8px;color:#e8003d;" class="anim-blink">ESPERANDO QR...</p>
+      </div>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
+      <div style="flex:1;height:2px;background:#29366f;"></div>
+      <span style="font-family:'Press Start 2P',monospace;font-size:7px;color:#29366f;">O FOLIO MANUAL</span>
+      <div style="flex:1;height:2px;background:#29366f;"></div>
+    </div>
+    <form action="/pharmacy/verify" method="GET" style="display:flex;gap:10px;">
+      <input type="text" name="folio" placeholder="FOLIO O CURP" class="px-input red" style="flex:1;border-color:#e8003d;" required/>
+      <button type="submit" class="px-btn px-btn-red">BUSCAR</button>
+    </form>
+  </div>
+  <p style="text-align:center;font-family:'Press Start 2P',monospace;font-size:7px;color:#29366f;line-height:1.8;">
+    🔐 FIRMA ECDSA P-256 VERIFICADA AUTOMÁTICAMENTE
+  </p>
+</div>
+</FlowLayout>

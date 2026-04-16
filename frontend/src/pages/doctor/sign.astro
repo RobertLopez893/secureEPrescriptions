@@ -1,0 +1,374 @@
+---
+import FlowLayout from '../../layouts/FlowLayout.astro'
+const steps = [
+  { label: 'LOGIN',       href: '/doctor' },
+  { label: 'PACIENTE',    href: '/doctor/patient' },
+  { label: 'MEDICAMENTO', href: '/doctor/medication' },
+  { label: 'FIRMA',       href: '/doctor/sign' },
+]
+const rows = [
+  { l: 'PACIENTE',      v: 'García Mendoza, Luis' },
+  { l: 'CURP',          v: 'GARM850315HDFNDS07' },
+  { l: 'MEDICAMENTO',   v: 'Amoxicilina', big: true },
+  { l: 'DOSIS',         v: '500 mg · Cápsula' },
+  { l: 'CANTIDAD',      v: '21 cápsulas' },
+  { l: 'INSTRUCCIONES', v: '1 cápsula c/8h con alimentos, 7 días.' },
+  { l: 'VIGENCIA',      v: '30 días desde hoy' },
+]
+---
+<FlowLayout title="Médico — Firma" role="doctor" steps={steps} currentStep={3} back="/doctor/medication">
+<div class="anim-slide" style="display:flex;flex-direction:column;gap:20px;">
+
+  <div>
+    <h1 style="font-family:'Press Start 2P',monospace;font-size:13px;color:#f4f4f4;margin-bottom:6px;">REVISAR Y FIRMAR</h1>
+    <p style="font-family:'VT323',monospace;font-size:22px;color:#ffcd75;">Una vez firmada, la receta no puede modificarse.</p>
+  </div>
+
+  <!-- Resumen receta -->
+  <div style="background:#222639;border:3px solid #38b764;box-shadow:4px 4px 0 #257a43;padding:0;overflow:hidden;">
+    <div style="background:#38b764;padding:10px 16px;">
+      <span style="font-family:'Press Start 2P',monospace;font-size:8px;color:#1a1c2c;">📋 RESUMEN DE RECETA</span>
+    </div>
+    <div style="padding:20px;">
+      {rows.map(f => (
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:10px 0;border-bottom:2px solid #29366f;gap:12px;">
+          <span style="font-family:'Press Start 2P',monospace;font-size:7px;color:#5b6ee1;flex-shrink:0;width:100px;">{f.l}</span>
+          <span style={'text-align:right;font-family:'+(f.big?'"Press Start 2P"':'"VT323"')+',monospace;font-size:'+(f.big?'11px':'21px')+';color:'+(f.big?'#38b764':'#f4f4f4')+';'}>{f.v}</span>
+        </div>
+      ))}
+    </div>
+  </div>
+
+  <!-- ① JSON Canonicalizado -->
+  <div style="background:#0d0e1a;border:3px solid #5b6ee1;box-shadow:4px 4px 0 #29366f;overflow:hidden;">
+    <div style="background:#29366f;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;">
+      <span style="font-family:'Press Start 2P',monospace;font-size:7px;color:#f4f4f4;">① JSON CANONICALIZADO — RFC 8785 / JCS</span>
+      <span style="font-family:'VT323',monospace;font-size:16px;color:#c0cbdc;">canonicalizeJSON() · @noble</span>
+    </div>
+    <div style="padding:14px;">
+      <pre id="jcs-output" style="font-family:'VT323',monospace;font-size:17px;color:#41a6f6;white-space:pre-wrap;word-break:break-all;margin:0;line-height:1.5;"></pre>
+    </div>
+  </div>
+
+  <!-- ② SHA-256 del payload -->
+  <div style="background:#0d0e1a;border:3px solid #5b6ee1;box-shadow:4px 4px 0 #29366f;overflow:hidden;">
+    <div style="background:#29366f;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;">
+      <span style="font-family:'Press Start 2P',monospace;font-size:7px;color:#f4f4f4;">② SHA-256 DEL PAYLOAD — FIPS 180-4</span>
+      <span style="font-family:'VT323',monospace;font-size:16px;color:#c0cbdc;">sha256() · @noble/hashes</span>
+    </div>
+    <div style="padding:14px;display:flex;align-items:center;gap:12px;">
+      <div style="flex:1;">
+        <p style="font-family:'Press Start 2P',monospace;font-size:6px;color:#5b6ee1;margin-bottom:6px;">DIGEST HEX (256 bits = 64 chars)</p>
+        <p id="sha256-output" style="font-family:'VT323',monospace;font-size:17px;color:#ffcd75;word-break:break-all;line-height:1.5;"></p>
+      </div>
+      <div id="sha256-badge" style="display:none;flex-shrink:0;background:#1a2e1a;border:2px solid #38b764;padding:6px 10px;">
+        <span style="font-family:'Press Start 2P',monospace;font-size:7px;color:#38b764;">256 bits ✓</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ③ Carga de llave privada -->
+  <div style="background:#1a1a0d;border:3px solid #ffcd75;box-shadow:4px 4px 0 #c48c00;padding:20px;display:flex;flex-direction:column;gap:14px;">
+    <div style="font-family:'Press Start 2P',monospace;font-size:8px;color:#ffcd75;">
+      ③ CARGAR LLAVE PRIVADA — ECDSA P-256
+    </div>
+
+    <!-- Botón usar llave de demo -->
+    <div style="background:#12110a;border:2px solid #29366f;padding:12px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+      <div>
+        <p style="font-family:'Press Start 2P',monospace;font-size:7px;color:#5b6ee1;margin-bottom:4px;">MODO DEMO — @noble/curves P-256</p>
+        <p style="font-family:'VT323',monospace;font-size:18px;color:#c0cbdc;">Usa la llave de prueba del médico (testData.ts)</p>
+      </div>
+      <button type="button" id="use-demo-btn" onclick="useDemoKey()"
+              style="font-family:'Press Start 2P',monospace;font-size:7px;color:#41a6f6;background:#0a1525;border:3px solid #41a6f6;padding:8px 12px;cursor:pointer;white-space:nowrap;">
+        ⚙ USAR LLAVE DEMO
+      </button>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div style="flex:1;height:2px;background:#29366f;"></div>
+      <span style="font-family:'Press Start 2P',monospace;font-size:7px;color:#29366f;">O CARGAR ARCHIVO</span>
+      <div style="flex:1;height:2px;background:#29366f;"></div>
+    </div>
+
+    <!-- Drop zone -->
+    <div id="drop-zone"
+         style="border:3px dashed #ffcd75;background:#12110a;padding:24px 16px;text-align:center;cursor:pointer;transition:border-color .1s,background .1s;"
+         ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)"
+         ondrop="handleDrop(event)" onclick="document.getElementById('key-file-input').click()">
+      <p style="font-family:'Press Start 2P',monospace;font-size:8px;color:#ffcd75;line-height:2;margin-bottom:4px;">
+        ARRASTRA TU ARCHIVO<br/>O HAZ CLIC AQUÍ
+      </p>
+      <p style="font-family:'VT323',monospace;font-size:18px;color:#5b6ee1;">Formatos: .pem · .key · .p12 · .pfx</p>
+      <input type="file" id="key-file-input" accept=".pem,.key,.p12,.pfx,.der" style="display:none;" onchange="handleFileSelect(event)"/>
+    </div>
+
+    <!-- Archivo cargado -->
+    <div id="file-loaded" style="display:none;background:#1a2e1a;border:3px solid #38b764;padding:14px;align-items:center;justify-content:space-between;gap:12px;">
+      <div>
+        <p id="file-name" style="font-family:'Press Start 2P',monospace;font-size:7px;color:#38b764;"></p>
+        <p id="file-meta" style="font-family:'VT323',monospace;font-size:17px;color:#c0cbdc;margin-top:3px;"></p>
+      </div>
+      <button type="button" onclick="resetKey()" style="font-family:'Press Start 2P',monospace;font-size:7px;color:#e8003d;background:none;border:2px solid #e8003d;padding:4px 8px;cursor:pointer;flex-shrink:0;">✕</button>
+    </div>
+
+    <!-- Errores -->
+    <div id="err-format" style="display:none;background:#2a0d0d;border:3px solid #e8003d;padding:14px;">
+      <p style="font-family:'Press Start 2P',monospace;font-size:8px;color:#e8003d;margin-bottom:8px;">⛔ FORMATO INVÁLIDO</p>
+      <p style="font-family:'VT323',monospace;font-size:19px;color:#c0cbdc;line-height:1.5;">Usa un archivo .pem o .key generado con ECDSA P-256.</p>
+      <button type="button" onclick="resetKey()" style="margin-top:10px;font-family:'Press Start 2P',monospace;font-size:7px;color:#e8003d;background:none;border:2px solid #e8003d;padding:5px 10px;cursor:pointer;">REINTENTAR</button>
+    </div>
+    <div id="err-corrupt" style="display:none;background:#2a0d0d;border:3px solid #e8003d;padding:14px;">
+      <p style="font-family:'Press Start 2P',monospace;font-size:8px;color:#e8003d;margin-bottom:8px;">⛔ LLAVE CORRUPTA</p>
+      <p style="font-family:'VT323',monospace;font-size:19px;color:#c0cbdc;line-height:1.5;">El archivo está dañado o incompleto.</p>
+      <button type="button" onclick="resetKey()" style="margin-top:10px;font-family:'Press Start 2P',monospace;font-size:7px;color:#e8003d;background:none;border:2px solid #e8003d;padding:5px 10px;cursor:pointer;">REINTENTAR</button>
+    </div>
+    <div id="err-mismatch" style="display:none;background:#1a0d00;border:3px solid #ffcd75;padding:14px;">
+      <p style="font-family:'Press Start 2P',monospace;font-size:8px;color:#ffcd75;margin-bottom:8px;">⚠ LLAVE NO COINCIDE</p>
+      <p style="font-family:'VT323',monospace;font-size:19px;color:#c0cbdc;line-height:1.5;">La llave no corresponde a la cédula 4892103.</p>
+      <button type="button" onclick="resetKey()" style="margin-top:10px;font-family:'Press Start 2P',monospace;font-size:7px;color:#ffcd75;background:none;border:2px solid #ffcd75;padding:5px 10px;cursor:pointer;">CARGAR OTRA LLAVE</button>
+    </div>
+
+    <!-- Llave pública derivada -->
+    <div id="pubkey-panel" style="display:none;background:#0d0e1a;border:2px solid #29366f;padding:12px;">
+      <p style="font-family:'Press Start 2P',monospace;font-size:6px;color:#5b6ee1;margin-bottom:5px;">LLAVE PÚBLICA DERIVADA — getPublicKey()</p>
+      <p id="pubkey-output" style="font-family:'VT323',monospace;font-size:14px;color:#41a6f6;word-break:break-all;line-height:1.5;"></p>
+    </div>
+
+    <!-- Key OK -->
+    <div id="key-ok" style="display:none;background:#1a2e1a;border:3px solid #38b764;padding:12px;align-items:center;gap:10px;">
+      <svg width="18" height="14" viewBox="0 0 20 16" style="image-rendering:pixelated;color:#38b764;flex-shrink:0;"><use href="#ico-checkmark"/></svg>
+      <div>
+        <p style="font-family:'Press Start 2P',monospace;font-size:7px;color:#38b764;">LLAVE VERIFICADA · LISTA PARA FIRMAR</p>
+        <p style="font-family:'VT323',monospace;font-size:17px;color:#c0cbdc;margin-top:3px;">ECDSA P-256 · @noble/curves · La llave nunca abandona este dispositivo.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ④ Firma generada -->
+  <div id="sig-panel" style="display:none;background:#0d0e1a;border:3px solid #38b764;box-shadow:4px 4px 0 #257a43;overflow:hidden;">
+    <div style="background:#257a43;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;">
+      <span style="font-family:'Press Start 2P',monospace;font-size:7px;color:#f4f4f4;">④ FIRMA ECDSA P-256 — FIPS 186-4</span>
+      <span style="font-family:'VT323',monospace;font-size:16px;color:#c0cbdc;">p256.sign() · @noble/curves</span>
+    </div>
+    <div style="padding:14px;">
+      <p style="font-family:'Press Start 2P',monospace;font-size:6px;color:#5b6ee1;margin-bottom:6px;">FIRMA HEX (DER-encoded, ~70 bytes)</p>
+      <p id="sig-output" style="font-family:'VT323',monospace;font-size:15px;color:#38b764;word-break:break-all;line-height:1.6;"></p>
+    </div>
+  </div>
+
+  <!-- CTA -->
+  <button type="button" id="sign-btn" onclick="doSign()" disabled
+          class="px-btn px-btn-yellow px-btn-lg"
+          style="width:100%;justify-content:center;font-size:12px;opacity:.4;cursor:not-allowed;">
+    🔑 FIRMAR Y EMITIR RECETA
+  </button>
+
+  <div style="display:flex;justify-content:center;gap:24px;">
+    <a href="/doctor/patient"    style="font-family:'Press Start 2P',monospace;font-size:7px;color:#29366f;text-decoration:none;" onmouseover="this.style.color='#c0cbdc'" onmouseout="this.style.color='#29366f'">◄ EDITAR PACIENTE</a>
+    <a href="/doctor/medication" style="font-family:'Press Start 2P',monospace;font-size:7px;color:#29366f;text-decoration:none;" onmouseover="this.style.color='#c0cbdc'" onmouseout="this.style.color='#29366f'">◄ EDITAR MEDICAMENTO</a>
+  </div>
+</div>
+</FlowLayout>
+
+<script>
+  import { canonicalizeJSON, signData, getPublicKey } from '../../utils/cryptoFlow.ts'
+  import { sha256 } from '@noble/hashes/sha2.js'
+  import { utf8ToBytes, bytesToHex } from '@noble/hashes/utils.js'
+  import { testKeys, recetaPrueba } from '../../utils/testData.ts'
+
+  /* ══ ESTADO GLOBAL ══ */
+  let activePrivKeyHex: string | null = null
+  let canonicalStr = ''
+  let digestHex    = ''
+
+  /* ══ RECETA BASE ══ */
+  const RECETA = {
+    datos: {
+      paciente_id:   'GARM850315HDFNDS07',
+      medico_id:     'CED-4892103',
+      medicamento:   'Amoxicilina 500mg',
+      dosis:         '1 cápsula cada 8 horas con alimentos',
+      cantidad:      21,
+      fecha_emision: new Date().toISOString().split('.')[0] + 'Z',
+      vigencia_dias: 30,
+    },
+    dispensacion: null,
+  }
+
+  /* ══ INIT — JCS + SHA-256 al cargar ══ */
+  function init() {
+    canonicalStr = canonicalizeJSON(RECETA)
+
+    // Mostrar JCS pretty-printed
+    ;(document.getElementById('jcs-output') as HTMLPreElement).textContent =
+      JSON.stringify(JSON.parse(canonicalStr), null, 2)
+
+    // SHA-256 del canónico con @noble/hashes
+    const digestBytes = sha256(utf8ToBytes(canonicalStr))
+    digestHex = bytesToHex(digestBytes)
+    ;(document.getElementById('sha256-output') as HTMLParagraphElement).textContent = digestHex
+    ;(document.getElementById('sha256-badge') as HTMLDivElement).style.display = 'flex'
+  }
+
+  init()
+
+  /* ══ USAR LLAVE DEMO (testData.ts) ══ */
+  function useDemoKey() {
+    const btn = document.getElementById('use-demo-btn') as HTMLButtonElement
+    btn.textContent  = '⏳ CARGANDO...'
+    btn.disabled     = true
+
+    try {
+      activePrivKeyHex = testKeys.medico
+
+      // Derivar y mostrar llave pública
+      const pubHex = getPublicKey(activePrivKeyHex)
+      sessionStorage.setItem('rxflow_pubkey', pubHex)
+      ;(document.getElementById('pubkey-output') as HTMLParagraphElement).textContent = pubHex
+      ;(document.getElementById('pubkey-panel') as HTMLDivElement).style.display = 'block'
+
+      // Ocultar drop zone, mostrar key OK
+      ;(document.getElementById('drop-zone') as HTMLDivElement).style.display = 'none'
+      ;(document.getElementById('key-ok') as HTMLDivElement).style.display    = 'flex'
+      ;(document.getElementById('file-name') as HTMLParagraphElement).textContent = 'testKeys.medico (demo)'
+      ;(document.getElementById('file-meta') as HTMLParagraphElement).textContent = '32 bytes · ECDSA P-256 · @noble/curves'
+      ;(document.getElementById('file-loaded') as HTMLDivElement).style.display = 'flex'
+
+      btn.textContent       = '✓ LLAVE CARGADA'
+      btn.style.color       = '#38b764'
+      btn.style.borderColor = '#38b764'
+
+      setSignBtn(true)
+    } catch(e) {
+      btn.textContent = '⛔ ERROR'
+      btn.style.color = '#e8003d'
+      console.error(e)
+    }
+  }
+
+  /* ══ DRAG & DROP ══ */
+  const VALID_EXTS  = ['.pem', '.key', '.p12', '.pfx', '.der']
+  const PEM_HEADERS = [
+    '-----BEGIN EC PRIVATE KEY-----',
+    '-----BEGIN PRIVATE KEY-----',
+    '-----BEGIN ENCRYPTED PRIVATE KEY-----',
+  ]
+  const KEY_ATTEMPT = 'rxflow_key_attempt'
+
+  function handleDragOver(e: DragEvent)  { e.preventDefault(); (e.currentTarget as HTMLElement).style.borderColor='#fff'; (e.currentTarget as HTMLElement).style.background='#1e1c00' }
+  function handleDragLeave(e: DragEvent) { (e.currentTarget as HTMLElement).style.borderColor='#ffcd75'; (e.currentTarget as HTMLElement).style.background='#12110a' }
+  function handleDrop(e: DragEvent)      { e.preventDefault(); handleDragLeave(e); const f=e.dataTransfer?.files?.[0]; if(f) processFile(f) }
+  function handleFileSelect(e: Event)    { const f=(e.target as HTMLInputElement).files?.[0]; if(f) processFile(f) }
+
+  function hideErrors() {
+    ;['err-format','err-corrupt','err-mismatch','file-loaded','key-ok','pubkey-panel'].forEach(id => {
+      const el = document.getElementById(id)
+      if (el) el.style.display = 'none'
+    })
+  }
+
+  function resetKey() {
+    hideErrors()
+    ;(document.getElementById('key-file-input') as HTMLInputElement).value = ''
+    ;(document.getElementById('drop-zone') as HTMLDivElement).style.display = 'block'
+    ;(document.getElementById('sig-panel') as HTMLDivElement).style.display = 'none'
+    activePrivKeyHex = null
+    setSignBtn(false)
+  }
+
+  async function processFile(file: File) {
+    const name = file.name.toLowerCase()
+    const ext  = VALID_EXTS.find(e => name.endsWith(e))
+    ;(document.getElementById('drop-zone') as HTMLDivElement).style.display = 'none'
+    hideErrors()
+
+    if (!ext) { (document.getElementById('err-format') as HTMLDivElement).style.display = 'block'; return }
+
+    let text = ''
+    try { text = await file.text() } catch { (document.getElementById('err-corrupt') as HTMLDivElement).style.display = 'block'; return }
+
+    const trimmed   = text.trim()
+    const hasHeader = PEM_HEADERS.some(h => trimmed.startsWith(h))
+
+    if (!hasHeader && !['.p12','.pfx','.der'].includes(ext)) {
+      ;(document.getElementById(trimmed.startsWith('-----') ? 'err-format' : 'err-corrupt') as HTMLDivElement).style.display = 'block'
+      return
+    }
+
+    // Simulación: primer intento → mismatch, segundo → OK con llave demo
+    const attempts = parseInt(sessionStorage.getItem(KEY_ATTEMPT) || '0')
+    if (attempts === 0) {
+      sessionStorage.setItem(KEY_ATTEMPT, '1')
+      ;(document.getElementById('err-mismatch') as HTMLDivElement).style.display = 'block'
+      return
+    }
+    sessionStorage.removeItem(KEY_ATTEMPT)
+
+    // Usar llave demo como fallback
+    activePrivKeyHex = testKeys.medico
+    const pubHex = getPublicKey(activePrivKeyHex)
+    sessionStorage.setItem('rxflow_pubkey', pubHex)
+    ;(document.getElementById('pubkey-output') as HTMLParagraphElement).textContent = pubHex
+    ;(document.getElementById('pubkey-panel') as HTMLDivElement).style.display = 'block'
+
+    const size = file.size < 1024 ? file.size + ' B' : (file.size/1024).toFixed(1) + ' KB'
+    ;(document.getElementById('file-name') as HTMLParagraphElement).textContent = file.name.length > 30 ? file.name.slice(0,28)+'…' : file.name
+    ;(document.getElementById('file-meta') as HTMLParagraphElement).textContent = size + ' · ECDSA P-256'
+    ;(document.getElementById('file-loaded') as HTMLDivElement).style.display = 'flex'
+    ;(document.getElementById('key-ok') as HTMLDivElement).style.display      = 'flex'
+    setSignBtn(true)
+  }
+
+  /* ══ FIRMAR con @noble/curves ══ */
+  function setSignBtn(enabled: boolean) {
+    const btn = document.getElementById('sign-btn') as HTMLButtonElement
+    btn.disabled      = !enabled
+    btn.style.opacity = enabled ? '1' : '.4'
+    btn.style.cursor  = enabled ? 'pointer' : 'not-allowed'
+  }
+
+  function doSign() {
+    if (!activePrivKeyHex) return
+    const btn = document.getElementById('sign-btn') as HTMLButtonElement
+    btn.disabled     = true
+    btn.textContent  = '⏳ FIRMANDO CON @noble/curves...'
+    btn.style.opacity = '.7'
+
+    try {
+      // signData() = sha256(canonical) → p256.sign() → hex
+      const sigHex = signData(canonicalStr, activePrivKeyHex)
+
+      // Guardar en sessionStorage para verify
+      sessionStorage.setItem('rxflow_signature', sigHex)
+      sessionStorage.setItem('rxflow_canonical',  canonicalStr)
+      sessionStorage.setItem('rxflow_digest',     digestHex)
+
+      // Mostrar firma
+      ;(document.getElementById('sig-output') as HTMLParagraphElement).textContent = sigHex
+      ;(document.getElementById('sig-panel') as HTMLDivElement).style.display = 'block'
+
+      btn.textContent  = '✓ RECETA FIRMADA — REDIRIGIENDO...'
+      btn.style.color  = '#38b764'
+      btn.style.borderColor = '#38b764'
+      btn.style.opacity = '1'
+
+      setTimeout(() => { window.location.href = '/doctor/done' }, 900)
+    } catch(e) {
+      btn.disabled     = false
+      btn.textContent  = '🔑 FIRMAR Y EMITIR RECETA'
+      btn.style.opacity = '1'
+      btn.style.cursor  = 'pointer'
+      console.error('Firma fallida:', e)
+    }
+  }
+
+  // Exponer funciones al scope global para los onclick del HTML
+  ;(window as any).useDemoKey      = useDemoKey
+  ;(window as any).handleDragOver  = handleDragOver
+  ;(window as any).handleDragLeave = handleDragLeave
+  ;(window as any).handleDrop      = handleDrop
+  ;(window as any).handleFileSelect= handleFileSelect
+  ;(window as any).resetKey        = resetKey
+  ;(window as any).doSign          = doSign
+</script>
