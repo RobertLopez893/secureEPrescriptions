@@ -191,7 +191,7 @@ const steps=[{label:'ESCANEAR',href:'/pharmacy'},{label:'VERIFICAR',href:'/pharm
 
     <!-- Fallback folio -->
     <form action="/pharmacy/verify" method="GET" style="display:flex;gap:10px;">
-      <input type="text" name="folio" placeholder="Folio o CURP del paciente"
+      <input type="number" name="id" placeholder="ID de la receta (folio)" min="1"
              class="px-input" style="flex:1;border-color:#e8003d;font-size:20px;" required/>
       <button type="submit" class="px-btn px-btn-red" style="white-space:nowrap;">BUSCAR</button>
     </form>
@@ -268,7 +268,13 @@ const steps=[{label:'ESCANEAR',href:'/pharmacy'},{label:'VERIFICAR',href:'/pharm
             viewport.style.borderColor = '#38b764'
             viewport.style.background  = '#04100a'
             sessionStorage.setItem('rxpro_scan_method', 'qr')
-            setTimeout(() => { window.location.href = '/pharmacy/verify' }, 900)
+            // Si el paciente recién emitió una receta en este navegador, úsala
+            let last: any = null
+            try { last = JSON.parse(sessionStorage.getItem('rxpro_last_receta') || 'null') } catch {}
+            const target = last && typeof last.id_receta === 'number'
+              ? `/pharmacy/verify?id=${last.id_receta}`
+              : '/pharmacy/verify'
+            setTimeout(() => { window.location.href = target }, 900)
           }, ph.dur * 0.5)
         }
       }, delay)

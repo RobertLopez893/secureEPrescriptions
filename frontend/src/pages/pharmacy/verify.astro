@@ -183,7 +183,7 @@ const steps = [
 
         <!-- Botones de acción -->
         <div id="action-valid" style="display:none;flex-direction:column;gap:8px;">
-          <a href="/pharmacy/seal" class="px-btn px-btn-red px-btn-lg" style="width:100%;justify-content:center;text-decoration:none;font-size:10px;">
+          <a id="dispense-link" href="/pharmacy/seal" class="px-btn px-btn-red px-btn-lg" style="width:100%;justify-content:center;text-decoration:none;font-size:10px;">
             💊 PROCEDER A DISPENSAR
           </a>
           <a href="/pharmacy" class="px-btn px-btn-ghost" style="width:100%;justify-content:center;text-decoration:none;">✕ CANCELAR</a>
@@ -234,6 +234,9 @@ const steps = [
   import { utf8ToBytes, bytesToHex, hexToBytes } from '@noble/hashes/utils.js'
   import { testKeys } from '../../utils/testData.ts'
   import { getPublicKey } from '../../utils/cryptoFlow.ts'
+  import { Api, ApiError } from '../../utils/api.ts'
+  import { KeyWrapModule } from '../../crypto/keyWrap.ts'
+  import { EncryptionModule } from '../../crypto/encryption.ts'
 
   /* ══ ESTADO ══ */
   let storedCanonical = ''
@@ -254,10 +257,60 @@ const steps = [
     dispensacion: null,
   }
 
+  /**
+   * Si hay ?id= en la URL, intenta cargar la receta real del backend,
+   * desenvuelve la DEK con la llave del farmacéutico, descifra la cápsula
+   * y usa esos datos como fuente de verdad para la verificación ECDSA.
+   * Si falla, continúa con el flujo demo offline (sessionStorage).
+   */
+  async function hydrateFromBackend() {
+    const params = new URLSearchParams(window.location.search)
+    const id = Number(params.get('id') || 0)
+    if (!id) return false
+
+    try {
+      const cripto = await Api.obtenerRecetaCripto(id)
+      const acceso = cripto.accesos.find(a => a.rol === 'farmaceutico')
+      if (!acceso) throw new Error('Esta receta no concede acceso a una farmacia.')
+
+      const doctorPubHex = getPublicKey(testKeys.medico)
+      const dek = KeyWrapModule.unwrap(
+        acceso.wrappedKey, acceso.nonce,
+        testKeys.farmaceutico, doctorPubHex,
+      )
+      const contenedor = EncryptionModule.decrypt(
+        cripto.capsula_cifrada, cripto.iv_aes_gcm, dek,
+      )
+
+      storedCanonical = canonicalizeJSON(contenedor.datos)
+      storedSigHex    = contenedor.firma_medico
+      storedPubHex    = doctorPubHex
+
+      sessionStorage.setItem('rxflow_canonical', storedCanonical)
+      sessionStorage.setItem('rxflow_signature', storedSigHex)
+      sessionStorage.setItem('rxflow_pubkey',    storedPubHex)
+
+      // Payload que la pantalla de sello necesita para reempaquetar
+      sessionStorage.setItem('rxpro_pharmacy_payload', JSON.stringify({
+        id_receta: id,
+        dek_hex: bytesToHex(dek),
+        contenedor,
+        doctorPubHex,
+        pacientePubHex: getPublicKey(testKeys.paciente),
+      }))
+      return true
+    } catch (e) {
+      const msg = e instanceof ApiError ? `Backend ${e.status}: ${e.detail}` : (e as any)?.message || 'Error'
+      console.warn('[pharmacy/verify] backend hydrate failed, fallback demo:', msg)
+      return false
+    }
+  }
+
   async function init() {
-    storedSigHex    = sessionStorage.getItem('rxflow_signature') || ''
-    storedCanonical = sessionStorage.getItem('rxflow_canonical') || canonicalizeJSON(RECETA_BASE)
-    storedPubHex    = sessionStorage.getItem('rxflow_pubkey')   || ''
+    await hydrateFromBackend()
+    storedSigHex    = storedSigHex    || sessionStorage.getItem('rxflow_signature') || ''
+    storedCanonical = storedCanonical || sessionStorage.getItem('rxflow_canonical') || canonicalizeJSON(RECETA_BASE)
+    storedPubHex    = storedPubHex    || sessionStorage.getItem('rxflow_pubkey')   || ''
 
     // Si no hay firma: generar firma demo con testKeys.medico
     if (!storedSigHex || !storedPubHex) {
@@ -278,6 +331,15 @@ const steps = [
 
     ;(document.getElementById('state-loading') as HTMLDivElement).style.display = 'none'
     ;(document.getElementById('main-grid') as HTMLDivElement).style.display = 'flex'
+
+    // Propagar ?id= al link "PROCEDER A DISPENSAR" para que seal.astro sepa
+    // qué receta sellar.
+    const params = new URLSearchParams(window.location.search)
+    const rxId = params.get('id')
+    if (rxId) {
+      const link = document.getElementById('dispense-link') as HTMLAnchorElement | null
+      if (link) link.href = `/pharmacy/seal?id=${rxId}`
+    }
 
     await runVerify(false)
   }

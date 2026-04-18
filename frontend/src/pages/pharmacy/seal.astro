@@ -39,11 +39,15 @@ const checklist=['MEDICAMENTO CORRECTO (AMOXICILINA 500MG)','CANTIDAD CORRECTA (
     <textarea class="px-input red" style="border-color:#e8003d;resize:none;margin-top:4px;" rows="2" placeholder="Ej. Se indicó tomar con alimentos..."></textarea>
   </div>
 
-  <form action="/pharmacy/done" method="GET">
-    <button type="submit" class="px-btn px-btn-red px-btn-lg" style="width:100%;justify-content:center;font-size:11px;">
-      ✅ CONFIRMAR Y SELLAR RECETA
-    </button>
-  </form>
+  <!-- Error de backend -->
+  <div id="seal-error" style="display:none;background:#2a0d0d;border:3px solid #e8003d;padding:14px;">
+    <p style="font-family:'Press Start 2P',monospace;font-size:8px;color:#e8003d;margin-bottom:8px;">⛔ ERROR AL SELLAR</p>
+    <p id="seal-error-msg" style="font-family:'VT323',monospace;font-size:19px;color:#c0cbdc;line-height:1.5;"></p>
+  </div>
+
+  <button type="button" id="seal-btn" class="px-btn px-btn-red px-btn-lg" style="width:100%;justify-content:center;font-size:11px;">
+    ✅ CONFIRMAR Y SELLAR RECETA
+  </button>
 
   <p style="text-align:center;font-family:'Press Start 2P',monospace;font-size:7px;color:#29366f;line-height:1.8;">
     EL SELLO QUEDA REGISTRADO DE FORMA PERMANENTE
@@ -52,11 +56,119 @@ const checklist=['MEDICAMENTO CORRECTO (AMOXICILINA 500MG)','CANTIDAD CORRECTA (
 </FlowLayout>
 
 <script>
-  function toggleCheck(i) {
-    const lbl=document.getElementById('lbl-'+i)
-    const txt=document.getElementById('txt-'+i)
-    const cb=lbl.querySelector('input')
-    if(cb.checked){lbl.style.background='#1a2e1a';lbl.style.borderColor='#38b764';txt.style.textDecoration='line-through';txt.style.color='#5b6ee1';}
-    else{lbl.style.background='#222639';lbl.style.borderColor='#29366f';txt.style.textDecoration='';txt.style.color='#c0cbdc';}
+  import { Api, ApiError, getSession } from '../../utils/api.ts'
+  import { CryptoEngine } from '../../crypto/index.ts'
+  import { testKeys } from '../../utils/testData.ts'
+  import { getPublicKey } from '../../utils/cryptoFlow.ts'
+
+  function toggleCheck(i: number) {
+    const lbl = document.getElementById('lbl-'+i) as HTMLLabelElement
+    const txt = document.getElementById('txt-'+i) as HTMLSpanElement
+    const cb  = lbl.querySelector('input') as HTMLInputElement
+    if (cb.checked) {
+      lbl.style.background='#1a2e1a'; lbl.style.borderColor='#38b764'
+      txt.style.textDecoration='line-through'; txt.style.color='#5b6ee1'
+    } else {
+      lbl.style.background='#222639'; lbl.style.borderColor='#29366f'
+      txt.style.textDecoration=''; txt.style.color='#c0cbdc'
+    }
   }
+  ;(window as any).toggleCheck = toggleCheck
+
+  const sealBtn  = document.getElementById('seal-btn')       as HTMLButtonElement
+  const errorBox = document.getElementById('seal-error')     as HTMLDivElement
+  const errorMsg = document.getElementById('seal-error-msg') as HTMLParagraphElement
+
+  function showError(msg: string) {
+    errorMsg.textContent = msg
+    errorBox.style.display = 'block'
+  }
+
+  sealBtn.addEventListener('click', async () => {
+    errorBox.style.display = 'none'
+
+    const params = new URLSearchParams(window.location.search)
+    const idReceta = Number(params.get('id') || 0)
+
+    // Checklist
+    const allChecked = Array.from(document.querySelectorAll('#checklist input[type="checkbox"]'))
+      .every(el => (el as HTMLInputElement).checked)
+    if (!allChecked) {
+      showError('Marca todos los puntos del checklist antes de sellar.')
+      return
+    }
+
+    // Si no hay id o payload backend, cae al comportamiento demo (redirige)
+    const payloadRaw = sessionStorage.getItem('rxpro_pharmacy_payload')
+    if (!idReceta || !payloadRaw) {
+      window.location.href = '/pharmacy/done'
+      return
+    }
+
+    sealBtn.disabled = true
+    const orig = sealBtn.textContent
+    sealBtn.textContent = '⏳ SELLANDO CON HMAC-SHA256...'
+
+    try {
+      const payload = JSON.parse(payloadRaw)
+      // Reempaqueta la cápsula llamando a CryptoEngine.sellar que añade el HMAC
+      // y regenera los keyWraps para paciente y doctor
+      const sellada = CryptoEngine.sellar(
+        payload.contenedor.capsula_cifrada || '', // no aplica, sellar espera ciphertext original
+        '',                                        // idem
+        '',                                        // wrappedKey original (no necesario en demo)
+        '',                                        // nonce kw original (no necesario en demo)
+        testKeys.farmaceutico,
+        payload.doctorPubHex,
+        payload.pacientePubHex,
+      ) as any
+
+      // NOTA: CryptoEngine.sellar como está necesita el ciphertext + wrap; en
+      // esta iteración construimos la nueva cápsula manualmente con el
+      // contenedor ya abierto + HMAC.
+      const { EncryptionModule } = await import('../../crypto/encryption.ts')
+      const { HmacModule }       = await import('../../crypto/hmac.ts')
+      const { KeyWrapModule }    = await import('../../crypto/keyWrap.ts')
+      const { hexToBytes }       = await import('@noble/hashes/utils.js')
+
+      const dek = hexToBytes(payload.dek_hex)
+      const fecha = new Date().toISOString()
+      const hmacSello = HmacModule.generateSeal(
+        `${payload.contenedor.datos.id_receta}-${fecha}`,
+        testKeys.farmaceutico,
+      )
+      const contenedorActualizado = {
+        ...payload.contenedor,
+        sellos: {
+          id_clinica: 'FARM_ID_001',
+          fecha_surtido: fecha,
+          hmac_sello: hmacSello,
+        },
+      }
+      const nuevoCifrado = EncryptionModule.encrypt(contenedorActualizado as any, dek)
+      const wrapPaciente = KeyWrapModule.wrap(dek, testKeys.farmaceutico, payload.pacientePubHex)
+      const wrapDoctor   = KeyWrapModule.wrap(dek, testKeys.farmaceutico, payload.doctorPubHex)
+
+      const session = getSession()
+      const idFarmaceutico = session && session.role === 'Farmaceutico' ? session.id : 1
+
+      const res = await Api.sellarReceta(idReceta, {
+        id_farmaceutico: idFarmaceutico,
+        capsula_cifrada: nuevoCifrado.capsula_cifrada,
+        iv_aes_gcm:      nuevoCifrado.iv_aes_gcm,
+        accesos: [
+          { rol: 'paciente', wrappedKey: wrapPaciente.wrappedKey, nonce: wrapPaciente.nonce },
+          { rol: 'doctor',   wrappedKey: wrapDoctor.wrappedKey,   nonce: wrapDoctor.nonce   },
+        ],
+      })
+
+      sessionStorage.setItem('rxpro_last_sealed', JSON.stringify(res))
+      window.location.href = '/pharmacy/done'
+    } catch (e) {
+      const msg = e instanceof ApiError ? `Backend ${e.status}: ${e.detail}` : (e as any)?.message || 'Error'
+      showError(msg)
+      sealBtn.disabled = false
+      sealBtn.textContent = orig
+    }
+  })
 </script>
