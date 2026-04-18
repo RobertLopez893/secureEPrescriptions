@@ -103,7 +103,20 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   let res: Response;
   try {
     res = await fetch(url, { ...init, headers });
+    // Señal al layout: backend respondió, cualquier banner de "offline"
+    // que estuviera visible puede ocultarse.
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('rxpro:api-online'));
+    }
   } catch (e: any) {
+    // fetch rechaza solo por problemas de red (DNS, conexión rehusada,
+    // CORS bloqueando, timeout). Disparamos un evento global para que el
+    // layout muestre un banner con botón "reintentar".
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('rxpro:api-offline', {
+        detail: { path, message: e?.message ?? 'red' },
+      }));
+    }
     throw new ApiError(0, `No se pudo contactar al servidor (${e?.message ?? 'red'})`);
   }
 
