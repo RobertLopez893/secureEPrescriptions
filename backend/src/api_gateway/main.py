@@ -1,3 +1,4 @@
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
@@ -49,10 +50,21 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# Configuración de CORS (Permite que Astro se comunique con la API)
+# Configuración de CORS (Permite que Astro se comunique con la API).
+# CORS_ORIGINS es una lista separada por comas tomada del .env. Si no se
+# define, usamos los defaults de desarrollo (Astro local, Vite, Docker).
+_default_origins = ",".join([
+    "http://localhost:4321",
+    "http://127.0.0.1:4321",
+    "http://localhost:80",
+    "http://localhost",
+])
+_origins_env = os.getenv("CORS_ORIGINS", _default_origins)
+_origins = [o.strip() for o in _origins_env.split(",") if o.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:4321", "http://127.0.0.1:4321"], # Puerto por defecto de Astro
+    allow_origins=_origins,
     allow_credentials=True,
     allow_methods=["*"], # Permite GET, POST, PUT, DELETE, etc.
     allow_headers=["*"], # Permite todos los headers (incluyendo Authorization para JWT)

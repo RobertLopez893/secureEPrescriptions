@@ -22,6 +22,8 @@ services:
     environment:
       - ENVIRONMENT=${APP_ENV:-development}
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      # Lista separada por comas de orígenes autorizados por CORS.
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:4321,http://127.0.0.1:4321}
     volumes:
       - ./backend:/app:Z
     depends_on:
@@ -37,6 +39,9 @@ services:
       # Mapeamos el puerto externo al interno. 
       # Usamos variables para cambiarlo según el entorno (ej. 4321 en dev, 80 en prod)
       - "${FRONTEND_PORT:-4321}:${FRONTEND_INTERNAL_PORT:-4321}"
+    environment:
+      # URL pública del backend que usa el cliente Astro (fetch desde el navegador).
+      - PUBLIC_API_URL=${PUBLIC_API_URL:-http://localhost:8000}
     volumes:
       - ./frontend:/app:Z
       - frontend_node_modules:/app/node_modules
