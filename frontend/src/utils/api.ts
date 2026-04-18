@@ -151,6 +151,23 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 export interface LoginRequest { correo: string; contrasena: string; }
 export interface TokenResponse { access_token: string; token_type: string; }
 
+/** Primer paso del login por tarjeta: pedir el nonce a firmar. */
+export interface AuthChallengeRequestDTO {
+  rol: 'Paciente' | 'Medico' | 'Farmaceutico';
+  identificador: string; // CURP / cedula / licencia
+}
+export interface AuthChallengeResponseDTO {
+  nonce_hex: string;   // 64 chars (32 bytes aleatorios)
+  expira_unix: number; // segundos UTC cuando expira el nonce
+}
+/** Segundo paso: enviar la firma ECDSA del nonce para canjearla por JWT. */
+export interface AuthVerifyRequestDTO {
+  rol: 'Paciente' | 'Medico' | 'Farmaceutico';
+  identificador: string;
+  nonce_hex: string;
+  firma_hex: string;   // r||s compacto (128 chars hex)
+}
+
 export interface AccesoDTO {
   rol: string;        // "paciente" | "farmaceutico" | "doctor"
   wrappedKey: string;
@@ -186,8 +203,12 @@ export interface UserInfoDTO { nombre_completo: string; }
 
 export interface RecetaDetailDTO extends RecetaPublicDTO {
   expira_en: string;
+  id_medico: number;
+  id_paciente: number;
   medico: UserInfoDTO;
   paciente: UserInfoDTO;
+  /** Derivado en el backend: expira_en < now() y no está surtida. */
+  vencida: boolean;
 }
 
 export interface RecetaCriptoDTO {
@@ -315,6 +336,21 @@ export const Api = {
     return session;
   },
 
+  // ---- Auth por tarjeta (challenge / response ECDSA) ----
+  async authChallenge(body: AuthChallengeRequestDTO): Promise<AuthChallengeResponseDTO> {
+    return request<AuthChallengeResponseDTO>('/api/v1/auth/challenge', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+  },
+
+  async authVerify(body: AuthVerifyRequestDTO): Promise<TokenResponse> {
+    return request<TokenResponse>('/api/v1/auth/verify', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+  },
+
   // ---- Usuarios ----
   async registerPaciente(body: PacienteCreateDTO): Promise<UsuarioPublicDTO> {
     return request<UsuarioPublicDTO>('/api/v1/usuarios/pacientes', {
@@ -368,7 +404,7 @@ export const Api = {
   async listarRecetas(filters: {
     id_paciente?: number;
     id_medico?: number;
-    estado?: 'activa' | 'surtida';
+    estado?: 'activa' | 'surtida' | 'expirada';
     limit?: number;
   }): Promise<RecetaDetailDTO[]> {
     const params = new URLSearchParams();

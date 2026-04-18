@@ -160,8 +160,10 @@ const steps=[{label:'LOGIN',href:'/doctor'},{label:'PACIENTE',href:'/doctor/pati
 </FlowLayout>
 
 <script>
-  import { Api, ApiError } from '../../utils/api.ts'
+  import { ApiError } from '../../utils/api.ts'
   import { startQrScanner } from '../../utils/qrScanner.ts'
+  import { parseCardQr } from '../../utils/cardQr.ts'
+  import { loginWithCard } from '../../utils/authFlow.ts'
 
   const btn          = document.getElementById('scan-btn')      as HTMLButtonElement
   const video        = document.getElementById('qr-video')      as HTMLVideoElement
@@ -189,21 +191,6 @@ const steps=[{label:'LOGIN',href:'/doctor'},{label:'PACIENTE',href:'/doctor/pati
   }
   function showError(msg: string) { if (scanError) { scanError.textContent = msg; scanError.style.display = 'block' } }
   function hideError()             { if (scanError) { scanError.style.display = 'none' } }
-
-  /**
-   * El QR del médico lleva sus credenciales (demo) o una cédula + token.
-   * Formatos aceptados:
-   *   • JSON   {"correo":"...","contrasena":"...","cedula":"..."}
-   *   • URL    rxpro://doctor?correo=...&contrasena=...
-   */
-  function parseDoctorQr(raw: string): { correo?: string; contrasena?: string; cedula?: string } {
-    const trimmed = raw.trim()
-    try { const obj = JSON.parse(trimmed); if (obj && typeof obj === 'object') return obj } catch {}
-    if (trimmed.startsWith('rxpro://')) {
-      try { return Object.fromEntries(new URL(trimmed).searchParams.entries()) as any } catch {}
-    }
-    return {}
-  }
 
   btn.addEventListener('click', async () => {
     hideError()
@@ -246,16 +233,11 @@ const steps=[{label:'LOGIN',href:'/doctor'},{label:'PACIENTE',href:'/doctor/pati
     setStatus('VERIFICANDO CÉDULA...', '#ffcd75')
     video.style.display = 'none'
 
-    const parsed = parseDoctorQr(raw)
-    if (parsed.correo && parsed.contrasena) {
+    const card = parseCardQr(raw)
+    if (card && card.rol === 'Medico') {
       try {
-        const session = await Api.loginAndPersist({
-          correo: String(parsed.correo),
-          contrasena: String(parsed.contrasena),
-        })
-        if (session.role !== 'Medico' && session.role !== 'Administrador') {
-          throw new ApiError(403, `El QR pertenece al rol "${session.role}", no a un médico.`)
-        }
+        setStatus('FIRMANDO RETO ECDSA...', '#ffcd75')
+        await loginWithCard(card)
         sessionStorage.setItem('rxpro_doctor_auth', 'qr_card')
         showPanel('success')
         viewport.style.borderColor = '#38b764'
@@ -266,8 +248,10 @@ const steps=[{label:'LOGIN',href:'/doctor'},{label:'PACIENTE',href:'/doctor/pati
         const msg = err instanceof ApiError ? err.detail : (err as any)?.message || 'Error al autenticar.'
         showError(msg)
       }
+    } else if (card) {
+      showError(`El QR pertenece al rol "${card.rol}", no a un médico.`)
     } else {
-      showError('El código leído no es una tarjeta médica válida.')
+      showError('El código leído no es una tarjeta RxPro válida.')
     }
 
     showPanel('idle')

@@ -169,7 +169,9 @@ const steps=[{label:'ACCESO',href:'/pharmacy/login'},{label:'ESCANEAR',href:'/ph
 </FlowLayout>
 
 <script>
-  import { Api, ApiError, getSession } from '../../utils/api.ts'
+  import { ApiError, getSession } from '../../utils/api.ts'
+  import { parseCardQr } from '../../utils/cardQr.ts'
+  import { loginWithCard } from '../../utils/authFlow.ts'
   import { startQrScanner } from '../../utils/qrScanner.ts'
 
   // Si ya hay sesión válida de farmacéutico, saltamos al escaneo.
@@ -205,24 +207,6 @@ const steps=[{label:'ACCESO',href:'/pharmacy/login'},{label:'ESCANEAR',href:'/ph
   }
   function showError(msg: string) { if (scanError) { scanError.textContent = msg; scanError.style.display = 'block' } }
   function hideError()             { if (scanError) { scanError.style.display = 'none' } }
-
-  /**
-   * QR del farmacéutico: JSON {correo, contrasena} o rxpro://login?correo=&contrasena=
-   */
-  function parsePharmaQr(raw: string): { correo?: string; contrasena?: string } {
-    const trimmed = raw.trim()
-    try {
-      const obj = JSON.parse(trimmed)
-      if (obj && typeof obj === 'object') return obj
-    } catch {}
-    if (trimmed.startsWith('rxpro://')) {
-      try {
-        const u = new URL(trimmed)
-        return Object.fromEntries(u.searchParams.entries())
-      } catch {}
-    }
-    return {}
-  }
 
   btn.addEventListener('click', async () => {
     hideError()
@@ -263,10 +247,19 @@ const steps=[{label:'ACCESO',href:'/pharmacy/login'},{label:'ESCANEAR',href:'/ph
     video.style.display = 'none'
     setStatus('LICENCIA DETECTADA · VERIFICANDO...', '#ffcd75')
 
-    const parsed = parsePharmaQr(raw)
-    if (!parsed.correo || !parsed.contrasena) {
+    const card = parseCardQr(raw)
+    if (!card) {
       showPanel('idle')
-      showError('El QR leído no es una credencial de farmacéutico válida.')
+      showError('El QR leído no es una tarjeta RxPro válida.')
+      btn.disabled = false
+      btn.textContent = 'ESCANEAR CREDENCIAL'
+      btn.style.color = '#e8003d'
+      btn.style.borderColor = '#e8003d'
+      return
+    }
+    if (card.rol !== 'Farmaceutico') {
+      showPanel('idle')
+      showError(`El QR pertenece al rol "${card.rol}", no a un farmacéutico.`)
       btn.disabled = false
       btn.textContent = 'ESCANEAR CREDENCIAL'
       btn.style.color = '#e8003d'
@@ -275,14 +268,9 @@ const steps=[{label:'ACCESO',href:'/pharmacy/login'},{label:'ESCANEAR',href:'/ph
     }
 
     try {
-      const session = await Api.loginAndPersist({
-        correo: String(parsed.correo),
-        contrasena: String(parsed.contrasena),
-      })
-      if (session.role !== 'Farmaceutico' && session.role !== 'Administrador') {
-        throw new ApiError(403, `El QR pertenece al rol "${session.role}", no a un farmacéutico.`)
-      }
-      namePreview.textContent = session.correo
+      setStatus('FIRMANDO RETO ECDSA...', '#ffcd75')
+      const session = await loginWithCard(card)
+      if (namePreview) namePreview.textContent = session.correo
       sessionStorage.setItem('rxpro_auth_method', 'qr_card')
       showPanel('success')
       viewport.style.borderColor = '#38b764'

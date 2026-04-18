@@ -60,9 +60,25 @@ def _set_active_key(session: Session, id_usuario: int, llave_publica: str) -> Ll
     session.add(nueva)
     return nueva
 
+def _require_admin(current_user: CurrentUser) -> None:
+    """Guard común: los POST de alta de usuarios y clínicas solo pueden
+    ser ejecutados por un Administrador autenticado."""
+    if current_user.role != "Administrador":
+        raise HTTPException(
+            status_code=403,
+            detail="Solo un Administrador puede dar de alta usuarios o clínicas.",
+        )
+
+
 @router.post("/usuarios/pacientes", response_model=schemas.UsuarioPublic, status_code=status.HTTP_201_CREATED)
-def registrar_paciente(*, session: Session = Depends(get_session), paciente_in: schemas.PacienteCreate):
-    """Registra un nuevo usuario con el rol de Paciente."""
+def registrar_paciente(
+    *,
+    session: Session = Depends(get_session),
+    current_user: CurrentUser = Depends(get_current_user),
+    paciente_in: schemas.PacienteCreate,
+):
+    """Registra un nuevo usuario con el rol de Paciente. Solo Admin."""
+    _require_admin(current_user)
     if session.exec(select(Usuario).where(Usuario.correo == paciente_in.correo)).first():
         raise HTTPException(status_code=400, detail="El correo ya está registrado.")
 
@@ -98,8 +114,14 @@ def registrar_paciente(*, session: Session = Depends(get_session), paciente_in: 
     )
 
 @router.post("/usuarios/medicos", response_model=schemas.UsuarioPublic, status_code=status.HTTP_201_CREATED)
-def registrar_medico(*, session: Session = Depends(get_session), medico_in: schemas.MedicoCreate):
-    """Registra un nuevo usuario con el rol de Médico."""
+def registrar_medico(
+    *,
+    session: Session = Depends(get_session),
+    current_user: CurrentUser = Depends(get_current_user),
+    medico_in: schemas.MedicoCreate,
+):
+    """Registra un nuevo usuario con el rol de Médico. Solo Admin."""
+    _require_admin(current_user)
     if session.exec(select(Usuario).where(Usuario.correo == medico_in.correo)).first():
         raise HTTPException(status_code=400, detail="El correo ya está registrado.")
 
@@ -134,8 +156,14 @@ def registrar_medico(*, session: Session = Depends(get_session), medico_in: sche
 
 
 @router.post("/usuarios/farmaceuticos", response_model=schemas.UsuarioPublic, status_code=status.HTTP_201_CREATED)
-def registrar_farmaceutico(*, session: Session = Depends(get_session), farma_in: schemas.FarmaceuticoCreate):
-    """Registra un nuevo usuario con el rol de Farmacéutico."""
+def registrar_farmaceutico(
+    *,
+    session: Session = Depends(get_session),
+    current_user: CurrentUser = Depends(get_current_user),
+    farma_in: schemas.FarmaceuticoCreate,
+):
+    """Registra un nuevo usuario con el rol de Farmacéutico. Solo Admin."""
+    _require_admin(current_user)
     if session.exec(select(Usuario).where(Usuario.correo == farma_in.correo)).first():
         raise HTTPException(status_code=400, detail="El correo ya está registrado.")
 

@@ -1,16 +1,21 @@
 from datetime import datetime, timezone
 from typing import List, Optional
 
-from cryptography.exceptions import InvalidSignature
-from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.asymmetric import ec, utils as ec_utils
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlmodel import Session, select
 
+from src.core.crypto_utils import verify_p256_ecdsa
 from src.core.security import CurrentUser, get_current_user
 from src.database.database import get_session
 from src.database.models import Llave, Receta, Usuario
 from src.api_gateway import schemas
+
+
+def _is_vencida(expira_en: datetime, now_utc: datetime) -> bool:
+    """Una receta está vencida si su expira_en ya pasó. Los datetime naive
+    se asumen UTC (mismo criterio que al firmar el envelope)."""
+    dt = expira_en if expira_en.tzinfo else expira_en.replace(tzinfo=timezone.utc)
+    return dt < now_utc
 
 router = APIRouter()
 
@@ -41,32 +46,6 @@ def _envelope_message(
     ).encode("utf-8")
 
 
-def _verify_p256_ecdsa(pub_hex: str, message: bytes, sig_compact_hex: str) -> bool:
-    """Verifica una firma ECDSA P-256 en formato compacto r||s (64 bytes)
-    contra un mensaje y una llave pública uncompressed hex (65 bytes).
-    Devuelve True si la firma es válida, False en cualquier error.
-    """
-    try:
-        pub_bytes = bytes.fromhex(pub_hex)
-        if len(pub_bytes) != 65 or pub_bytes[0] != 0x04:
-            return False
-        pub = ec.EllipticCurvePublicKey.from_encoded_point(
-            ec.SECP256R1(), pub_bytes
-        )
-        sig_bytes = bytes.fromhex(sig_compact_hex)
-        if len(sig_bytes) != 64:
-            return False
-        r = int.from_bytes(sig_bytes[:32], "big")
-        s = int.from_bytes(sig_bytes[32:], "big")
-        der = ec_utils.encode_dss_signature(r, s)
-        pub.verify(der, message, ec.ECDSA(hashes.SHA256()))
-        return True
-    except (InvalidSignature, ValueError):
-        return False
-    except Exception:
-        return False
-
-
 def _get_active_public_key(session: Session, id_usuario: int) -> Optional[str]:
     """Devuelve la llave pública activa (hex) de un usuario o None."""
     llave = session.exec(
@@ -92,7 +71,10 @@ def listar_recetas(
     ),
     estado: Optional[str] = Query(
         default=None,
-        description="Filtra por estado ('activa' o 'surtida').",
+        description=(
+            "Filtra por estado: 'activa', 'surtida' o 'expirada'. "
+            "'expirada' es derivado (expira_en < now()) y excluye surtidas."
+        ),
     ),
     limit: int = Query(default=50, ge=1, le=200),
 ):
@@ -123,13 +105,23 @@ def listar_recetas(
     elif role not in ("Farmaceutico", "Administrador"):
         raise HTTPException(status_code=403, detail=f"Rol '{role}' no autorizado para este recurso.")
 
+    now_utc = datetime.now(timezone.utc)
+
     stmt = select(Receta)
     if id_paciente is not None:
         stmt = stmt.where(Receta.id_paciente == id_paciente)
     if id_medico is not None:
         stmt = stmt.where(Receta.id_medico == id_medico)
     if estado is not None:
-        stmt = stmt.where(Receta.estado == estado)
+        if estado == "expirada":
+            # "Expirada" es derivado: se excluyen surtidas y se filtran
+            # por expira_en < ahora en naive UTC (match del tipo en BD).
+            stmt = stmt.where(
+                Receta.estado != "surtida",
+                Receta.expira_en < now_utc.replace(tzinfo=None),
+            )
+        else:
+            stmt = stmt.where(Receta.estado == estado)
     stmt = stmt.order_by(Receta.creada_en.desc()).limit(limit)
 
     recetas = session.exec(stmt).all()
@@ -155,8 +147,11 @@ def listar_recetas(
                 estado=r.estado,
                 creada_en=r.creada_en,
                 expira_en=r.expira_en,
+                id_medico=r.id_medico,
+                id_paciente=r.id_paciente,
                 medico=schemas.UserInfo(nombre_completo=f"{medico.nombre} {medico.paterno}"),
                 paciente=schemas.UserInfo(nombre_completo=f"{paciente.nombre} {paciente.paterno}"),
+                vencida=_is_vencida(r.expira_en, now_utc) and r.estado != "surtida",
             )
         )
     return out
@@ -228,7 +223,7 @@ def emitir_receta(
         iv_aes_gcm=receta_in.iv_aes_gcm,
         expira_en=receta_in.expira_en,
     )
-    if not _verify_p256_ecdsa(pub_hex, envelope_msg, receta_in.firma_envelope):
+    if not verify_p256_ecdsa(pub_hex, envelope_msg, receta_in.firma_envelope):
         raise HTTPException(
             status_code=400,
             detail="Firma de autoría inválida: la cápsula no pudo verificarse contra la llave pública del médico.",
@@ -267,13 +262,17 @@ def obtener_info_publica_receta(
     if not medico or not paciente:
         raise HTTPException(status_code=404, detail="No se encontró la información del médico o paciente asociado.")
 
+    now_utc = datetime.now(timezone.utc)
     return schemas.RecetaDetailPublic(
         id_receta=receta.id_receta,
         estado=receta.estado,
         creada_en=receta.creada_en,
         expira_en=receta.expira_en,
+        id_medico=receta.id_medico,
+        id_paciente=receta.id_paciente,
         medico=schemas.UserInfo(nombre_completo=f"{medico.nombre} {medico.paterno}"),
-        paciente=schemas.UserInfo(nombre_completo=f"{paciente.nombre} {paciente.paterno}")
+        paciente=schemas.UserInfo(nombre_completo=f"{paciente.nombre} {paciente.paterno}"),
+        vencida=_is_vencida(receta.expira_en, now_utc) and receta.estado != "surtida",
     )
 
 
@@ -327,6 +326,13 @@ def sellar_receta(
 
     if receta.estado != "activa":
         raise HTTPException(status_code=400, detail="La receta ya fue surtida o está inactiva.")
+
+    now_utc = datetime.now(timezone.utc)
+    if _is_vencida(receta.expira_en, now_utc):
+        raise HTTPException(
+            status_code=400,
+            detail="La receta está vencida y no puede dispensarse.",
+        )
 
     id_farma = current_user.id if current_user.role == "Farmaceutico" else sello_in.id_farmaceutico
 

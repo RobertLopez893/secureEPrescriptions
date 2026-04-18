@@ -42,8 +42,16 @@ class UserInfo(BaseModel):
 
 class RecetaDetailPublic(RecetaPublic):
     expira_en: datetime
+    # Ids para que los clientes puedan resolver llaves públicas o enlazar
+    # con las vistas del emisor/paciente sin llamar al endpoint de cripto.
+    id_medico: int
+    id_paciente: int
     medico: UserInfo
     paciente: UserInfo
+    # Bandera derivada: True si expira_en < now() (no persiste en BD, la
+    # calcula el router al responder). Permite al frontend mostrar el
+    # badge "VENCIDA" sin duplicar la lógica de tiempo.
+    vencida: bool = False
 
 
 class RecetaCriptoPublic(BaseModel):
@@ -74,6 +82,39 @@ class LoginRequest(BaseModel):
 class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
+
+
+# --- Schemas de login por tarjeta (challenge / response ECDSA) ---
+
+class AuthChallengeRequest(BaseModel):
+    """
+    Primer paso del login por tarjeta. El cliente identifica al usuario
+    con su identificador de rol:
+      - Paciente     -> CURP
+      - Medico       -> cedula profesional
+      - Farmaceutico -> licencia
+    El backend responde con un nonce aleatorio de 32 bytes y su TTL.
+    """
+    rol: str            # "Paciente" | "Medico" | "Farmaceutico"
+    identificador: str  # CURP / cedula / licencia (según rol)
+
+class AuthChallengeResponse(BaseModel):
+    # Nonce hex (64 chars, 32 bytes aleatorios) que el cliente debe firmar
+    # con la llave privada derivada de su tarjeta.
+    nonce_hex: str
+    # Epoch UTC en segundos cuando el nonce deja de ser aceptado.
+    expira_unix: int
+
+class AuthVerifyRequest(BaseModel):
+    """
+    Segundo paso: el cliente envía el identificador (igual que en el
+    challenge), el nonce que recibió y la firma ECDSA P-256 del mismo
+    en formato compacto r||s (128 chars hex).
+    """
+    rol: str
+    identificador: str
+    nonce_hex: str
+    firma_hex: str
 
 # --- Schemas de Creación de Usuarios ---
 

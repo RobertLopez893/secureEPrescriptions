@@ -133,16 +133,19 @@ const steps=[{label:'ACCESO',href:'/patient'},{label:'MIS RECETAS',href:'/patien
     listEl.innerHTML = ''
     for (const [idx, rx] of rxs.entries()) {
       const isNew       = highlightId === rx.id_receta
-      const isPendiente = rx.estado === 'activa'
-      const rxBorder = isNew ? '#ffcd75' : (isPendiente ? '#ffcd75' : '#29366f')
-      const rxShadow = isNew ? '4px 4px 0 #c48c00' : (isPendiente ? '4px 4px 0 #c48c00' : '4px 4px 0 #0d0e1a')
+      const isVencida   = !!rx.vencida && rx.estado !== 'surtida'
+      const isPendiente = rx.estado === 'activa' && !isVencida
+      const rxBorder = isVencida ? '#a53030' : (isNew ? '#ffcd75' : (isPendiente ? '#ffcd75' : '#29366f'))
+      const rxShadow = isVencida ? '4px 4px 0 #5a1818' : (isNew ? '4px 4px 0 #c48c00' : (isPendiente ? '4px 4px 0 #c48c00' : '4px 4px 0 #0d0e1a'))
       const bg       = isNew ? '#1a2e1a' : '#222639'
       const folio    = 'RX-' + String(rx.id_receta).padStart(5,'0')
       const medLabel = `DR. ${String(rx.medico?.nombre_completo || '—').toUpperCase()}`
       const fecha    = formatFecha(rx.creada_en)
-      const badge    = isPendiente
-        ? '<span class="px-badge px-badge-yellow">⏳ ACTIVA</span>'
-        : '<span class="px-badge px-badge-green">✓ SURTIDA</span>'
+      const badge    = isVencida
+        ? '<span class="px-badge px-badge-red">⚠ VENCIDA</span>'
+        : (isPendiente
+          ? '<span class="px-badge px-badge-yellow">⏳ ACTIVA</span>'
+          : '<span class="px-badge px-badge-green">✓ SURTIDA</span>')
       const newChip = isNew
         ? `<div style="position:absolute;top:0;right:0;background:#ffcd75;color:#1a1c2c;font-family:'Press Start 2P',monospace;font-size:7px;padding:4px 8px;">NEW!</div>`
         : ''

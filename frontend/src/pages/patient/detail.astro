@@ -144,6 +144,14 @@ const steps=[{label:'ACCESO',href:'/patient'},{label:'MIS RECETAS',href:'/patien
         alert.style.background = '#0a1a0a'
         alert.style.borderColor = '#38b764'
         statusT.style.color = '#38b764'
+      } else if (info.vencida) {
+        statusT.textContent = 'RECETA VENCIDA'
+        statusS.textContent = 'Esta receta pasó su fecha de expiración y no puede dispensarse.'
+        statusI.textContent = '⚠'
+        const alert = document.getElementById('status-alert')!
+        alert.style.background = '#2a1018'
+        alert.style.borderColor = '#a53030'
+        statusT.style.color = '#a53030'
       }
 
       // Descifrado E2E con la llave del paciente (demo)

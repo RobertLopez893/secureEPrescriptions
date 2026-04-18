@@ -360,6 +360,23 @@ const steps = [
     }
 
     await runVerify(false)
+
+    // Si la receta está vencida, bloqueamos el botón de dispensar aunque la
+    // firma sea válida. Fuente de verdad: el propio backend.
+    if (rxId) {
+      try {
+        const info = await Api.obtenerRecetaInfo(Number(rxId))
+        if (info.vencida) {
+          const link = document.getElementById('dispense-link') as HTMLAnchorElement | null
+          if (link) {
+            link.removeAttribute('href')
+            link.style.opacity = '0.5'
+            link.style.pointerEvents = 'none'
+            link.textContent = '⚠ RECETA VENCIDA — NO DISPENSAR'
+          }
+        }
+      } catch (_) { /* si falla, dejamos la UI tal cual */ }
+    }
   }
 
   async function runVerify(tampered: boolean) {

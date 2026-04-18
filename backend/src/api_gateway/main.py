@@ -161,11 +161,23 @@ def _seed_demo_data(session: Session) -> None:
     ))
     session.commit()
 
+    # Admin demo (correo + contraseña). Es el único rol que entra por
+    # la vía legacy; desde su panel /admin emite tarjetas QR para los
+    # demás usuarios.
+    if not session.exec(select(models.Administrador)).first():
+        session.add(models.Administrador(
+            nombre="Admin Demo",
+            correo="admin@rxpro.demo",
+            contrasena=security.get_password_hash("admin1234"),
+        ))
+        session.commit()
+
     print("Usuarios demo creados:")
+    print("  - admin@rxpro.demo    / admin1234  (ingresa por /admin/login)")
     print("  - doctor@rxpro.demo   / demo1234")
     print("  - paciente@rxpro.demo / demo1234")
     print("  - farma@rxpro.demo    / demo1234")
-    print("Llaves públicas demo registradas (P-256) para los 3 usuarios.")
+    print("Llaves públicas demo registradas (P-256) para los 3 usuarios clínicos.")
 
 
 def create_initial_data(session: Session):

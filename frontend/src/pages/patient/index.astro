@@ -179,7 +179,10 @@ const steps=[{label:'ACCESO',href:'/patient'},{label:'MIS RECETAS',href:'/patien
 </FlowLayout>
 
 <script>
-  import { Api, ApiError } from '../../utils/api.ts'
+  import { ApiError } from '../../utils/api.ts'
+  import { parseCardQr } from '../../utils/cardQr.ts'
+  import { loginWithCard } from '../../utils/authFlow.ts'
+  import { deriveKeysFromSeed } from '../../crypto/seedDerivation.ts'
   import { startQrScanner } from '../../utils/qrScanner.ts'
 
   // ── Elementos ─────────────────────────────────────────────────────────────
@@ -222,29 +225,6 @@ const steps=[{label:'ACCESO',href:'/patient'},{label:'MIS RECETAS',href:'/patien
 
   function maskKey(hex: string): string {
     return hex.slice(0, 8) + '••••••••••••••••••••••••••••••••••••••••••••••••' + hex.slice(-4)
-  }
-
-  /**
-   * El QR del paciente es un JSON con las credenciales del usuario firmado por
-   * la clínica. Durante la iteración demo aceptamos formas simples:
-   *   • JSON  {"correo":"...","contrasena":"...","seed":"hex?"}
-   *   • URL   rxpro://login?correo=...&contrasena=...
-   * y caemos a un seed hex raw si no reconocemos el formato.
-   */
-  function parsePatientQr(raw: string): { correo?: string; contrasena?: string; seed?: string } {
-    const trimmed = raw.trim()
-    try {
-      const obj = JSON.parse(trimmed)
-      if (obj && typeof obj === 'object') return obj
-    } catch {}
-    if (trimmed.startsWith('rxpro://')) {
-      try {
-        const u = new URL(trimmed)
-        return Object.fromEntries(u.searchParams.entries())
-      } catch {}
-    }
-    if (/^[a-f0-9]{32,128}$/i.test(trimmed)) return { seed: trimmed.toLowerCase() }
-    return {}
   }
 
   btn.addEventListener('click', async () => {
@@ -296,20 +276,15 @@ const steps=[{label:'ACCESO',href:'/patient'},{label:'MIS RECETAS',href:'/patien
     setStatus('LLAVE DETECTADA · VERIFICANDO...', '#ffcd75')
     video.style.display = 'none'
 
-    const parsed = parsePatientQr(raw)
-
-    // Si el QR trae credenciales, autenticamos contra FastAPI.
-    if (parsed.correo && parsed.contrasena) {
+    const card = parseCardQr(raw)
+    if (card && card.rol === 'Paciente') {
       try {
-        const session = await Api.loginAndPersist({
-          correo: String(parsed.correo),
-          contrasena: String(parsed.contrasena),
-        })
-        if (session.role !== 'Paciente' && session.role !== 'Administrador') {
-          throw new ApiError(403, `El QR pertenece al rol "${session.role}", no a un paciente.`)
-        }
-        keyPreview.textContent = maskKey('04' + (parsed.seed || '').padEnd(64, '0'))
+        setStatus('FIRMANDO RETO ECDSA...', '#ffcd75')
+        const { publicKeyHex } = deriveKeysFromSeed(card.seedHex)
+        await loginWithCard(card)
+        if (keyPreview) keyPreview.textContent = maskKey(publicKeyHex)
         sessionStorage.setItem('rxpro_auth_method', 'qr_card')
+        sessionStorage.setItem('rxpro_seed_loaded', '1')
         showPanel('success')
         viewport.style.borderColor = '#38b764'
         viewport.style.background  = '#04100a'
@@ -319,18 +294,10 @@ const steps=[{label:'ACCESO',href:'/patient'},{label:'MIS RECETAS',href:'/patien
         const msg = err instanceof ApiError ? err.detail : (err as any)?.message || 'Error al autenticar.'
         showError(msg)
       }
-    } else if (parsed.seed) {
-      // Semilla cruda: derivar llaves en memoria (demo)
-      keyPreview.textContent = maskKey('04' + parsed.seed)
-      sessionStorage.setItem('rxpro_auth_method', 'qr_card')
-      sessionStorage.setItem('rxpro_seed_loaded', '1')
-      showPanel('success')
-      viewport.style.borderColor = '#38b764'
-      viewport.style.background  = '#04100a'
-      setTimeout(() => { window.location.href = '/patient/dashboard' }, 800)
-      return
+    } else if (card) {
+      showError(`El QR pertenece al rol "${card.rol}", no a un paciente.`)
     } else {
-      showError('El código leído no es una tarjeta digital de paciente válida.')
+      showError('El código leído no es una tarjeta RxPro válida.')
     }
 
     // Volver al estado idle para reintentar
