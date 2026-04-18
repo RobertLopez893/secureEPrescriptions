@@ -45,6 +45,10 @@ const steps=[{label:'ESCANEAR',href:'/pharmacy'},{label:'VERIFICAR',href:'/pharm
     <div id="qr-viewport"
          style="background:#160404;border:3px solid #e8003d;position:relative;overflow:hidden;margin-bottom:18px;height:240px;">
 
+      <!-- Live camera feed -->
+      <video id="qr-video" playsinline muted
+             style="display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:saturate(1.2) contrast(1.05);image-rendering:pixelated;"></video>
+
       <!-- QR grid rojo -->
       <div class="qr-grid" style="background-image:linear-gradient(rgba(232,0,61,.1) 1px,transparent 1px),linear-gradient(90deg,rgba(232,0,61,.1) 1px,transparent 1px);background-size:16px 16px;animation:qrGridPulse 2.8s ease-in-out infinite;"></div>
 
@@ -195,6 +199,9 @@ const steps=[{label:'ESCANEAR',href:'/pharmacy'},{label:'VERIFICAR',href:'/pharm
              class="px-input" style="flex:1;border-color:#e8003d;font-size:20px;" required/>
       <button type="submit" class="px-btn px-btn-red" style="white-space:nowrap;">BUSCAR</button>
     </form>
+
+    <!-- Error del escaneo (cámara / QR inválido) -->
+    <p id="scan-error" style="display:none;margin-top:12px;font-family:'Press Start 2P',monospace;font-size:7px;color:#a53030;background:#2a1018;border:2px solid #a53030;padding:10px;line-height:1.8;"></p>
   </div>
 
   <!-- Nota de seguridad -->
@@ -210,7 +217,10 @@ const steps=[{label:'ESCANEAR',href:'/pharmacy'},{label:'VERIFICAR',href:'/pharm
 </FlowLayout>
 
 <script>
+  import { startQrScanner } from '../../utils/qrScanner.ts'
+
   const btn          = document.getElementById('scan-btn')      as HTMLButtonElement
+  const video        = document.getElementById('qr-video')      as HTMLVideoElement
   const viewport     = document.getElementById('qr-viewport')   as HTMLDivElement
   const scanLine     = document.getElementById('qr-scan-line')  as HTMLDivElement
   const cardIdle     = document.getElementById('card-idle')     as HTMLDivElement
@@ -219,66 +229,105 @@ const steps=[{label:'ESCANEAR',href:'/pharmacy'},{label:'VERIFICAR',href:'/pharm
   const deriveStatus = document.getElementById('derive-status') as HTMLParagraphElement
   const progTrack    = document.getElementById('scan-progress-track') as HTMLDivElement
   const progFill     = document.getElementById('scan-progress-fill')  as HTMLDivElement
-
-  // Fases específicas de la farmacia: verifica la receta, no una semilla
-  const phases = [
-    { msg: 'LEYENDO RECETA...',       color: '#e8003d', dur: 700  },
-    { msg: 'DESCIFRANDO CÁPSULA...',  color: '#e8003d', dur: 900  },
-    { msg: 'VERIFICANDO FIRMA...',    color: '#ffcd75', dur: 1000 },
-    { msg: 'VALIDANDO VIGENCIA...',   color: '#ffcd75', dur: 600  },
-    { msg: 'FIRMA VÁLIDA ✓',          color: '#38b764', dur: 500  },
-  ]
-  const totalDur = phases.reduce((s, p) => s + p.dur, 0)
+  const scanError    = document.getElementById('scan-error')    as HTMLParagraphElement | null
 
   function showPanel(panel: 'idle' | 'scanning' | 'success') {
     cardIdle.style.display     = panel === 'idle'     ? 'flex' : 'none'
     cardScanning.style.display = panel === 'scanning' ? 'flex' : 'none'
     cardSuccess.style.display  = panel === 'success'  ? 'flex' : 'none'
   }
+  function setStatus(msg: string, color: string) {
+    deriveStatus.textContent   = msg
+    deriveStatus.style.color   = color
+    scanLine.style.boxShadow   = `0 0 12px ${color}`
+    scanLine.style.background  = `linear-gradient(90deg,transparent,${color},transparent)`
+    viewport.style.borderColor = color
+  }
+  function showError(msg: string) { if (scanError) { scanError.textContent = msg; scanError.style.display = 'block' } }
+  function hideError()             { if (scanError) { scanError.style.display = 'none' } }
 
-  btn.addEventListener('click', () => {
+  /**
+   * QR de receta: puede ser un id numérico crudo, un JSON {"id_receta":N} o
+   * una URL tipo rxpro://receta?id=N. Cualquier otra cosa es inválida.
+   */
+  function parseRecetaQr(raw: string): number | null {
+    const trimmed = raw.trim()
+    if (/^\d+$/.test(trimmed)) return Number(trimmed)
+    try {
+      const obj = JSON.parse(trimmed)
+      const id = Number(obj?.id_receta ?? obj?.id)
+      if (Number.isFinite(id) && id > 0) return id
+    } catch {}
+    if (trimmed.startsWith('rxpro://')) {
+      try {
+        const u = new URL(trimmed)
+        const id = Number(u.searchParams.get('id') || '')
+        if (Number.isFinite(id) && id > 0) return id
+      } catch {}
+    }
+    // Última oportunidad: parámetro ?id= en URL http(s).
+    try {
+      const u = new URL(trimmed)
+      const id = Number(u.searchParams.get('id') || '')
+      if (Number.isFinite(id) && id > 0) return id
+    } catch {}
+    return null
+  }
+
+  btn.addEventListener('click', async () => {
+    hideError()
     btn.disabled = true
-    btn.textContent = 'ESCANEANDO...'
+    btn.textContent = 'INICIANDO CÁMARA...'
     btn.style.color = '#ffcd75'
     btn.style.borderColor = '#ffcd75'
 
     showPanel('scanning')
     progTrack.style.display = 'block'
+    video.style.display     = 'block'
 
-    let elapsed = 0
-    const pti = setInterval(() => {
-      elapsed += 40
-      const pct = Math.min(100, Math.round((elapsed / totalDur) * 100))
-      progFill.style.width = pct + '%'
-      if (pct >= 100) clearInterval(pti)
-    }, 40)
+    let pct = 0
+    const pulse = setInterval(() => { pct = (pct + 6) % 100; progFill.style.width = pct + '%' }, 90)
 
-    let delay = 0
-    phases.forEach((ph, i) => {
-      setTimeout(() => {
-        deriveStatus.textContent   = ph.msg
-        deriveStatus.style.color   = ph.color
-        scanLine.style.boxShadow   = `0 0 12px ${ph.color}`
-        scanLine.style.background  = `linear-gradient(90deg,transparent,${ph.color},transparent)`
-        viewport.style.borderColor = ph.color
+    setStatus('ABRIENDO CÁMARA...', '#e8003d')
+    const scanner = startQrScanner({ video, facingMode: 'environment' })
+    setTimeout(() => setStatus('ESPERANDO QR DE LA RECETA...', '#e8003d'), 800)
 
-        if (i === phases.length - 1) {
-          setTimeout(() => {
-            showPanel('success')
-            viewport.style.borderColor = '#38b764'
-            viewport.style.background  = '#04100a'
-            sessionStorage.setItem('rxpro_scan_method', 'qr')
-            // Si el paciente recién emitió una receta en este navegador, úsala
-            let last: any = null
-            try { last = JSON.parse(sessionStorage.getItem('rxpro_last_receta') || 'null') } catch {}
-            const target = last && typeof last.id_receta === 'number'
-              ? `/pharmacy/verify?id=${last.id_receta}`
-              : '/pharmacy/verify'
-            setTimeout(() => { window.location.href = target }, 900)
-          }, ph.dur * 0.5)
-        }
-      }, delay)
-      delay += ph.dur
-    })
+    let raw = ''
+    try {
+      raw = await scanner.result
+    } catch (err: any) {
+      clearInterval(pulse)
+      progFill.style.width = '0%'
+      video.style.display = 'none'
+      showPanel('idle')
+      showError(err?.message || 'No se pudo leer el QR.')
+      btn.disabled = false
+      btn.textContent = 'ESCANEAR RECETA QR'
+      btn.style.color = '#e8003d'
+      btn.style.borderColor = '#e8003d'
+      return
+    }
+
+    clearInterval(pulse)
+    progFill.style.width = '100%'
+    video.style.display = 'none'
+
+    const idReceta = parseRecetaQr(raw)
+    if (!idReceta) {
+      showPanel('idle')
+      showError('El QR leído no contiene un folio de receta válido.')
+      btn.disabled = false
+      btn.textContent = 'ESCANEAR RECETA QR'
+      btn.style.color = '#e8003d'
+      btn.style.borderColor = '#e8003d'
+      return
+    }
+
+    setStatus('FOLIO DETECTADO · ABRIENDO RECETA...', '#38b764')
+    showPanel('success')
+    viewport.style.borderColor = '#38b764'
+    viewport.style.background  = '#04100a'
+    sessionStorage.setItem('rxpro_scan_method', 'qr')
+    setTimeout(() => { window.location.href = `/pharmacy/verify?id=${idReceta}` }, 600)
   })
 </script>

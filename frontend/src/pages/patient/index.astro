@@ -32,6 +32,10 @@ const steps=[{label:'ACCESO',href:'/patient'},{label:'MIS RECETAS',href:'/patien
     <div id="qr-viewport"
          style="background:#040c18;border:3px solid #41a6f6;position:relative;overflow:hidden;margin-bottom:18px;height:240px;">
 
+      <!-- Live camera feed (se muestra sólo durante el escaneo) -->
+      <video id="qr-video" playsinline muted
+             style="display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:saturate(1.2) contrast(1.05);image-rendering:pixelated;"></video>
+
       <!-- QR grid pattern -->
       <div class="qr-grid"></div>
 
@@ -176,9 +180,11 @@ const steps=[{label:'ACCESO',href:'/patient'},{label:'MIS RECETAS',href:'/patien
 
 <script>
   import { Api, ApiError } from '../../utils/api.ts'
+  import { startQrScanner } from '../../utils/qrScanner.ts'
 
   // ── Elementos ─────────────────────────────────────────────────────────────
   const btn          = document.getElementById('scan-btn')     as HTMLButtonElement
+  const video        = document.getElementById('qr-video')     as HTMLVideoElement
   const viewport     = document.getElementById('qr-viewport')  as HTMLDivElement
   const scanLine     = document.getElementById('qr-scan-line') as HTMLDivElement
   const cardIdle     = document.getElementById('card-idle')    as HTMLDivElement
@@ -188,86 +194,150 @@ const steps=[{label:'ACCESO',href:'/patient'},{label:'MIS RECETAS',href:'/patien
   const keyPreview   = document.getElementById('key-preview')  as HTMLSpanElement
   const progTrack    = document.getElementById('scan-progress-track') as HTMLDivElement
   const progFill     = document.getElementById('scan-progress-fill')  as HTMLDivElement
+  const scanError    = document.getElementById('scan-error')   as HTMLParagraphElement | null
 
-  // ── Fases de escaneo ──────────────────────────────────────────────────────
-  const phases = [
-    { msg: 'LEYENDO QR...',          color: '#41a6f6', dur: 700  },
-    { msg: 'EXTRAYENDO SEMILLA...',  color: '#41a6f6', dur: 900  },
-    { msg: 'DERIVANDO LLAVE...',     color: '#ffcd75', dur: 900  },
-    { msg: 'VERIFICANDO FIRMA...',   color: '#ffcd75', dur: 700  },
-    { msg: 'LLAVE ACTIVA ✓',         color: '#38b764', dur: 500  },
-  ]
-  const totalDur = phases.reduce((s, p) => s + p.dur, 0)
-
-  // ── Helpers ───────────────────────────────────────────────────────────────
   function showPanel(panel: 'idle' | 'scanning' | 'success') {
     cardIdle.style.display     = panel === 'idle'     ? 'flex' : 'none'
     cardScanning.style.display = panel === 'scanning' ? 'flex' : 'none'
     cardSuccess.style.display  = panel === 'success'  ? 'flex' : 'none'
   }
 
+  function setStatus(msg: string, color: string) {
+    deriveStatus.textContent   = msg
+    deriveStatus.style.color   = color
+    scanLine.style.boxShadow   = `0 0 12px ${color}`
+    scanLine.style.background  = `linear-gradient(90deg,transparent,${color},transparent)`
+    viewport.style.borderColor = color
+  }
+
+  function showError(msg: string) {
+    if (!scanError) return
+    scanError.textContent = msg
+    scanError.style.display = 'block'
+  }
+  function hideError() {
+    if (!scanError) return
+    scanError.style.display = 'none'
+  }
+
   function maskKey(hex: string): string {
-    // Mostrar primeros 8 y últimos 4 chars, resto como puntos
     return hex.slice(0, 8) + '••••••••••••••••••••••••••••••••••••••••••••••••' + hex.slice(-4)
   }
 
-  // Semilla demo (en producción vendría del lector QR real)
-  const DEMO_SEED = 'a3f8c2d1e4b5096f7a8b9c0d1e2f3a4b5c6d7e8f9001122334455667788990a'
+  /**
+   * El QR del paciente es un JSON con las credenciales del usuario firmado por
+   * la clínica. Durante la iteración demo aceptamos formas simples:
+   *   • JSON  {"correo":"...","contrasena":"...","seed":"hex?"}
+   *   • URL   rxpro://login?correo=...&contrasena=...
+   * y caemos a un seed hex raw si no reconocemos el formato.
+   */
+  function parsePatientQr(raw: string): { correo?: string; contrasena?: string; seed?: string } {
+    const trimmed = raw.trim()
+    try {
+      const obj = JSON.parse(trimmed)
+      if (obj && typeof obj === 'object') return obj
+    } catch {}
+    if (trimmed.startsWith('rxpro://')) {
+      try {
+        const u = new URL(trimmed)
+        return Object.fromEntries(u.searchParams.entries())
+      } catch {}
+    }
+    if (/^[a-f0-9]{32,128}$/i.test(trimmed)) return { seed: trimmed.toLowerCase() }
+    return {}
+  }
 
-  // ── Handler del botón ─────────────────────────────────────────────────────
-  btn.addEventListener('click', () => {
+  btn.addEventListener('click', async () => {
+    hideError()
     btn.disabled = true
-    btn.textContent = 'ESCANEANDO...'
+    btn.textContent = 'INICIANDO CÁMARA...'
     btn.style.color = '#ffcd75'
     btn.style.borderColor = '#ffcd75'
 
-    // Mostrar panel de escaneo y barra de progreso
     showPanel('scanning')
     progTrack.style.display = 'block'
     scanLine.style.display  = 'block'
+    video.style.display     = 'block'
 
-    // Animar progreso
-    let elapsed = 0
-    const pti = setInterval(() => {
-      elapsed += 40
-      const pct = Math.min(100, Math.round((elapsed / totalDur) * 100))
+    // Barra de progreso indeterminada mientras buscamos el QR.
+    progFill.style.animation = 'none'
+    progFill.style.width = '0%'
+    let pct = 0
+    const pulse = setInterval(() => {
+      pct = (pct + 6) % 100
       progFill.style.width = pct + '%'
-      if (pct >= 100) clearInterval(pti)
-    }, 40)
+    }, 90)
 
-    // Fases
-    let delay = 0
-    phases.forEach((ph, i) => {
-      setTimeout(() => {
-        deriveStatus.textContent  = ph.msg
-        deriveStatus.style.color  = ph.color
-        scanLine.style.boxShadow  = `0 0 12px ${ph.color}`
-        scanLine.style.background = `linear-gradient(90deg,transparent,${ph.color},transparent)`
-        viewport.style.borderColor = ph.color
+    setStatus('ABRIENDO CÁMARA...', '#41a6f6')
 
-        // Última fase → mostrar éxito
-        if (i === phases.length - 1) {
-          setTimeout(() => {
-            // Simular derivación: mostrar llave pública enmascarada
-            // En producción: import { deriveKeysFromSeed } y pasar la semilla real
-            const fakePub = '04' + DEMO_SEED + DEMO_SEED.slice(0, 64)
-            keyPreview.textContent = maskKey('04a3f8c2d1e4b5096f7a8b9c0d1e2f3a4b5c6d7e8f9001122334455667788990a')
-            showPanel('success')
-            viewport.style.borderColor = '#38b764'
-            viewport.style.background  = '#04100a'
+    const scanner = startQrScanner({ video, facingMode: 'environment' })
 
-            // Guardar en sesión (en producción: derivar llave real en memoria)
-            sessionStorage.setItem('rxpro_auth_method', 'qr_card')
-            sessionStorage.setItem('rxpro_seed_loaded', '1')
+    // Feedback visual mientras no hay lectura
+    setTimeout(() => setStatus('BUSCANDO CÓDIGO QR...', '#41a6f6'), 800)
 
-            setTimeout(() => {
-              window.location.href = '/patient/dashboard'
-            }, 900)
-          }, ph.dur * 0.5)
+    let raw = ''
+    try {
+      raw = await scanner.result
+    } catch (err: any) {
+      clearInterval(pulse)
+      progFill.style.width = '0%'
+      video.style.display = 'none'
+      showPanel('idle')
+      showError(err?.message || 'No se pudo leer el QR.')
+      btn.disabled = false
+      btn.textContent = 'ESCANEAR TARJETA'
+      btn.style.color = '#41a6f6'
+      btn.style.borderColor = '#41a6f6'
+      return
+    }
+
+    clearInterval(pulse)
+    progFill.style.width = '100%'
+    setStatus('LLAVE DETECTADA · VERIFICANDO...', '#ffcd75')
+    video.style.display = 'none'
+
+    const parsed = parsePatientQr(raw)
+
+    // Si el QR trae credenciales, autenticamos contra FastAPI.
+    if (parsed.correo && parsed.contrasena) {
+      try {
+        const session = await Api.loginAndPersist({
+          correo: String(parsed.correo),
+          contrasena: String(parsed.contrasena),
+        })
+        if (session.role !== 'Paciente' && session.role !== 'Administrador') {
+          throw new ApiError(403, `El QR pertenece al rol "${session.role}", no a un paciente.`)
         }
-      }, delay)
-      delay += ph.dur
-    })
-  })
+        keyPreview.textContent = maskKey('04' + (parsed.seed || '').padEnd(64, '0'))
+        sessionStorage.setItem('rxpro_auth_method', 'qr_card')
+        showPanel('success')
+        viewport.style.borderColor = '#38b764'
+        viewport.style.background  = '#04100a'
+        setTimeout(() => { window.location.href = '/patient/dashboard' }, 800)
+        return
+      } catch (err) {
+        const msg = err instanceof ApiError ? err.detail : (err as any)?.message || 'Error al autenticar.'
+        showError(msg)
+      }
+    } else if (parsed.seed) {
+      // Semilla cruda: derivar llaves en memoria (demo)
+      keyPreview.textContent = maskKey('04' + parsed.seed)
+      sessionStorage.setItem('rxpro_auth_method', 'qr_card')
+      sessionStorage.setItem('rxpro_seed_loaded', '1')
+      showPanel('success')
+      viewport.style.borderColor = '#38b764'
+      viewport.style.background  = '#04100a'
+      setTimeout(() => { window.location.href = '/patient/dashboard' }, 800)
+      return
+    } else {
+      showError('El código leído no es una tarjeta digital de paciente válida.')
+    }
 
+    // Volver al estado idle para reintentar
+    showPanel('idle')
+    btn.disabled = false
+    btn.textContent = 'ESCANEAR TARJETA'
+    btn.style.color = '#41a6f6'
+    btn.style.borderColor = '#41a6f6'
+  })
 </script>

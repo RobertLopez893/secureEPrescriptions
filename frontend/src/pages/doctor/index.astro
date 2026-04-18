@@ -26,6 +26,10 @@ const steps=[{label:'LOGIN',href:'/doctor'},{label:'PACIENTE',href:'/doctor/pati
     <div id="qr-viewport"
          style="background:#040e08;border:3px solid #38b764;position:relative;overflow:hidden;margin-bottom:18px;height:240px;">
 
+      <!-- Live camera feed -->
+      <video id="qr-video" playsinline muted
+             style="display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:saturate(1.2) contrast(1.05);image-rendering:pixelated;"></video>
+
       <!-- QR grid -->
       <div class="qr-grid" style="--grid-color:rgba(56,183,100,.12);"></div>
 
@@ -157,8 +161,10 @@ const steps=[{label:'LOGIN',href:'/doctor'},{label:'PACIENTE',href:'/doctor/pati
 
 <script>
   import { Api, ApiError } from '../../utils/api.ts'
+  import { startQrScanner } from '../../utils/qrScanner.ts'
 
   const btn          = document.getElementById('scan-btn')      as HTMLButtonElement
+  const video        = document.getElementById('qr-video')      as HTMLVideoElement
   const viewport     = document.getElementById('qr-viewport')   as HTMLDivElement
   const scanLine     = document.getElementById('qr-scan-line')  as HTMLDivElement
   const cardIdle     = document.getElementById('card-idle')     as HTMLDivElement
@@ -167,60 +173,107 @@ const steps=[{label:'LOGIN',href:'/doctor'},{label:'PACIENTE',href:'/doctor/pati
   const deriveStatus = document.getElementById('derive-status') as HTMLParagraphElement
   const progTrack    = document.getElementById('scan-progress-track') as HTMLDivElement
   const progFill     = document.getElementById('scan-progress-fill')  as HTMLDivElement
-
-  const phases = [
-    { msg: 'LEYENDO QR...',          color: '#38b764', dur: 700  },
-    { msg: 'EXTRAYENDO CÉDULA...',   color: '#38b764', dur: 900  },
-    { msg: 'DERIVANDO LLAVE...',     color: '#ffcd75', dur: 900  },
-    { msg: 'VERIFICANDO FIRMA...',   color: '#ffcd75', dur: 700  },
-    { msg: 'MÉDICO VERIFICADO ✓',    color: '#38b764', dur: 500  },
-  ]
-  const totalDur = phases.reduce((s, p) => s + p.dur, 0)
+  const scanError    = document.getElementById('scan-error')    as HTMLParagraphElement | null
 
   function showPanel(panel: 'idle' | 'scanning' | 'success') {
     cardIdle.style.display     = panel === 'idle'     ? 'flex' : 'none'
     cardScanning.style.display = panel === 'scanning' ? 'flex' : 'none'
     cardSuccess.style.display  = panel === 'success'  ? 'flex' : 'none'
   }
+  function setStatus(msg: string, color: string) {
+    deriveStatus.textContent   = msg
+    deriveStatus.style.color   = color
+    scanLine.style.boxShadow   = `0 0 12px ${color}`
+    scanLine.style.background  = `linear-gradient(90deg,transparent,${color},transparent)`
+    viewport.style.borderColor = color
+  }
+  function showError(msg: string) { if (scanError) { scanError.textContent = msg; scanError.style.display = 'block' } }
+  function hideError()             { if (scanError) { scanError.style.display = 'none' } }
 
-  btn.addEventListener('click', () => {
+  /**
+   * El QR del médico lleva sus credenciales (demo) o una cédula + token.
+   * Formatos aceptados:
+   *   • JSON   {"correo":"...","contrasena":"...","cedula":"..."}
+   *   • URL    rxpro://doctor?correo=...&contrasena=...
+   */
+  function parseDoctorQr(raw: string): { correo?: string; contrasena?: string; cedula?: string } {
+    const trimmed = raw.trim()
+    try { const obj = JSON.parse(trimmed); if (obj && typeof obj === 'object') return obj } catch {}
+    if (trimmed.startsWith('rxpro://')) {
+      try { return Object.fromEntries(new URL(trimmed).searchParams.entries()) as any } catch {}
+    }
+    return {}
+  }
+
+  btn.addEventListener('click', async () => {
+    hideError()
     btn.disabled = true
-    btn.textContent = 'ESCANEANDO...'
+    btn.textContent = 'INICIANDO CÁMARA...'
     btn.style.color = '#ffcd75'
     btn.style.borderColor = '#ffcd75'
 
     showPanel('scanning')
     progTrack.style.display = 'block'
+    video.style.display     = 'block'
 
-    let elapsed = 0
-    const pti = setInterval(() => {
-      elapsed += 40
-      const pct = Math.min(100, Math.round((elapsed / totalDur) * 100))
-      progFill.style.width = pct + '%'
-      if (pct >= 100) clearInterval(pti)
-    }, 40)
+    progFill.style.animation = 'none'
+    progFill.style.width = '0%'
+    let pct = 0
+    const pulse = setInterval(() => { pct = (pct + 6) % 100; progFill.style.width = pct + '%' }, 90)
 
-    let delay = 0
-    phases.forEach((ph, i) => {
-      setTimeout(() => {
-        deriveStatus.textContent   = ph.msg
-        deriveStatus.style.color   = ph.color
-        scanLine.style.boxShadow   = `0 0 12px ${ph.color}`
-        scanLine.style.background  = `linear-gradient(90deg,transparent,${ph.color},transparent)`
-        viewport.style.borderColor = ph.color
+    setStatus('ABRIENDO CÁMARA...', '#38b764')
+    const scanner = startQrScanner({ video, facingMode: 'environment' })
+    setTimeout(() => setStatus('BUSCANDO TARJETA MÉDICA...', '#38b764'), 800)
 
-        if (i === phases.length - 1) {
-          setTimeout(() => {
-            showPanel('success')
-            viewport.style.borderColor = '#38b764'
-            viewport.style.background  = '#031007'
-            sessionStorage.setItem('rxpro_doctor_auth', 'qr_card')
-            setTimeout(() => { window.location.href = '/doctor/patient' }, 900)
-          }, ph.dur * 0.5)
+    let raw = ''
+    try {
+      raw = await scanner.result
+    } catch (err: any) {
+      clearInterval(pulse)
+      progFill.style.width = '0%'
+      video.style.display = 'none'
+      showPanel('idle')
+      showError(err?.message || 'No se pudo leer el QR.')
+      btn.disabled = false
+      btn.textContent = 'ESCANEAR TARJETA MÉDICA'
+      btn.style.color = '#38b764'
+      btn.style.borderColor = '#38b764'
+      return
+    }
+
+    clearInterval(pulse)
+    progFill.style.width = '100%'
+    setStatus('VERIFICANDO CÉDULA...', '#ffcd75')
+    video.style.display = 'none'
+
+    const parsed = parseDoctorQr(raw)
+    if (parsed.correo && parsed.contrasena) {
+      try {
+        const session = await Api.loginAndPersist({
+          correo: String(parsed.correo),
+          contrasena: String(parsed.contrasena),
+        })
+        if (session.role !== 'Medico' && session.role !== 'Administrador') {
+          throw new ApiError(403, `El QR pertenece al rol "${session.role}", no a un médico.`)
         }
-      }, delay)
-      delay += ph.dur
-    })
-  })
+        sessionStorage.setItem('rxpro_doctor_auth', 'qr_card')
+        showPanel('success')
+        viewport.style.borderColor = '#38b764'
+        viewport.style.background  = '#031007'
+        setTimeout(() => { window.location.href = '/doctor/patient' }, 800)
+        return
+      } catch (err) {
+        const msg = err instanceof ApiError ? err.detail : (err as any)?.message || 'Error al autenticar.'
+        showError(msg)
+      }
+    } else {
+      showError('El código leído no es una tarjeta médica válida.')
+    }
 
+    showPanel('idle')
+    btn.disabled = false
+    btn.textContent = 'ESCANEAR TARJETA MÉDICA'
+    btn.style.color = '#38b764'
+    btn.style.borderColor = '#38b764'
+  })
 </script>
