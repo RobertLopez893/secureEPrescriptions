@@ -95,14 +95,50 @@ def listar_recetas(
         )
     return out
 
+def _authorize_view_receta(receta: Receta, current_user: CurrentUser) -> None:
+    """
+    Reglas de visibilidad de una receta específica (por id):
+      - Paciente: solo si es su dueño.
+      - Medico:   solo si la emitió él.
+      - Farmaceutico: siempre (necesita dispensar).
+      - Administrador: siempre.
+    Lanza 403 si el usuario autenticado no cumple.
+    """
+    role = current_user.role
+    if role == "Paciente" and receta.id_paciente != current_user.id:
+        raise HTTPException(status_code=403, detail="No puedes ver recetas de otro paciente.")
+    if role == "Medico" and receta.id_medico != current_user.id:
+        raise HTTPException(status_code=403, detail="No puedes ver recetas emitidas por otro médico.")
+    if role not in ("Paciente", "Medico", "Farmaceutico", "Administrador"):
+        raise HTTPException(status_code=403, detail=f"Rol '{role}' no autorizado para este recurso.")
+
+
 @router.post("/recetas", response_model=schemas.RecetaPublic, status_code=201)
 def emitir_receta(
     *,
     session: Session = Depends(get_session),
-    receta_in: schemas.RecetaCreate
+    current_user: CurrentUser = Depends(get_current_user),
+    receta_in: schemas.RecetaCreate,
 ):
+    """Emite una nueva receta. Solo médicos (o admin) pueden hacerlo.
+    El `id_medico` se toma siempre del token para evitar suplantación:
+    un cliente comprometido no puede firmar a nombre de otro doctor."""
+    if current_user.role not in ("Medico", "Administrador"):
+        raise HTTPException(
+            status_code=403,
+            detail=f"El rol '{current_user.role}' no puede emitir recetas.",
+        )
+
+    # Si es médico, el id_medico del body se ignora y se usa el del token.
+    # Admin sí puede especificar cualquier id_medico (útil para tooling).
+    id_medico = current_user.id if current_user.role == "Medico" else receta_in.id_medico
+
+    # Validamos que el paciente existe (evitamos referencias rotas en la BD).
+    if not session.get(Usuario, receta_in.id_paciente):
+        raise HTTPException(status_code=404, detail="Paciente no encontrado.")
+
     db_receta = Receta(
-        id_medico=receta_in.id_medico,
+        id_medico=id_medico,
         id_paciente=receta_in.id_paciente,
         expira_en=receta_in.expira_en,
         capsula_cifrada=receta_in.capsula_cifrada,
@@ -119,11 +155,14 @@ def emitir_receta(
 def obtener_info_publica_receta(
     *,
     session: Session = Depends(get_session),
-    id_receta: int
+    current_user: CurrentUser = Depends(get_current_user),
+    id_receta: int,
 ):
     receta = session.get(Receta, id_receta)
     if not receta:
         raise HTTPException(status_code=404, detail="Receta no encontrada")
+
+    _authorize_view_receta(receta, current_user)
 
     medico = session.get(Usuario, receta.id_medico)
     paciente = session.get(Usuario, receta.id_paciente)
@@ -145,12 +184,17 @@ def obtener_info_publica_receta(
 def obtener_cripto_receta(
     *,
     session: Session = Depends(get_session),
-    id_receta: int
+    current_user: CurrentUser = Depends(get_current_user),
+    id_receta: int,
 ):
-    """Devuelve la cápsula cifrada y los accesos para desencriptar en el frontend."""
+    """Devuelve la cápsula cifrada y los accesos para desencriptar en el frontend.
+    Aplica la misma política que GET /recetas/{id}: paciente dueño, médico
+    emisor, farmacéutico (para dispensar) o administrador."""
     receta = session.get(Receta, id_receta)
     if not receta:
         raise HTTPException(status_code=404, detail="Receta no encontrada")
+
+    _authorize_view_receta(receta, current_user)
 
     return schemas.RecetaCriptoPublic(
         id_receta=receta.id_receta,
@@ -165,10 +209,19 @@ def obtener_cripto_receta(
 def sellar_receta(
     *,
     session: Session = Depends(get_session),
+    current_user: CurrentUser = Depends(get_current_user),
     id_receta: int,
-    sello_in: schemas.RecetaSellarRequest
+    sello_in: schemas.RecetaSellarRequest,
 ):
-    """Actualiza la receta después del sellado por la farmacia."""
+    """Actualiza la receta después del sellado por la farmacia.
+    Solo farmacéuticos (o admin) pueden ejecutar esta operación y el
+    `id_farmaceutico` grabado en la receta proviene del token, no del body."""
+    if current_user.role not in ("Farmaceutico", "Administrador"):
+        raise HTTPException(
+            status_code=403,
+            detail=f"El rol '{current_user.role}' no puede sellar recetas.",
+        )
+
     receta = session.get(Receta, id_receta)
     if not receta:
         raise HTTPException(status_code=404, detail="Receta no encontrada")
@@ -176,10 +229,12 @@ def sellar_receta(
     if receta.estado != "activa":
         raise HTTPException(status_code=400, detail="La receta ya fue surtida o está inactiva.")
 
+    id_farma = current_user.id if current_user.role == "Farmaceutico" else sello_in.id_farmaceutico
+
     receta.capsula_cifrada = sello_in.capsula_cifrada
     receta.iv_aes_gcm = sello_in.iv_aes_gcm
     receta.accesos = [a.model_dump() for a in sello_in.accesos]
-    receta.id_farmaceutico = sello_in.id_farmaceutico
+    receta.id_farmaceutico = id_farma
     receta.estado = "surtida"
 
     session.add(receta)

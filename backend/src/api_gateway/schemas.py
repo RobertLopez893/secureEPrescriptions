@@ -9,7 +9,10 @@ class AccesoCreate(BaseModel):
     nonce: str         # Nonce del KeyWrap en hex
 
 class RecetaCreate(BaseModel):
-    id_medico: int
+    # id_medico es ignorado salvo para rol Administrador: el backend toma
+    # el id_medico del JWT del emisor. Queda opcional para permitir que
+    # tooling administrativo emita recetas a nombre de otros.
+    id_medico: Optional[int] = None
     id_paciente: int
     expira_en: datetime
     capsula_cifrada: str   # Ciphertext hex
@@ -45,7 +48,9 @@ class RecetaCriptoPublic(BaseModel):
     estado: str
 
 class RecetaSellarRequest(BaseModel):
-    id_farmaceutico: int
+    # id_farmaceutico viene del JWT del farmacéutico que sella.
+    # Opcional aquí solo para el camino de Administrador.
+    id_farmaceutico: Optional[int] = None
     capsula_cifrada: str
     iv_aes_gcm: str
     accesos: List[AccesoCreate]

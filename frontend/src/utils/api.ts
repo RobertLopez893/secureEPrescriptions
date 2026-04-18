@@ -136,7 +136,11 @@ export interface AccesoDTO {
 }
 
 export interface RecetaCreateDTO {
-  id_medico: number;
+  /**
+   * Ignorado por el backend cuando el emisor es un Médico (se toma del JWT).
+   * Sólo se usa cuando un Administrador emite a nombre de otro doctor.
+   */
+  id_medico?: number;
   id_paciente: number;
   expira_en: string;          // ISO 8601
   capsula_cifrada: string;    // hex
@@ -167,7 +171,11 @@ export interface RecetaCriptoDTO {
 }
 
 export interface RecetaSellarDTO {
-  id_farmaceutico: number;
+  /**
+   * Ignorado por el backend cuando el emisor es un Farmacéutico
+   * (se toma del JWT). Se usa sólo en el camino administrativo.
+   */
+  id_farmaceutico?: number;
   capsula_cifrada: string;
   iv_aes_gcm: string;
   accesos: AccesoDTO[];
