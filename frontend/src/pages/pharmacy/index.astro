@@ -218,13 +218,10 @@ const steps=[{label:'ACCESO',href:'/pharmacy/login'},{label:'ESCANEAR',href:'/ph
 
 <script>
   import { startQrScanner } from '../../utils/qrScanner.ts'
-  import { getSession } from '../../utils/api.ts'
+  import { requireSession } from '../../utils/sessionGuard.ts'
 
   // Guardia de sesión: solo farmacéuticos (o admin) pueden escanear recetas.
-  const pharmaSession = getSession()
-  if (!pharmaSession || (pharmaSession.role !== 'Farmaceutico' && pharmaSession.role !== 'Administrador')) {
-    window.location.href = '/pharmacy/login'
-  }
+  requireSession('Farmaceutico', '/pharmacy/login')
 
   const btn          = document.getElementById('scan-btn')      as HTMLButtonElement
   const video        = document.getElementById('qr-video')      as HTMLVideoElement

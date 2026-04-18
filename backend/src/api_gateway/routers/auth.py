@@ -19,7 +19,7 @@ from secrets import token_hex
 from threading import Lock
 from typing import Dict, Tuple, Union
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlmodel import Session, select
 
 from src.core.config import settings
@@ -37,6 +37,63 @@ from src.database.models import (
 from src.api_gateway import schemas
 
 router = APIRouter()
+
+
+# ---------------------------------------------------------------------------
+# Rate limit de /login (anti brute-force)
+# ---------------------------------------------------------------------------
+# Ventana deslizante en memoria: por cada (IP, correo) registramos los
+# timestamps de los intentos fallidos recientes. Si superan el umbral
+# dentro de la ventana, devolvemos 429 sin tocar bcrypt (bcrypt es caro
+# y es justo ese costo el que hace atractivo un DoS).
+#
+# Esto es un mitigante, no una defensa completa: para producción real
+# conviene mover el estado a Redis y añadir CAPTCHA tras varios 429.
+_LOGIN_ATTEMPT_WINDOW_SECONDS = 60
+_LOGIN_ATTEMPT_MAX = 5
+_login_attempts: Dict[str, list] = {}
+_login_attempts_lock = Lock()
+
+
+def _rate_limit_key(request: Request, correo: str) -> str:
+    # Cliente directo o detrás de proxy (X-Forwarded-For first hop).
+    ip = (request.headers.get("x-forwarded-for") or "").split(",")[0].strip()
+    if not ip:
+        ip = request.client.host if request.client else "unknown"
+    return f"{ip}|{(correo or '').strip().lower()}"
+
+
+def _login_rate_limit_check(request: Request, correo: str) -> None:
+    """Aborta con 429 si hay demasiados intentos fallidos recientes."""
+    key = _rate_limit_key(request, correo)
+    now = datetime.now(timezone.utc)
+    cutoff = now - timedelta(seconds=_LOGIN_ATTEMPT_WINDOW_SECONDS)
+    with _login_attempts_lock:
+        attempts = [t for t in _login_attempts.get(key, []) if t > cutoff]
+        _login_attempts[key] = attempts
+        if len(attempts) >= _LOGIN_ATTEMPT_MAX:
+            retry_in = int((attempts[0] + timedelta(seconds=_LOGIN_ATTEMPT_WINDOW_SECONDS) - now).total_seconds())
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail=(
+                    f"Demasiados intentos fallidos. Intenta de nuevo en "
+                    f"{max(retry_in, 1)} segundos."
+                ),
+                headers={"Retry-After": str(max(retry_in, 1))},
+            )
+
+
+def _login_rate_limit_record_failure(request: Request, correo: str) -> None:
+    key = _rate_limit_key(request, correo)
+    now = datetime.now(timezone.utc)
+    with _login_attempts_lock:
+        _login_attempts.setdefault(key, []).append(now)
+
+
+def _login_rate_limit_clear(request: Request, correo: str) -> None:
+    key = _rate_limit_key(request, correo)
+    with _login_attempts_lock:
+        _login_attempts.pop(key, None)
 
 
 # ---------------------------------------------------------------------------
@@ -71,6 +128,7 @@ def _issue_token(correo: str, role_name: str, user_id: int) -> dict:
 @router.post("/login", response_model=schemas.Token)
 def login_for_access_token(
     *,
+    request: Request,
     session: Session = Depends(get_session),
     login_data: schemas.LoginRequest
 ):
@@ -80,14 +138,22 @@ def login_for_access_token(
     (médico, paciente, farmacéutico) deberían preferir /auth/challenge +
     /auth/verify con su tarjeta.
     """
+    # Rate limit ANTES de tocar bcrypt: evita que un atacante convierta
+    # cada intento en ~100 ms de CPU del servidor.
+    _login_rate_limit_check(request, login_data.correo)
+
     user_or_admin = authenticate_user(session=session, correo=login_data.correo, contrasena=login_data.contrasena)
 
     if not user_or_admin:
+        _login_rate_limit_record_failure(request, login_data.correo)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Correo o contraseña incorrectos",
             headers={"WWW-Authenticate": "Bearer"},
         )
+
+    # Login OK → limpiamos los fallos recientes de esta combinación.
+    _login_rate_limit_clear(request, login_data.correo)
 
     # Determinar el rol y el ID para el payload del token
     if isinstance(user_or_admin, Usuario):
