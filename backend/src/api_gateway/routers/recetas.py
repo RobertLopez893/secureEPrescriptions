@@ -3,6 +3,7 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlmodel import Session, select
 
+from src.core.security import CurrentUser, get_current_user
 from src.database.database import get_session
 from src.database.models import Receta, Usuario
 from src.api_gateway import schemas
@@ -14,6 +15,7 @@ router = APIRouter()
 def listar_recetas(
     *,
     session: Session = Depends(get_session),
+    current_user: CurrentUser = Depends(get_current_user),
     id_paciente: Optional[int] = Query(
         default=None,
         description="Filtra recetas por el id_usuario del paciente dueño.",
@@ -30,12 +32,30 @@ def listar_recetas(
 ):
     """Devuelve las recetas que cumplen con los filtros dados, ordenadas
     de la más reciente a la más antigua. Se requiere al menos un filtro
-    (id_paciente o id_medico) para evitar listados globales abiertos."""
+    (id_paciente o id_medico) para evitar listados globales abiertos.
+
+    Autorización: el filtro debe coincidir con el usuario autenticado,
+    salvo que sea Administrador o Farmaceutico (que debe dispensar y ver
+    recetas asignadas a pacientes)."""
     if id_paciente is None and id_medico is None:
         raise HTTPException(
             status_code=400,
             detail="Proporciona id_paciente o id_medico para filtrar.",
         )
+
+    # Reglas mínimas de autorización por rol:
+    # - Paciente: solo su propio id_paciente.
+    # - Medico:   solo su propio id_medico.
+    # - Farmaceutico / Administrador: cualquier filtro válido.
+    role = current_user.role
+    if role == "Paciente":
+        if id_paciente is None or id_paciente != current_user.id:
+            raise HTTPException(status_code=403, detail="Solo puedes consultar tus propias recetas.")
+    elif role == "Medico":
+        if id_medico is None or id_medico != current_user.id:
+            raise HTTPException(status_code=403, detail="Solo puedes consultar recetas emitidas por ti.")
+    elif role not in ("Farmaceutico", "Administrador"):
+        raise HTTPException(status_code=403, detail=f"Rol '{role}' no autorizado para este recurso.")
 
     stmt = select(Receta)
     if id_paciente is not None:
