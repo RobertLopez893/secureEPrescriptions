@@ -1,8 +1,8 @@
 ---
 import FlowLayout from '../../layouts/FlowLayout.astro'
 const steps=[{label:'ACCESO',href:'/patient'},{label:'MIS RECETAS',href:'/patient/dashboard'},{label:'DETALLE',href:'/patient/detail'}]
+// Demo fallback que se muestra junto con cualquier receta real cargada del backend.
 const rxList=[
-  {folio:'XYZ-123',date:'20 MAR',med:'Amoxicilina 500mg',  doctor:'Dr. E. Ramírez',    status:'pendiente',isNew:true },
   {folio:'XYZ-118',date:'18 MAR',med:'Ibuprofeno 400mg',   doctor:'Dra. M. Villanueva',status:'surtida',  isNew:false},
   {folio:'XYZ-111',date:'15 MAR',med:'Omeprazol 20mg',     doctor:'Dr. E. Ramírez',    status:'surtida',  isNew:false},
   {folio:'XYZ-098',date:'02 MAR',med:'Metformina 850mg',   doctor:'Dr. C. Vega',       status:'surtida',  isNew:false},
@@ -40,12 +40,26 @@ const rxList=[
     </div>
   </div>
 
+  <!-- Búsqueda por folio (API real) -->
+  <div style="background:#222639;border:3px solid #41a6f6;box-shadow:4px 4px 0 #1a6eb0;padding:14px 16px;">
+    <p style="font-family:'Press Start 2P',monospace;font-size:8px;color:#41a6f6;margin-bottom:10px;">BUSCAR RECETA POR FOLIO</p>
+    <form id="lookup-form" style="display:flex;gap:10px;align-items:stretch;flex-wrap:wrap;">
+      <input type="number" name="id_receta" placeholder="42" min="1" required
+             style="flex:1;min-width:140px;background:#f8f8f0;color:#1a1c2c;border:3px solid #41a6f6;padding:10px 12px;font-family:'VT323',monospace;font-size:22px;text-align:center;letter-spacing:.1em;"/>
+      <button type="submit" class="px-btn px-btn-blue" style="padding:10px 16px;">VER RECETA</button>
+    </form>
+    <p id="lookup-error" style="display:none;font-family:'Press Start 2P',monospace;font-size:7px;color:#a53030;margin-top:10px;"></p>
+  </div>
+
   <!-- Stats -->
   <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;">
-    <div class="px-stat"><span class="px-stat-num" style="color:#f4f4f4;">{rxList.length}</span><span class="px-stat-label">TOTAL</span></div>
-    <div class="px-stat"><span class="px-stat-num" style="color:#38b764;">{rxList.filter(r=>r.status==='surtida').length}</span><span class="px-stat-label">SURTIDAS</span></div>
-    <div class="px-stat"><span class="px-stat-num" style="color:#ffcd75;">{rxList.filter(r=>r.status==='pendiente').length}</span><span class="px-stat-label">PENDIENTE</span></div>
+    <div class="px-stat"><span class="px-stat-num" style="color:#f4f4f4;" id="stat-total">{rxList.length}</span><span class="px-stat-label">TOTAL</span></div>
+    <div class="px-stat"><span class="px-stat-num" style="color:#38b764;" id="stat-surtida">{rxList.filter(r=>r.status==='surtida').length}</span><span class="px-stat-label">SURTIDAS</span></div>
+    <div class="px-stat"><span class="px-stat-num" style="color:#ffcd75;" id="stat-pendiente">{rxList.filter(r=>r.status==='pendiente').length}</span><span class="px-stat-label">PENDIENTE</span></div>
   </div>
+
+  <!-- Receta recién emitida (si existe) -->
+  <div id="last-receta-slot"></div>
 
   <!-- Prescription list -->
   <div style="display:flex;flex-direction:column;gap:4px;">
@@ -81,3 +95,57 @@ const rxList=[
   </p>
 </div>
 </FlowLayout>
+
+<script>
+  import { Api, ApiError, getSession } from '../../utils/api.ts'
+
+  const form     = document.getElementById('lookup-form')  as HTMLFormElement
+  const errorBox = document.getElementById('lookup-error') as HTMLParagraphElement
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault()
+    errorBox.style.display = 'none'
+    const fd = new FormData(form)
+    const id = Number(fd.get('id_receta') || 0)
+    if (!id) return
+    try {
+      // Sólo comprobamos que existe y está accesible; la pantalla de detalle
+      // hará la descarga cripto y el descifrado.
+      await Api.obtenerRecetaInfo(id)
+      window.location.href = `/patient/detail?id=${id}`
+    } catch (err) {
+      errorBox.textContent = err instanceof ApiError ? err.detail : 'No se pudo consultar el folio.'
+      errorBox.style.display = 'block'
+    }
+  })
+
+  // Si el médico acaba de emitir una receta desde este mismo dispositivo,
+  // la mostramos arriba con un link directo al detalle.
+  try {
+    const last = JSON.parse(sessionStorage.getItem('rxpro_last_receta') || 'null')
+    if (last && typeof last.id_receta === 'number') {
+      const slot = document.getElementById('last-receta-slot')!
+      slot.innerHTML = `
+        <a href="/patient/detail?id=${last.id_receta}"
+           style="text-decoration:none;display:flex;align-items:center;gap:14px;padding:16px;
+                  background:#1a2e1a;border:3px solid #ffcd75;box-shadow:4px 4px 0 #c48c00;position:relative;">
+          <div style="position:absolute;top:0;right:0;background:#ffcd75;color:#1a1c2c;
+                      font-family:'Press Start 2P',monospace;font-size:7px;padding:4px 8px;">NEW!</div>
+          <span style="font-size:28px;">💊</span>
+          <div style="flex:1;">
+            <p style="font-family:'Press Start 2P',monospace;font-size:9px;color:#f4f4f4;margin-bottom:6px;">RECETA RECIÉN EMITIDA</p>
+            <p style="font-family:'VT323',monospace;font-size:19px;color:#c0cbdc;">Estado: ${last.estado}</p>
+            <p style="font-family:'VT323',monospace;font-size:17px;color:#5b6ee1;">FOLIO RX-${String(last.id_receta).padStart(5,'0')}</p>
+          </div>
+          <span class="px-badge px-badge-yellow">⏳ NUEVA</span>
+        </a>`
+    }
+  } catch { /* noop */ }
+
+  // Cabecera con el correo real si hay sesión
+  const session = getSession()
+  if (session?.correo) {
+    const header = document.querySelector('[data-patient-header]') as HTMLElement | null
+    // se queda como estaba si no hay marcador
+  }
+</script>

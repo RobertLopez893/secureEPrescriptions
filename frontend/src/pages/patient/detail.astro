@@ -6,12 +6,18 @@ const steps=[{label:'ACCESO',href:'/patient'},{label:'MIS RECETAS',href:'/patien
 <div class="anim-slide" style="display:flex;flex-direction:column;gap:20px;">
 
   <!-- Status alert -->
-  <div style="background:#1a1500;border:3px solid #ffcd75;box-shadow:4px 4px 0 #c48c00;padding:14px;display:flex;align-items:center;gap:12px;">
-    <span style="font-size:24px;" class="anim-bounce">⏳</span>
+  <div id="status-alert" style="background:#1a1500;border:3px solid #ffcd75;box-shadow:4px 4px 0 #c48c00;padding:14px;display:flex;align-items:center;gap:12px;">
+    <span id="status-icon" style="font-size:24px;" class="anim-bounce">⏳</span>
     <div>
-      <p style="font-family:'Press Start 2P',monospace;font-size:9px;color:#ffcd75;">LISTA PARA RECOGER</p>
-      <p style="font-family:'VT323',monospace;font-size:20px;color:#c0cbdc;margin-top:4px;">Muestra el código QR en la farmacia</p>
+      <p id="status-title" style="font-family:'Press Start 2P',monospace;font-size:9px;color:#ffcd75;">LISTA PARA RECOGER</p>
+      <p id="status-sub" style="font-family:'VT323',monospace;font-size:20px;color:#c0cbdc;margin-top:4px;">Muestra el código QR en la farmacia</p>
     </div>
+  </div>
+
+  <!-- Error inline -->
+  <div id="detail-error" style="display:none;background:#2a0d0d;border:3px solid #e8003d;padding:14px;">
+    <p style="font-family:'Press Start 2P',monospace;font-size:8px;color:#e8003d;margin-bottom:8px;">⛔ NO SE PUDO CARGAR</p>
+    <p id="detail-error-msg" style="font-family:'VT323',monospace;font-size:19px;color:#c0cbdc;line-height:1.5;"></p>
   </div>
 
   <!-- BIG QR code -->
@@ -48,8 +54,8 @@ const steps=[{label:'ACCESO',href:'/patient'},{label:'MIS RECETAS',href:'/patien
         <rect x="50" y="50" width="4" height="4" fill="#1a1c2c"/>
       </svg>
     </div>
-    <p style="font-family:'Press Start 2P',monospace;font-size:11px;color:#1a1c2c;margin-top:16px;">XYZ-123</p>
-    <p style="font-family:'VT323',monospace;font-size:20px;color:#29366f;margin-top:4px;">VÁLIDO HASTA 19 ABR 2026</p>
+    <p id="qr-folio"   style="font-family:'Press Start 2P',monospace;font-size:11px;color:#1a1c2c;margin-top:16px;">XYZ-123</p>
+    <p id="qr-vigencia" style="font-family:'VT323',monospace;font-size:20px;color:#29366f;margin-top:4px;">VÁLIDO HASTA 19 ABR 2026</p>
   </div>
 
   <!-- Details -->
@@ -57,7 +63,7 @@ const steps=[{label:'ACCESO',href:'/patient'},{label:'MIS RECETAS',href:'/patien
     <div style="background:#29366f;padding:10px 16px;">
       <span style="font-family:'Press Start 2P',monospace;font-size:8px;color:#f4f4f4;">📋 DETALLES DE PRESCRIPCIÓN</span>
     </div>
-    <div style="padding:16px;">
+    <div id="details-body" style="padding:16px;">
       {[
         {l:'MEDICAMENTO',v:'Amoxicilina',big:true},
         {l:'DOSIS',v:'500 mg · Cápsula',m:true},
@@ -75,9 +81,107 @@ const steps=[{label:'ACCESO',href:'/patient'},{label:'MIS RECETAS',href:'/patien
   </div>
 
   <!-- Authentic note -->
-  <div style="background:#1a2e1a;border:3px solid #38b764;padding:12px;display:flex;align-items:center;gap:10px;">
+  <div id="authentic-note" style="background:#1a2e1a;border:3px solid #38b764;padding:12px;display:flex;align-items:center;gap:10px;">
     <span style="font-size:18px;flex-shrink:0;">✅</span>
-    <p style="font-family:'Press Start 2P',monospace;font-size:7px;color:#38b764;line-height:1.8;">RECETA AUTÉNTICA · FIRMA DEL MÉDICO VERIFICADA</p>
+    <p id="authentic-text" style="font-family:'Press Start 2P',monospace;font-size:7px;color:#38b764;line-height:1.8;">RECETA AUTÉNTICA · FIRMA DEL MÉDICO VERIFICADA</p>
   </div>
 </div>
 </FlowLayout>
+
+<script>
+  import { Api, ApiError } from '../../utils/api.ts'
+  import { CryptoEngine } from '../../crypto/index.ts'
+  import { getPublicKey } from '../../utils/cryptoFlow.ts'
+  import { testKeys } from '../../utils/testData.ts'
+
+  const params = new URLSearchParams(window.location.search)
+  const idReceta = Number(params.get('id') || 0)
+
+  const errorBox = document.getElementById('detail-error')       as HTMLDivElement
+  const errorMsg = document.getElementById('detail-error-msg')   as HTMLParagraphElement
+  const body     = document.getElementById('details-body')       as HTMLDivElement
+  const folioEl  = document.getElementById('qr-folio')           as HTMLParagraphElement
+  const vigEl    = document.getElementById('qr-vigencia')        as HTMLParagraphElement
+  const statusT  = document.getElementById('status-title')       as HTMLParagraphElement
+  const statusS  = document.getElementById('status-sub')         as HTMLParagraphElement
+  const statusI  = document.getElementById('status-icon')        as HTMLSpanElement
+  const authT    = document.getElementById('authentic-text')     as HTMLParagraphElement
+
+  function showError(msg: string) {
+    errorMsg.textContent = msg
+    errorBox.style.display = 'block'
+  }
+
+  function renderRows(rows: Array<{l:string; v:string; big?:boolean}>) {
+    body.innerHTML = rows.map(f => `
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:10px 0;border-bottom:2px solid #29366f;gap:12px;">
+        <span style="font-family:'Press Start 2P',monospace;font-size:7px;color:#5b6ee1;flex-shrink:0;width:90px;">${f.l}</span>
+        <span style="text-align:right;font-family:'VT323',monospace;font-size:${f.big?'22px':'20px'};color:${f.big?'#41a6f6':'#f4f4f4'};${f.big?'font-weight:bold;':''}">${f.v}</span>
+      </div>`).join('')
+  }
+
+  async function load() {
+    if (!idReceta) return   // mantiene demo estática si no hay ?id=
+
+    try {
+      const [info, cripto] = await Promise.all([
+        Api.obtenerRecetaInfo(idReceta),
+        Api.obtenerRecetaCripto(idReceta),
+      ])
+
+      folioEl.textContent = 'RX-' + String(info.id_receta).padStart(5, '0')
+      vigEl.textContent   = 'VÁLIDO HASTA ' + new Date(info.expira_en).toLocaleDateString('es-MX',
+        { day:'2-digit', month:'short', year:'numeric' }).toUpperCase()
+
+      // Estado pill
+      if (info.estado === 'surtida') {
+        statusT.textContent = 'RECETA SURTIDA'
+        statusS.textContent = 'Dispensada por la farmacia.'
+        statusI.textContent = '✅'
+        const alert = document.getElementById('status-alert')!
+        alert.style.background = '#0a1a0a'
+        alert.style.borderColor = '#38b764'
+        statusT.style.color = '#38b764'
+      }
+
+      // Descifrado E2E con la llave del paciente (demo)
+      const accesoPaciente = cripto.accesos.find(a => a.rol === 'paciente')
+      if (!accesoPaciente) throw new Error('No hay acceso asignado a paciente en esta receta.')
+
+      const doctorPubHex = getPublicKey(testKeys.medico)
+      const { valido, contenido } = CryptoEngine.abrirReceta(
+        cripto.capsula_cifrada,
+        cripto.iv_aes_gcm,
+        accesoPaciente.wrappedKey,
+        accesoPaciente.nonce,
+        testKeys.paciente,
+        doctorPubHex,   // emisorWrapPub (el doctor hizo el wrap en la demo)
+        doctorPubHex,
+      )
+
+      if (!valido) {
+        authT.textContent = '⚠ FIRMA NO VERIFICADA — CONSULTAR AL MÉDICO'
+        ;(document.getElementById('authentic-note') as HTMLDivElement).style.borderColor = '#e8003d'
+        authT.style.color = '#e8003d'
+      }
+
+      const meds = contenido.datos.medicamentos || []
+      const rows: Array<{l:string; v:string; big?:boolean}> = []
+      meds.forEach((m: any, i: number) => {
+        rows.push({ l: `MED #${i+1}`, v: m.nombre || '—', big: true })
+        if (m.dosis)      rows.push({ l: 'DOSIS', v: m.dosis })
+        if (m.frecuencia) rows.push({ l: 'FRECUENCIA', v: m.frecuencia })
+        if (m.duracion)   rows.push({ l: 'DURACIÓN', v: m.duracion })
+      })
+      rows.push({ l: 'MÉDICO',  v: info.medico.nombre_completo })
+      rows.push({ l: 'EMITIDA', v: new Date(info.creada_en).toLocaleDateString('es-MX',
+        { day:'2-digit', month:'short', year:'numeric' }).toUpperCase() })
+      renderRows(rows)
+    } catch (e) {
+      const msg = e instanceof ApiError ? `Backend ${e.status}: ${e.detail}`
+        : (e as any)?.message || 'Error inesperado.'
+      showError(msg)
+    }
+  }
+  load()
+</script>
