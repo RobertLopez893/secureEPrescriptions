@@ -1,26 +1,19 @@
 ---
 import FlowLayout from '../../layouts/FlowLayout.astro'
 const steps=[{label:'ACCESO',href:'/patient'},{label:'MIS RECETAS',href:'/patient/dashboard'},{label:'DETALLE',href:'/patient/detail'}]
-// Demo fallback que se muestra junto con cualquier receta real cargada del backend.
-const rxList=[
-  {folio:'XYZ-118',date:'18 MAR',med:'Ibuprofeno 400mg',   doctor:'Dra. M. Villanueva',status:'surtida',  isNew:false},
-  {folio:'XYZ-111',date:'15 MAR',med:'Omeprazol 20mg',     doctor:'Dr. E. Ramírez',    status:'surtida',  isNew:false},
-  {folio:'XYZ-098',date:'02 MAR',med:'Metformina 850mg',   doctor:'Dr. C. Vega',       status:'surtida',  isNew:false},
-]
 ---
 <FlowLayout title="Mis Recetas" role="patient" steps={steps} currentStep={1} back="/patient" wide={true}>
 <div class="anim-slide" style="display:flex;flex-direction:column;gap:20px;">
 
-  <!-- Patient ID card -->
+  <!-- Patient ID card (se hidrata con la sesión real si existe) -->
   <div style="background:#0d1a2e;border:3px solid #41a6f6;box-shadow:4px 4px 0 #1a6eb0;padding:16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
     <div style="display:flex;align-items:center;gap:14px;">
       <span style="font-size:40px;">🧑‍💼</span>
       <div>
-        <p style="font-family:'Press Start 2P',monospace;font-size:11px;color:#41a6f6;">LUIS GARCÍA MENDOZA</p>
-        <p style="font-family:'VT323',monospace;font-size:20px;color:#c0cbdc;margin-top:4px;">GARM850315HDFNDS07</p>
+        <p id="patient-header-name" style="font-family:'Press Start 2P',monospace;font-size:11px;color:#41a6f6;">PACIENTE</p>
+        <p id="patient-header-sub"  style="font-family:'VT323',monospace;font-size:20px;color:#c0cbdc;margin-top:4px;">—</p>
       </div>
     </div>
-    <!-- Mini QR -->
     <div style="background:#f4f4f4;border:3px solid #1a1c2c;padding:8px;">
       <svg width="48" height="48" viewBox="0 0 14 14" style="image-rendering:pixelated;">
         <rect x="0" y="0" width="5" height="5" fill="none" stroke="#1a1c2c" stroke-width="1"/>
@@ -51,44 +44,34 @@ const rxList=[
     <p id="lookup-error" style="display:none;font-family:'Press Start 2P',monospace;font-size:7px;color:#a53030;margin-top:10px;"></p>
   </div>
 
-  <!-- Stats -->
+  <!-- Stats (se llenan tras fetch) -->
   <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;">
-    <div class="px-stat"><span class="px-stat-num" style="color:#f4f4f4;" id="stat-total">{rxList.length}</span><span class="px-stat-label">TOTAL</span></div>
-    <div class="px-stat"><span class="px-stat-num" style="color:#38b764;" id="stat-surtida">{rxList.filter(r=>r.status==='surtida').length}</span><span class="px-stat-label">SURTIDAS</span></div>
-    <div class="px-stat"><span class="px-stat-num" style="color:#ffcd75;" id="stat-pendiente">{rxList.filter(r=>r.status==='pendiente').length}</span><span class="px-stat-label">PENDIENTE</span></div>
+    <div class="px-stat"><span class="px-stat-num" style="color:#f4f4f4;" id="stat-total">—</span><span class="px-stat-label">TOTAL</span></div>
+    <div class="px-stat"><span class="px-stat-num" style="color:#38b764;" id="stat-surtida">—</span><span class="px-stat-label">SURTIDAS</span></div>
+    <div class="px-stat"><span class="px-stat-num" style="color:#ffcd75;" id="stat-pendiente">—</span><span class="px-stat-label">ACTIVAS</span></div>
   </div>
 
-  <!-- Receta recién emitida (si existe) -->
-  <div id="last-receta-slot"></div>
+  <!-- Loader -->
+  <div id="rx-loading" style="background:#0d1a2e;border:3px solid #41a6f6;padding:18px;text-align:center;">
+    <p style="font-family:'Press Start 2P',monospace;font-size:8px;color:#41a6f6;" class="anim-blink">
+      ⏳ CONSULTANDO RECETAS...
+    </p>
+  </div>
+
+  <!-- Error del listado -->
+  <div id="rx-error" style="display:none;background:#2a0d0d;border:3px solid #e8003d;padding:14px;">
+    <p style="font-family:'Press Start 2P',monospace;font-size:8px;color:#e8003d;margin-bottom:8px;">⛔ NO FUE POSIBLE CARGAR TUS RECETAS</p>
+    <p id="rx-error-msg" style="font-family:'VT323',monospace;font-size:19px;color:#c0cbdc;line-height:1.5;"></p>
+  </div>
+
+  <!-- Empty state -->
+  <div id="rx-empty" style="display:none;background:#222639;border:3px dashed #29366f;padding:30px 18px;text-align:center;">
+    <p style="font-family:'Press Start 2P',monospace;font-size:9px;color:#5b6ee1;margin-bottom:8px;">SIN RECETAS TODAVÍA</p>
+    <p style="font-family:'VT323',monospace;font-size:20px;color:#c0cbdc;">Cuando un médico te emita una receta aparecerá aquí automáticamente.</p>
+  </div>
 
   <!-- Prescription list -->
-  <div style="display:flex;flex-direction:column;gap:4px;">
-    {rxList.map((rx,idx)=>{
-      const rxBorder = rx.status==='pendiente'?'#ffcd75':'#29366f'
-      const rxShadow = rx.status==='pendiente'?'4px 4px 0 #c48c00':'4px 4px 0 #0d0e1a'
-      const rxStyle  = 'text-decoration:none;display:flex;align-items:center;gap:14px;padding:16px;background:#222639;border:3px solid '+rxBorder+';box-shadow:'+rxShadow+';position:relative;transition:transform .08s;'
-      return (
-      <a href="/patient/detail" style={rxStyle}
-         class={'anim-slide d'+(idx+1)}
-         onmouseover="this.style.transform='translateX(4px)'"
-         onmouseout="this.style.transform=''">
-        {rx.isNew && <div style="position:absolute;top:0;right:0;background:#ffcd75;color:#1a1c2c;font-family:'Press Start 2P',monospace;font-size:7px;padding:4px 8px;">NEW!</div>}
-        <span style="font-size:28px;flex-shrink:0;">💊</span>
-        <div style="flex:1;min-width:0;">
-          <p style="font-family:'Press Start 2P',monospace;font-size:9px;color:#f4f4f4;margin-bottom:6px;">{rx.med}</p>
-          <p style="font-family:'VT323',monospace;font-size:19px;color:#c0cbdc;">{rx.doctor}</p>
-          <p style="font-family:'VT323',monospace;font-size:17px;color:#5b6ee1;">{rx.date} · FOLIO {rx.folio}</p>
-        </div>
-        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
-          <span class={'px-badge '+(rx.status==='pendiente'?'px-badge-yellow':'px-badge-green')}>
-            {rx.status==='pendiente'?'⏳ PENDIENTE':'✓ SURTIDA'}
-          </span>
-          <span style="font-family:'Press Start 2P',monospace;font-size:9px;color:#5b6ee1;">►</span>
-        </div>
-      </a>
-      )
-    })}
-  </div>
+  <div id="rx-list" style="display:flex;flex-direction:column;gap:4px;"></div>
 
   <p style="text-align:center;font-family:'Press Start 2P',monospace;font-size:7px;color:#29366f;line-height:1.8;">
     🔒 SOLO TÚ, TU MÉDICO Y EL FARMACÉUTICO PUEDEN VER ESTAS RECETAS
@@ -109,8 +92,6 @@ const rxList=[
     const id = Number(fd.get('id_receta') || 0)
     if (!id) return
     try {
-      // Sólo comprobamos que existe y está accesible; la pantalla de detalle
-      // hará la descarga cripto y el descifrado.
       await Api.obtenerRecetaInfo(id)
       window.location.href = `/patient/detail?id=${id}`
     } catch (err) {
@@ -119,33 +100,128 @@ const rxList=[
     }
   })
 
-  // Si el médico acaba de emitir una receta desde este mismo dispositivo,
-  // la mostramos arriba con un link directo al detalle.
-  try {
-    const last = JSON.parse(sessionStorage.getItem('rxpro_last_receta') || 'null')
-    if (last && typeof last.id_receta === 'number') {
-      const slot = document.getElementById('last-receta-slot')!
-      slot.innerHTML = `
-        <a href="/patient/detail?id=${last.id_receta}"
-           style="text-decoration:none;display:flex;align-items:center;gap:14px;padding:16px;
-                  background:#1a2e1a;border:3px solid #ffcd75;box-shadow:4px 4px 0 #c48c00;position:relative;">
-          <div style="position:absolute;top:0;right:0;background:#ffcd75;color:#1a1c2c;
-                      font-family:'Press Start 2P',monospace;font-size:7px;padding:4px 8px;">NEW!</div>
-          <span style="font-size:28px;">💊</span>
-          <div style="flex:1;">
-            <p style="font-family:'Press Start 2P',monospace;font-size:9px;color:#f4f4f4;margin-bottom:6px;">RECETA RECIÉN EMITIDA</p>
-            <p style="font-family:'VT323',monospace;font-size:19px;color:#c0cbdc;">Estado: ${last.estado}</p>
-            <p style="font-family:'VT323',monospace;font-size:17px;color:#5b6ee1;">FOLIO RX-${String(last.id_receta).padStart(5,'0')}</p>
-          </div>
-          <span class="px-badge px-badge-yellow">⏳ NUEVA</span>
-        </a>`
-    }
-  } catch { /* noop */ }
-
-  // Cabecera con el correo real si hay sesión
+  // --- Cabecera con el correo / nombre real si hay sesión ---
   const session = getSession()
-  if (session?.correo) {
-    const header = document.querySelector('[data-patient-header]') as HTMLElement | null
-    // se queda como estaba si no hay marcador
+  const headerName = document.getElementById('patient-header-name') as HTMLParagraphElement
+  const headerSub  = document.getElementById('patient-header-sub')  as HTMLParagraphElement
+  if (session) {
+    headerName.textContent = (session.nombre || session.correo || 'PACIENTE').toUpperCase()
+    headerSub.textContent  = `ID USUARIO: ${session.id}`
   }
+
+  // --- Cargar el listado real desde el backend ---
+  const loading  = document.getElementById('rx-loading')  as HTMLDivElement
+  const errPanel = document.getElementById('rx-error')    as HTMLDivElement
+  const errMsg   = document.getElementById('rx-error-msg')as HTMLParagraphElement
+  const empty    = document.getElementById('rx-empty')    as HTMLDivElement
+  const listEl   = document.getElementById('rx-list')     as HTMLDivElement
+  const statTotal     = document.getElementById('stat-total')     as HTMLSpanElement
+  const statSurtida   = document.getElementById('stat-surtida')   as HTMLSpanElement
+  const statPendiente = document.getElementById('stat-pendiente') as HTMLSpanElement
+
+  function formatFecha(iso: string): string {
+    try {
+      const d = new Date(iso)
+      const months = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC']
+      return `${String(d.getDate()).padStart(2,'0')} ${months[d.getMonth()]}`
+    } catch { return iso.slice(0,10) }
+  }
+
+  function renderList(rxs: Array<any>, highlightId?: number) {
+    listEl.innerHTML = ''
+    for (const [idx, rx] of rxs.entries()) {
+      const isNew       = highlightId === rx.id_receta
+      const isPendiente = rx.estado === 'activa'
+      const rxBorder = isNew ? '#ffcd75' : (isPendiente ? '#ffcd75' : '#29366f')
+      const rxShadow = isNew ? '4px 4px 0 #c48c00' : (isPendiente ? '4px 4px 0 #c48c00' : '4px 4px 0 #0d0e1a')
+      const bg       = isNew ? '#1a2e1a' : '#222639'
+      const folio    = 'RX-' + String(rx.id_receta).padStart(5,'0')
+      const medLabel = `DR. ${String(rx.medico?.nombre_completo || '—').toUpperCase()}`
+      const fecha    = formatFecha(rx.creada_en)
+      const badge    = isPendiente
+        ? '<span class="px-badge px-badge-yellow">⏳ ACTIVA</span>'
+        : '<span class="px-badge px-badge-green">✓ SURTIDA</span>'
+      const newChip = isNew
+        ? `<div style="position:absolute;top:0;right:0;background:#ffcd75;color:#1a1c2c;font-family:'Press Start 2P',monospace;font-size:7px;padding:4px 8px;">NEW!</div>`
+        : ''
+      const a = document.createElement('a')
+      a.href = `/patient/detail?id=${rx.id_receta}`
+      a.className = 'anim-slide d' + (idx+1)
+      a.style.cssText =
+        'text-decoration:none;display:flex;align-items:center;gap:14px;padding:16px;' +
+        `background:${bg};border:3px solid ${rxBorder};box-shadow:${rxShadow};position:relative;transition:transform .08s;`
+      a.onmouseover = () => { a.style.transform = 'translateX(4px)' }
+      a.onmouseout  = () => { a.style.transform = '' }
+      a.innerHTML = `
+        ${newChip}
+        <span style="font-size:28px;flex-shrink:0;">💊</span>
+        <div style="flex:1;min-width:0;">
+          <p style="font-family:'Press Start 2P',monospace;font-size:9px;color:#f4f4f4;margin-bottom:6px;">${folio}</p>
+          <p style="font-family:'VT323',monospace;font-size:19px;color:#c0cbdc;">${medLabel}</p>
+          <p style="font-family:'VT323',monospace;font-size:17px;color:#5b6ee1;">${fecha} · PACIENTE ${rx.paciente?.nombre_completo || ''}</p>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
+          ${badge}
+          <span style="font-family:'Press Start 2P',monospace;font-size:9px;color:#5b6ee1;">►</span>
+        </div>`
+      listEl.appendChild(a)
+    }
+  }
+
+  async function loadRecetas() {
+    loading.style.display = 'block'
+    errPanel.style.display = 'none'
+    empty.style.display = 'none'
+
+    const idPaciente = session?.id && session.role === 'Paciente' ? session.id : null
+
+    // Sin sesión de paciente no podemos llamar al listado (el backend exige filtro).
+    // Todavía respetamos la receta recién emitida que haya quedado en sessionStorage.
+    const lastRaw = sessionStorage.getItem('rxpro_last_receta')
+    const last    = lastRaw ? (() => { try { return JSON.parse(lastRaw) } catch { return null } })() : null
+    const highlightId: number | undefined = (last && typeof last.id_receta === 'number') ? last.id_receta : undefined
+
+    if (!idPaciente) {
+      loading.style.display = 'none'
+      if (last && typeof last.id_receta === 'number') {
+        // Renderizamos al menos la receta que acaba de emitirse.
+        try {
+          const info = await Api.obtenerRecetaInfo(last.id_receta)
+          renderList([info], highlightId)
+          statTotal.textContent     = '1'
+          statSurtida.textContent   = info.estado === 'surtida' ? '1' : '0'
+          statPendiente.textContent = info.estado === 'activa'  ? '1' : '0'
+        } catch {
+          empty.style.display = 'block'
+        }
+      } else {
+        empty.style.display = 'block'
+      }
+      return
+    }
+
+    try {
+      const recetas = await Api.listarRecetas({ id_paciente: idPaciente, limit: 100 })
+      loading.style.display = 'none'
+      if (recetas.length === 0) {
+        empty.style.display = 'block'
+        statTotal.textContent     = '0'
+        statSurtida.textContent   = '0'
+        statPendiente.textContent = '0'
+        return
+      }
+      renderList(recetas, highlightId)
+      statTotal.textContent     = String(recetas.length)
+      statSurtida.textContent   = String(recetas.filter(r => r.estado === 'surtida').length)
+      statPendiente.textContent = String(recetas.filter(r => r.estado === 'activa').length)
+    } catch (err) {
+      loading.style.display = 'none'
+      errPanel.style.display = 'block'
+      errMsg.textContent = err instanceof ApiError
+        ? `Backend ${err.status}: ${err.detail}`
+        : (err as any)?.message || 'Error desconocido'
+    }
+  }
+
+  loadRecetas()
 </script>

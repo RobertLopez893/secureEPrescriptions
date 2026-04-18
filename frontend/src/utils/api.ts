@@ -262,6 +262,24 @@ export const Api = {
     return request<RecetaDetailDTO>(`/api/v1/recetas/${idReceta}`);
   },
 
+  /**
+   * Lista recetas filtradas por paciente y/o médico. El backend exige al
+   * menos uno de los dos filtros para evitar listados abiertos.
+   */
+  async listarRecetas(filters: {
+    id_paciente?: number;
+    id_medico?: number;
+    estado?: 'activa' | 'surtida';
+    limit?: number;
+  }): Promise<RecetaDetailDTO[]> {
+    const params = new URLSearchParams();
+    if (filters.id_paciente != null) params.set('id_paciente', String(filters.id_paciente));
+    if (filters.id_medico   != null) params.set('id_medico',   String(filters.id_medico));
+    if (filters.estado)               params.set('estado',      filters.estado);
+    if (filters.limit != null)        params.set('limit',       String(filters.limit));
+    return request<RecetaDetailDTO[]>(`/api/v1/recetas?${params.toString()}`);
+  },
+
   async obtenerRecetaCripto(idReceta: number): Promise<RecetaCriptoDTO> {
     return request<RecetaCriptoDTO>(`/api/v1/recetas/${idReceta}/cripto`);
   },

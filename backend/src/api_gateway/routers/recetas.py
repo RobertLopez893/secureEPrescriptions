@@ -1,11 +1,79 @@
-from fastapi import APIRouter, Depends, HTTPException
-from sqlmodel import Session
+from typing import List, Optional
+
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlmodel import Session, select
 
 from src.database.database import get_session
 from src.database.models import Receta, Usuario
 from src.api_gateway import schemas
 
 router = APIRouter()
+
+
+@router.get("/recetas", response_model=List[schemas.RecetaDetailPublic])
+def listar_recetas(
+    *,
+    session: Session = Depends(get_session),
+    id_paciente: Optional[int] = Query(
+        default=None,
+        description="Filtra recetas por el id_usuario del paciente dueño.",
+    ),
+    id_medico: Optional[int] = Query(
+        default=None,
+        description="Filtra recetas emitidas por un médico (id_usuario).",
+    ),
+    estado: Optional[str] = Query(
+        default=None,
+        description="Filtra por estado ('activa' o 'surtida').",
+    ),
+    limit: int = Query(default=50, ge=1, le=200),
+):
+    """Devuelve las recetas que cumplen con los filtros dados, ordenadas
+    de la más reciente a la más antigua. Se requiere al menos un filtro
+    (id_paciente o id_medico) para evitar listados globales abiertos."""
+    if id_paciente is None and id_medico is None:
+        raise HTTPException(
+            status_code=400,
+            detail="Proporciona id_paciente o id_medico para filtrar.",
+        )
+
+    stmt = select(Receta)
+    if id_paciente is not None:
+        stmt = stmt.where(Receta.id_paciente == id_paciente)
+    if id_medico is not None:
+        stmt = stmt.where(Receta.id_medico == id_medico)
+    if estado is not None:
+        stmt = stmt.where(Receta.estado == estado)
+    stmt = stmt.order_by(Receta.creada_en.desc()).limit(limit)
+
+    recetas = session.exec(stmt).all()
+
+    # Precargamos los usuarios que aparecen para evitar N+1 consultas.
+    ids_usuarios = {r.id_medico for r in recetas} | {r.id_paciente for r in recetas}
+    usuarios = {}
+    if ids_usuarios:
+        for u in session.exec(select(Usuario).where(Usuario.id_usuario.in_(ids_usuarios))).all():
+            usuarios[u.id_usuario] = u
+
+    out: List[schemas.RecetaDetailPublic] = []
+    for r in recetas:
+        medico = usuarios.get(r.id_medico)
+        paciente = usuarios.get(r.id_paciente)
+        if not medico or not paciente:
+            # Omitimos las recetas cuyas referencias de usuario ya no existen
+            # para no romper la respuesta completa.
+            continue
+        out.append(
+            schemas.RecetaDetailPublic(
+                id_receta=r.id_receta,
+                estado=r.estado,
+                creada_en=r.creada_en,
+                expira_en=r.expira_en,
+                medico=schemas.UserInfo(nombre_completo=f"{medico.nombre} {medico.paterno}"),
+                paciente=schemas.UserInfo(nombre_completo=f"{paciente.nombre} {paciente.paterno}"),
+            )
+        )
+    return out
 
 @router.post("/recetas", response_model=schemas.RecetaPublic, status_code=201)
 def emitir_receta(
