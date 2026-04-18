@@ -147,16 +147,17 @@ const steps=[{label:'LOGIN',href:'/doctor'},{label:'PACIENTE',href:'/doctor/pati
     </div>
 
     <!-- Fallback credentials form -->
-    <form action="/doctor/patient" method="GET" style="display:flex;flex-direction:column;gap:14px;">
+    <form id="doctor-login-form" style="display:flex;flex-direction:column;gap:14px;">
       <div>
-        <label style="font-family:'Press Start 2P',monospace;font-size:8px;color:#38b764;display:block;margin-bottom:8px;">CÉDULA PROFESIONAL</label>
-        <input type="text" name="cedula" placeholder="4892103" class="px-input green" required/>
+        <label style="font-family:'Press Start 2P',monospace;font-size:8px;color:#38b764;display:block;margin-bottom:8px;">CORREO</label>
+        <input type="email" name="correo" placeholder="doctor@clinica.mx" class="px-input green" required/>
       </div>
       <div>
         <label style="font-family:'Press Start 2P',monospace;font-size:8px;color:#38b764;display:block;margin-bottom:8px;">CONTRASEÑA</label>
         <input type="password" name="pw" placeholder="••••••••" class="px-input green" required/>
       </div>
-      <button type="submit" class="px-btn px-btn-green px-btn-lg" style="width:100%;justify-content:center;">
+      <p id="login-error" style="display:none;font-family:'Press Start 2P',monospace;font-size:7px;color:#a53030;background:#2a1018;border:2px solid #a53030;padding:10px;line-height:1.8;"></p>
+      <button type="submit" id="login-submit" class="px-btn px-btn-green px-btn-lg" style="width:100%;justify-content:center;">
         <svg width="14" height="11" viewBox="0 0 16 12" style="image-rendering:pixelated;color:white;">
           <rect x="0" y="4" width="12" height="4" fill="currentColor"/>
           <rect x="8" y="0" width="4" height="4" fill="currentColor"/>
@@ -183,6 +184,8 @@ const steps=[{label:'LOGIN',href:'/doctor'},{label:'PACIENTE',href:'/doctor/pati
 </FlowLayout>
 
 <script>
+  import { Api, ApiError } from '../../utils/api.ts'
+
   const btn          = document.getElementById('scan-btn')      as HTMLButtonElement
   const viewport     = document.getElementById('qr-viewport')   as HTMLDivElement
   const scanLine     = document.getElementById('qr-scan-line')  as HTMLDivElement
@@ -246,5 +249,37 @@ const steps=[{label:'LOGIN',href:'/doctor'},{label:'PACIENTE',href:'/doctor/pati
       }, delay)
       delay += ph.dur
     })
+  })
+
+  // --- Login por credenciales contra backend FastAPI ---
+  const form      = document.getElementById('doctor-login-form') as HTMLFormElement
+  const errorBox  = document.getElementById('login-error')       as HTMLParagraphElement
+  const submitBtn = document.getElementById('login-submit')      as HTMLButtonElement
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault()
+    errorBox.style.display = 'none'
+    submitBtn.disabled = true
+    const originalText = submitBtn.innerHTML
+    submitBtn.innerHTML = 'AUTENTICANDO...'
+
+    const data = new FormData(form)
+    const correo = String(data.get('correo') || '').trim()
+    const contrasena = String(data.get('pw') || '')
+
+    try {
+      const session = await Api.loginAndPersist({ correo, contrasena })
+      if (session.role !== 'Medico' && session.role !== 'Administrador') {
+        throw new ApiError(403, `Esta credencial pertenece al rol "${session.role}", no a un médico.`)
+      }
+      sessionStorage.setItem('rxpro_doctor_auth', 'credentials')
+      window.location.href = '/doctor/patient'
+    } catch (err) {
+      const msg = err instanceof ApiError ? err.detail : 'Error desconocido'
+      errorBox.textContent = msg
+      errorBox.style.display = 'block'
+      submitBtn.disabled = false
+      submitBtn.innerHTML = originalText
+    }
   })
 </script>
