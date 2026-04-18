@@ -58,7 +58,7 @@ const steps=[{label:'LOGIN',href:'/doctor'},{label:'PACIENTE',href:'/doctor/pati
   </div>
 
   <div style="display:flex;flex-direction:column;gap:12px;width:100%;">
-    <a href="/doctor/patient" class="px-btn px-btn-green px-btn-lg" style="width:100%;justify-content:center;text-decoration:none;">
+    <button type="button" id="new-rx-btn" class="px-btn px-btn-green px-btn-lg" style="width:100%;justify-content:center;text-decoration:none;">
       <svg width="14" height="11" viewBox="0 0 16 12" style="image-rendering:pixelated;color:white;">
         <rect x="0" y="4" width="12" height="4" fill="currentColor"/>
         <rect x="8" y="0" width="4" height="4" fill="currentColor"/>
@@ -68,7 +68,7 @@ const steps=[{label:'LOGIN',href:'/doctor'},{label:'PACIENTE',href:'/doctor/pati
         <rect x="14" y="4" width="2" height="4" fill="currentColor"/>
       </svg>
       EMITIR OTRA RECETA
-    </a>
+    </button>
     <a href="/" class="px-btn px-btn-ghost" style="width:100%;justify-content:center;text-decoration:none;">VOLVER AL INICIO</a>
   </div>
 </div>
@@ -82,9 +82,39 @@ const steps=[{label:'LOGIN',href:'/doctor'},{label:'PACIENTE',href:'/doctor/pati
   const folioEl = document.getElementById('folio-display') as HTMLSpanElement
   if (last && typeof last.id_receta === 'number') {
     folioEl.textContent = 'FOLIO: RX-' + String(last.id_receta).padStart(5, '0')
+    // Añadir al historial del médico en esta sesión (para listar todas las
+    // recetas emitidas desde este dispositivo si se regresa al dashboard).
+    try {
+      const histRaw = sessionStorage.getItem('rxpro_doctor_history')
+      const hist = histRaw ? JSON.parse(histRaw) as any[] : []
+      if (!hist.find(r => r.id_receta === last.id_receta)) {
+        hist.unshift(last)
+        sessionStorage.setItem('rxpro_doctor_history', JSON.stringify(hist.slice(0, 20)))
+      }
+    } catch { /* noop */ }
   } else {
     folioEl.textContent = 'FOLIO: DOC-' + Math.floor(Math.random()*900+100)
   }
+
+  // --- EMITIR OTRA RECETA: limpiar todo el estado del flujo anterior ---
+  // Mantener únicamente la sesión de médico (rxpro_token / rxpro_session) y el
+  // historial. Cualquier cosa intermedia (paciente, receta, firma, llave) se
+  // borra para que el médico pueda iniciar otra emisión desde cero.
+  const newRxBtn = document.getElementById('new-rx-btn') as HTMLButtonElement | null
+  newRxBtn?.addEventListener('click', () => {
+    const EPHEMERAL = [
+      'rxpro_paciente',
+      'rxpro_receta',
+      'rxpro_last_receta',
+      'rxflow_signature',
+      'rxflow_canonical',
+      'rxflow_digest',
+      'rxflow_pubkey',
+      'rxflow_key_attempt',
+    ]
+    EPHEMERAL.forEach(k => sessionStorage.removeItem(k))
+    window.location.href = '/doctor/patient'
+  })
 
   // Confetti burst
   const container = document.getElementById('confetti')

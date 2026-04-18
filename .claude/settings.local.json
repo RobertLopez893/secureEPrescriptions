@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(xargs basename:*)",
+      "Bash(npx astro:*)",
+      "Bash(node_modules/.bin/astro build:*)",
+      "Bash(npm run:*)",
+      "Bash(mkdir -p src/crypto)",
+      "Bash(cp frontend/src/crypto/seedDerivation.ts src/crypto/seedDerivation.ts)",
+      "Bash(rm -rf frontend/)",
+      "Bash(rm -f package-lock.json.bak)",
+      "Bash(rm -rf frontend/src frontend/astro.config.mjs frontend/tailwind.config.mjs frontend/package.json frontend/package-lock.json frontend/Dockerfile)",
+      "Bash(ls frontend/.env*)",
+      "Bash(ls frontend/*.env*)",
+      "Bash(cat frontend/astro.config.*)"
+    ]
+  }
+}
