@@ -16,7 +16,7 @@ const steps=[{label:'ACCESO',href:'/patient'},{label:'MIS RECETAS',href:'/patien
       ACCESO PACIENTE
     </h1>
     <p style="font-family:'VT323',monospace;font-size:22px;color:#c0cbdc;">
-      Escanea tu tarjeta digital o ingresa tu CURP
+      Escanea tu tarjeta digital para iniciar sesión
     </p>
   </div>
 
@@ -158,40 +158,8 @@ const steps=[{label:'ACCESO',href:'/patient'},{label:'MIS RECETAS',href:'/patien
       ESCANEAR TARJETA
     </button>
 
-    <!-- Divider -->
-    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
-      <div style="flex:1;height:2px;background:#29366f;"></div>
-      <span style="font-family:'Press Start 2P',monospace;font-size:7px;color:#29366f;">O INGRESA CREDENCIALES</span>
-      <div style="flex:1;height:2px;background:#29366f;"></div>
-    </div>
-
-    <!-- Fallback credentials form -->
-    <form id="patient-login-form" style="display:flex;flex-direction:column;gap:14px;">
-      <div>
-        <label style="font-family:'Press Start 2P',monospace;font-size:8px;color:#41a6f6;display:block;margin-bottom:8px;letter-spacing:.06em;">CORREO</label>
-        <input type="email" name="correo" placeholder="paciente@dominio.mx"
-               style="width:100%;background:#f8f8f0;color:#1a1c2c;border:3px solid #41a6f6;padding:12px 14px;font-family:'VT323',monospace;font-size:22px;letter-spacing:.08em;box-shadow:inset 2px 2px 0 rgba(0,0,0,.1);"
-               required/>
-      </div>
-      <div>
-        <label style="font-family:'Press Start 2P',monospace;font-size:8px;color:#41a6f6;display:block;margin-bottom:8px;letter-spacing:.06em;">CONTRASEÑA</label>
-        <input type="password" name="pw" placeholder="••••••••"
-               style="width:100%;background:#f8f8f0;color:#1a1c2c;border:3px solid #41a6f6;padding:12px 14px;font-family:'VT323',monospace;font-size:22px;letter-spacing:.15em;box-shadow:inset 2px 2px 0 rgba(0,0,0,.1);"
-               required/>
-      </div>
-      <p id="login-error" style="display:none;font-family:'Press Start 2P',monospace;font-size:7px;color:#a53030;background:#2a1018;border:2px solid #a53030;padding:10px;line-height:1.8;"></p>
-      <button type="submit" id="login-submit" class="px-btn px-btn-blue px-btn-lg" style="width:100%;justify-content:center;">
-        <svg width="14" height="11" viewBox="0 0 16 12" style="image-rendering:pixelated;color:#1a1c2c;">
-          <rect x="0" y="4" width="12" height="4" fill="currentColor"/>
-          <rect x="8" y="0" width="4" height="4" fill="currentColor"/>
-          <rect x="8" y="8" width="4" height="4" fill="currentColor"/>
-          <rect x="12" y="2" width="2" height="2" fill="currentColor"/>
-          <rect x="12" y="8" width="2" height="2" fill="currentColor"/>
-          <rect x="14" y="4" width="2" height="4" fill="currentColor"/>
-        </svg>
-        VER MIS RECETAS
-      </button>
-    </form>
+    <!-- Error del escaneo (cámara / firma inválida) -->
+    <p id="scan-error" style="display:none;font-family:'Press Start 2P',monospace;font-size:7px;color:#a53030;background:#2a1018;border:2px solid #a53030;padding:10px;line-height:1.8;"></p>
   </div>
 
   <!-- Security notice -->
@@ -302,35 +270,4 @@ const steps=[{label:'ACCESO',href:'/patient'},{label:'MIS RECETAS',href:'/patien
     })
   })
 
-  // --- Login por credenciales contra backend FastAPI ---
-  const form      = document.getElementById('patient-login-form') as HTMLFormElement
-  const errorBox  = document.getElementById('login-error')        as HTMLParagraphElement
-  const submitBtn = document.getElementById('login-submit')       as HTMLButtonElement
-
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault()
-    errorBox.style.display = 'none'
-    submitBtn.disabled = true
-    const originalText = submitBtn.innerHTML
-    submitBtn.innerHTML = 'AUTENTICANDO...'
-
-    const data = new FormData(form)
-    const correo = String(data.get('correo') || '').trim()
-    const contrasena = String(data.get('pw') || '')
-
-    try {
-      const session = await Api.loginAndPersist({ correo, contrasena })
-      if (session.role !== 'Paciente' && session.role !== 'Administrador') {
-        throw new ApiError(403, `Esta credencial pertenece al rol "${session.role}", no a un paciente.`)
-      }
-      sessionStorage.setItem('rxpro_auth_method', 'credentials')
-      window.location.href = '/patient/dashboard'
-    } catch (err) {
-      const msg = err instanceof ApiError ? err.detail : 'Error desconocido'
-      errorBox.textContent = msg
-      errorBox.style.display = 'block'
-      submitBtn.disabled = false
-      submitBtn.innerHTML = originalText
-    }
-  })
 </script>

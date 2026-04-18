@@ -11,7 +11,7 @@ const steps=[{label:'LOGIN',href:'/doctor'},{label:'PACIENTE',href:'/doctor/pati
       <svg width="60" height="70" viewBox="0 0 24 28" style="image-rendering:pixelated;"><use href="#ico-doctor"/></svg>
     </div>
     <h1 style="font-family:'Press Start 2P',monospace;font-size:13px;color:#f4f4f4;margin-bottom:8px;line-height:1.7;">ACCESO MÉDICO</h1>
-    <p style="font-family:'VT323',monospace;font-size:22px;color:#c0cbdc;">Escanea tu tarjeta médica o ingresa credenciales</p>
+    <p style="font-family:'VT323',monospace;font-size:22px;color:#c0cbdc;">Escanea tu tarjeta médica para iniciar sesión</p>
   </div>
 
   <!-- QR CARD READER — verde médico -->
@@ -139,36 +139,8 @@ const steps=[{label:'LOGIN',href:'/doctor'},{label:'PACIENTE',href:'/doctor/pati
       ESCANEAR TARJETA MÉDICA
     </button>
 
-    <!-- Divider -->
-    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
-      <div style="flex:1;height:2px;background:#29366f;"></div>
-      <span style="font-family:'Press Start 2P',monospace;font-size:7px;color:#29366f;">O INGRESA CREDENCIALES</span>
-      <div style="flex:1;height:2px;background:#29366f;"></div>
-    </div>
-
-    <!-- Fallback credentials form -->
-    <form id="doctor-login-form" style="display:flex;flex-direction:column;gap:14px;">
-      <div>
-        <label style="font-family:'Press Start 2P',monospace;font-size:8px;color:#38b764;display:block;margin-bottom:8px;">CORREO</label>
-        <input type="email" name="correo" placeholder="doctor@clinica.mx" class="px-input green" required/>
-      </div>
-      <div>
-        <label style="font-family:'Press Start 2P',monospace;font-size:8px;color:#38b764;display:block;margin-bottom:8px;">CONTRASEÑA</label>
-        <input type="password" name="pw" placeholder="••••••••" class="px-input green" required/>
-      </div>
-      <p id="login-error" style="display:none;font-family:'Press Start 2P',monospace;font-size:7px;color:#a53030;background:#2a1018;border:2px solid #a53030;padding:10px;line-height:1.8;"></p>
-      <button type="submit" id="login-submit" class="px-btn px-btn-green px-btn-lg" style="width:100%;justify-content:center;">
-        <svg width="14" height="11" viewBox="0 0 16 12" style="image-rendering:pixelated;color:white;">
-          <rect x="0" y="4" width="12" height="4" fill="currentColor"/>
-          <rect x="8" y="0" width="4" height="4" fill="currentColor"/>
-          <rect x="8" y="8" width="4" height="4" fill="currentColor"/>
-          <rect x="12" y="2" width="2" height="2" fill="currentColor"/>
-          <rect x="12" y="8" width="2" height="2" fill="currentColor"/>
-          <rect x="14" y="4" width="2" height="4" fill="currentColor"/>
-        </svg>
-        INICIAR SESIÓN
-      </button>
-    </form>
+    <!-- Error del escaneo (cámara / firma inválida) -->
+    <p id="scan-error" style="display:none;font-family:'Press Start 2P',monospace;font-size:7px;color:#a53030;background:#2a1018;border:2px solid #a53030;padding:10px;line-height:1.8;"></p>
   </div>
 
   <!-- Security notice -->
@@ -251,35 +223,4 @@ const steps=[{label:'LOGIN',href:'/doctor'},{label:'PACIENTE',href:'/doctor/pati
     })
   })
 
-  // --- Login por credenciales contra backend FastAPI ---
-  const form      = document.getElementById('doctor-login-form') as HTMLFormElement
-  const errorBox  = document.getElementById('login-error')       as HTMLParagraphElement
-  const submitBtn = document.getElementById('login-submit')      as HTMLButtonElement
-
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault()
-    errorBox.style.display = 'none'
-    submitBtn.disabled = true
-    const originalText = submitBtn.innerHTML
-    submitBtn.innerHTML = 'AUTENTICANDO...'
-
-    const data = new FormData(form)
-    const correo = String(data.get('correo') || '').trim()
-    const contrasena = String(data.get('pw') || '')
-
-    try {
-      const session = await Api.loginAndPersist({ correo, contrasena })
-      if (session.role !== 'Medico' && session.role !== 'Administrador') {
-        throw new ApiError(403, `Esta credencial pertenece al rol "${session.role}", no a un médico.`)
-      }
-      sessionStorage.setItem('rxpro_doctor_auth', 'credentials')
-      window.location.href = '/doctor/patient'
-    } catch (err) {
-      const msg = err instanceof ApiError ? err.detail : 'Error desconocido'
-      errorBox.textContent = msg
-      errorBox.style.display = 'block'
-      submitBtn.disabled = false
-      submitBtn.innerHTML = originalText
-    }
-  })
 </script>
