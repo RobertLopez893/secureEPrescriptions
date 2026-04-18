@@ -157,6 +157,12 @@ const rows = [
     </div>
   </div>
 
+  <!-- Errores de backend -->
+  <div id="api-error" style="display:none;background:#2a0d0d;border:3px solid #e8003d;padding:14px;">
+    <p style="font-family:'Press Start 2P',monospace;font-size:8px;color:#e8003d;margin-bottom:8px;">⛔ ERROR AL EMITIR</p>
+    <p id="api-error-msg" style="font-family:'VT323',monospace;font-size:19px;color:#c0cbdc;line-height:1.5;"></p>
+  </div>
+
   <!-- CTA -->
   <button type="button" id="sign-btn" onclick="doSign()" disabled
           class="px-btn px-btn-yellow px-btn-lg"
@@ -176,22 +182,45 @@ const rows = [
   import { sha256 } from '@noble/hashes/sha2.js'
   import { utf8ToBytes, bytesToHex } from '@noble/hashes/utils.js'
   import { testKeys, recetaPrueba } from '../../utils/testData.ts'
+  import { CryptoEngine } from '../../crypto/index.ts'
+  import { Api, ApiError, getSession } from '../../utils/api.ts'
 
   /* ══ ESTADO GLOBAL ══ */
   let activePrivKeyHex: string | null = null
   let canonicalStr = ''
   let digestHex    = ''
 
-  /* ══ RECETA BASE ══ */
+  /* ══ HIDRATAR DESDE SESIÓN ══ */
+  //  - rxpro_paciente : { curp, id_paciente, name, dob, sex }
+  //  - rxpro_receta   : { medicamentos[], fecha_emision, vigencia_dias }
+  //  - rxpro_token    : JWT del médico
+  const sessionDoc     = getSession()
+  const storedPaciente = JSON.parse(sessionStorage.getItem('rxpro_paciente') || '{}')
+  const storedReceta   = JSON.parse(sessionStorage.getItem('rxpro_receta')   || '{}')
+
+  // Si hay una sesión de médico real, usa su id; si no, cae a un placeholder
+  const ID_MEDICO   = sessionDoc && sessionDoc.role === 'Medico'
+    ? sessionDoc.id
+    : 1
+  const ID_PACIENTE = Number(storedPaciente.id_paciente) || 0
+  const VIGENCIA    = Number(storedReceta.vigencia_dias) || 30
+  const FECHA_EMI   = (storedReceta.fecha_emision || new Date().toISOString().split('T')[0]) + 'T00:00:00Z'
+  const FECHA_VENC  = new Date(Date.now() + VIGENCIA * 86400000).toISOString()
+  const MEDS        = Array.isArray(storedReceta.medicamentos) && storedReceta.medicamentos.length
+    ? storedReceta.medicamentos
+    : [{ nombre: 'Amoxicilina 500 mg', forma: 'CÁPSULA', dosis: '500 mg', frecuencia: 'c/8h', duracion: '7 días' }]
+
+  /* ══ RECETA BASE (alineada con DatosMedicos de crypto/interfaces) ══ */
+  const RECETA_ID = (globalThis.crypto?.randomUUID?.() || `rx-${Date.now()}`)
   const RECETA = {
     datos: {
-      paciente_id:   'GARM850315HDFNDS07',
-      medico_id:     'CED-4892103',
-      medicamento:   'Amoxicilina 500mg',
-      dosis:         '1 cápsula cada 8 horas con alimentos',
-      cantidad:      21,
-      fecha_emision: new Date().toISOString().split('.')[0] + 'Z',
-      vigencia_dias: 30,
+      id_receta:        RECETA_ID,
+      id_medico:        `USR-${ID_MEDICO}`,
+      id_paciente:      `USR-${ID_PACIENTE || '?'}`,
+      fecha_emision:    FECHA_EMI,
+      fecha_vencimiento: FECHA_VENC,
+      medicamentos:     MEDS,
+      instrucciones_extra: storedPaciente.name ? `Paciente: ${storedPaciente.name}` : undefined,
     },
     dispensacion: null,
   }
@@ -328,38 +357,86 @@ const rows = [
     btn.style.cursor  = enabled ? 'pointer' : 'not-allowed'
   }
 
-  function doSign() {
+  function showApiError(msg: string) {
+    const box = document.getElementById('api-error') as HTMLDivElement
+    const m   = document.getElementById('api-error-msg') as HTMLParagraphElement
+    m.textContent = msg
+    box.style.display = 'block'
+  }
+  function hideApiError() {
+    const box = document.getElementById('api-error') as HTMLDivElement
+    box.style.display = 'none'
+  }
+
+  async function doSign() {
     if (!activePrivKeyHex) return
+    hideApiError()
     const btn = document.getElementById('sign-btn') as HTMLButtonElement
     btn.disabled     = true
     btn.textContent  = '⏳ FIRMANDO CON @noble/curves...'
     btn.style.opacity = '.7'
 
     try {
-      // signData() = sha256(canonical) → p256.sign() → hex
+      // ── 1) Firma clásica (mostrada en UI) ──────────────────────────────
       const sigHex = signData(canonicalStr, activePrivKeyHex)
-
-      // Guardar en sessionStorage para verify
       sessionStorage.setItem('rxflow_signature', sigHex)
       sessionStorage.setItem('rxflow_canonical',  canonicalStr)
       sessionStorage.setItem('rxflow_digest',     digestHex)
-
-      // Mostrar firma
       ;(document.getElementById('sig-output') as HTMLParagraphElement).textContent = sigHex
       ;(document.getElementById('sig-panel') as HTMLDivElement).style.display = 'block'
 
-      btn.textContent  = '✓ RECETA FIRMADA — REDIRIGIENDO...'
+      // ── 2) Validaciones para POST al backend ────────────────────────────
+      if (!ID_PACIENTE) {
+        throw new Error('Falta el ID del paciente (regresa al paso PACIENTE).')
+      }
+
+      // ── 3) Construir cápsula cifrada E2E con CryptoEngine ───────────────
+      // Las llaves públicas de destinatarios son las de demo mientras no haya
+      // endpoint de directorio; el backend sólo persiste blobs opacos.
+      const pacientePub     = getPublicKey(testKeys.paciente)
+      const farmaceuticoPub = getPublicKey(testKeys.farmaceutico)
+      const doctorPub       = getPublicKey(activePrivKeyHex)
+
+      btn.textContent = '⏳ CIFRANDO CÁPSULA E2E...'
+      const cifrada = CryptoEngine.emitirRecetaGlobal(
+        RECETA.datos as any,
+        activePrivKeyHex,
+        activePrivKeyHex,     // mismo par para firma y cifrado en este prototipo
+        pacientePub,
+        farmaceuticoPub,
+        doctorPub,
+      )
+
+      // ── 4) POST /api/v1/recetas ─────────────────────────────────────────
+      btn.textContent = '⏳ ENVIANDO AL BACKEND...'
+      const created = await Api.crearReceta({
+        id_medico:       ID_MEDICO,
+        id_paciente:     ID_PACIENTE,
+        expira_en:       FECHA_VENC,
+        capsula_cifrada: cifrada.capsula_cifrada,
+        iv_aes_gcm:      cifrada.iv_aes_gcm,
+        accesos:         cifrada.accesos,
+      })
+
+      // Persistir id real devuelto por el backend para la pantalla "done"
+      sessionStorage.setItem('rxpro_last_receta', JSON.stringify(created))
+
+      btn.textContent  = '✓ RECETA EMITIDA #' + created.id_receta
       btn.style.color  = '#38b764'
       btn.style.borderColor = '#38b764'
       btn.style.opacity = '1'
 
       setTimeout(() => { window.location.href = '/doctor/done' }, 900)
-    } catch(e) {
+    } catch (e: any) {
+      const msg = e instanceof ApiError
+        ? `Backend ${e.status}: ${e.detail}`
+        : (e?.message || 'Error desconocido al firmar/emitir.')
+      showApiError(msg)
       btn.disabled     = false
       btn.textContent  = '🔑 FIRMAR Y EMITIR RECETA'
       btn.style.opacity = '1'
       btn.style.cursor  = 'pointer'
-      console.error('Firma fallida:', e)
+      console.error('Emisión fallida:', e)
     }
   }
 

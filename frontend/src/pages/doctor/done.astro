@@ -75,8 +75,16 @@ const steps=[{label:'LOGIN',href:'/doctor'},{label:'PACIENTE',href:'/doctor/pati
 </FlowLayout>
 
 <script>
-  // Random folio
-  document.getElementById('folio-display').textContent = 'FOLIO: DOC-' + Math.floor(Math.random()*900+100)
+  // Preferir el folio real devuelto por el backend (rxpro_last_receta)
+  const last = (() => {
+    try { return JSON.parse(sessionStorage.getItem('rxpro_last_receta') || 'null') } catch { return null }
+  })()
+  const folioEl = document.getElementById('folio-display') as HTMLSpanElement
+  if (last && typeof last.id_receta === 'number') {
+    folioEl.textContent = 'FOLIO: RX-' + String(last.id_receta).padStart(5, '0')
+  } else {
+    folioEl.textContent = 'FOLIO: DOC-' + Math.floor(Math.random()*900+100)
+  }
 
   // Confetti burst
   const container = document.getElementById('confetti')

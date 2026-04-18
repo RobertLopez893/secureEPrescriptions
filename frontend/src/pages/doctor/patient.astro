@@ -10,16 +10,23 @@ const steps=[{label:'LOGIN',href:'/doctor'},{label:'PACIENTE',href:'/doctor/pati
   </div>
 
   <div class="px-card" style="padding:24px;background:#222639;border-color:#38b764;box-shadow:4px 4px 0 #257a43;">
-    <form action="/doctor/medication" method="GET" style="display:flex;flex-direction:column;gap:18px;">
-      <div>
-        <label class="px-label" style="color:#38b764;">CURP DEL PACIENTE *</label>
-        <input type="text" name="curp" placeholder="RAEG920315HMCRND07"
-               class="px-input green" style="text-align:center;letter-spacing:.15em;font-size:22px;text-transform:uppercase;"
-               maxlength="18" required/>
-        <p style="font-family:'VT323',monospace;font-size:18px;color:#5b6ee1;margin-top:6px;text-align:center;">
-          18 caracteres · los datos se llenan automáticamente
-        </p>
+    <form id="patient-form" style="display:flex;flex-direction:column;gap:18px;">
+      <div style="display:grid;grid-template-columns:2fr 1fr;gap:14px;">
+        <div>
+          <label class="px-label" style="color:#38b764;">CURP DEL PACIENTE *</label>
+          <input type="text" name="curp" placeholder="RAEG920315HMCRND07"
+                 class="px-input green" style="text-align:center;letter-spacing:.15em;font-size:22px;text-transform:uppercase;"
+                 maxlength="18" required/>
+        </div>
+        <div>
+          <label class="px-label" style="color:#38b764;">ID PACIENTE *</label>
+          <input type="number" name="id_paciente" placeholder="42" min="1"
+                 class="px-input green" style="text-align:center;font-size:22px;" required/>
+        </div>
       </div>
+      <p style="font-family:'VT323',monospace;font-size:18px;color:#5b6ee1;margin-top:-6px;text-align:center;">
+        El ID paciente es el id_usuario emitido por el backend al registrarlo.
+      </p>
 
       <div style="height:2px;background:#29366f;"></div>
 
@@ -58,3 +65,37 @@ const steps=[{label:'LOGIN',href:'/doctor'},{label:'PACIENTE',href:'/doctor/pati
   </div>
 </div>
 </FlowLayout>
+
+<script>
+  const form = document.getElementById('patient-form') as HTMLFormElement
+
+  // Rehidratar si ya hay datos guardados
+  const existing = sessionStorage.getItem('rxpro_paciente')
+  if (existing) {
+    try {
+      const data = JSON.parse(existing)
+      for (const [k, v] of Object.entries(data)) {
+        const el = form.querySelector(`[name="${k}"]`) as HTMLInputElement | HTMLSelectElement | null
+        if (el) el.value = String(v ?? '')
+      }
+    } catch { /* noop */ }
+  }
+
+  form.addEventListener('submit', (e) => {
+    e.preventDefault()
+    const fd = new FormData(form)
+    const data = {
+      curp:          String(fd.get('curp') || '').trim().toUpperCase(),
+      id_paciente:   Number(fd.get('id_paciente') || 0),
+      name:          String(fd.get('name') || '').trim(),
+      dob:           String(fd.get('dob') || ''),
+      sex:           String(fd.get('sex') || ''),
+    }
+    if (!data.id_paciente) {
+      window.showToast?.('Ingresa el ID del paciente', '#e8003d')
+      return
+    }
+    sessionStorage.setItem('rxpro_paciente', JSON.stringify(data))
+    window.location.href = '/doctor/medication'
+  })
+</script>
