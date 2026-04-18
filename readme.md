@@ -84,8 +84,24 @@ docker-compose up --build
 #### 3. Frontend (Astro)
 1. Entra a la carpeta: `cd frontend`
 2. Instala dependencias: `npm install`
+   * El repo incluye un `.npmrc` con `legacy-peer-deps=true` porque
+     `@astrojs/tailwind@5` todavía declara peer-deps sobre Astro 3/4/5 y
+     nosotros ya estamos en Astro 6. La integración funciona igual; el
+     flag sólo evita que npm aborte la instalación.
 3. Inicia el desarrollo: `npm run dev`
    * Acceso: `http://localhost:4321`
+4. Corre los tests unitarios (opcional): `npm test`
+
+### 🌐 CORS
+
+El backend lee `CORS_ORIGINS` (coma-separado) al arrancar y sólo permite
+esos orígenes. Para desarrollo local los valores por defecto son
+`http://localhost:4321` y `http://127.0.0.1:4321`. Si cambias el puerto
+del frontend, despliegas a un dominio público o abres Astro desde otra
+máquina en la red, **tienes que añadir esa URL exacta** (incluyendo
+esquema y puerto) a la lista antes de reiniciar el backend — si no, el
+navegador bloqueará cada `fetch` con un error de CORS y el banner rojo
+"BACKEND NO RESPONDE" del frontend se quedará encendido.
 
 ---
 
