@@ -1,0 +1,92 @@
+---
+// /dev/qr-card — utilidad de desarrollo para generar tarjetas QR de login
+// a partir de un par correo+contraseña. Útil para probar el flujo QR-only
+// sin imprimir credenciales reales.
+//
+// NO usar en producción: renderiza el QR con un servicio externo
+// (api.qrserver.com) y expone credenciales en la URL del mismo.
+import FlowLayout from '../../layouts/FlowLayout.astro'
+---
+<FlowLayout title="Dev — QR de prueba" role="patient" steps={[{label:'GENERADOR QR',href:'/dev/qr-card'}]} currentStep={0}>
+<div class="anim-slide" style="display:flex;flex-direction:column;gap:20px;">
+
+  <div style="text-align:center;">
+    <h1 style="font-family:'Press Start 2P',monospace;font-size:13px;color:#f4f4f4;margin-bottom:8px;line-height:1.7;">
+      GENERADOR QR DE PRUEBA
+    </h1>
+    <p style="font-family:'VT323',monospace;font-size:20px;color:#c0cbdc;">
+      Solo para desarrollo. Crea un QR con credenciales ya existentes en el backend.
+    </p>
+  </div>
+
+  <div style="background:#222639;border:3px solid #41a6f6;box-shadow:4px 4px 0 #1a6eb0;padding:20px;display:flex;flex-direction:column;gap:12px;">
+    <label style="font-family:'Press Start 2P',monospace;font-size:8px;color:#41a6f6;">CORREO</label>
+    <input id="correo" type="email" value="paciente@rxpro.demo"
+           class="px-input" style="border-color:#41a6f6;font-size:20px;"/>
+
+    <label style="font-family:'Press Start 2P',monospace;font-size:8px;color:#41a6f6;">CONTRASEÑA</label>
+    <input id="contra" type="text" value="demo1234"
+           class="px-input" style="border-color:#41a6f6;font-size:20px;"/>
+
+    <label style="font-family:'Press Start 2P',monospace;font-size:8px;color:#41a6f6;">FORMATO</label>
+    <select id="fmt" class="px-input" style="border-color:#41a6f6;font-size:18px;">
+      <option value="json">JSON ({"{"}"correo":"...","contrasena":"..."{"}"})</option>
+      <option value="url">URL rxpro://login?correo=&amp;contrasena=</option>
+    </select>
+
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <button id="gen-btn" class="px-btn px-btn-blue" style="flex:1;min-width:180px;">GENERAR QR</button>
+      <button id="demo-doc"   type="button" class="px-btn" style="flex:1;min-width:150px;background:#1b1f2f;border-color:#38b764;color:#38b764;">USAR MÉDICO</button>
+      <button id="demo-pat"   type="button" class="px-btn" style="flex:1;min-width:150px;background:#1b1f2f;border-color:#41a6f6;color:#41a6f6;">USAR PACIENTE</button>
+      <button id="demo-phar"  type="button" class="px-btn px-btn-red" style="flex:1;min-width:150px;">USAR FARMA</button>
+    </div>
+  </div>
+
+  <div id="qr-box" style="display:none;background:#f4f4f4;border:3px solid #41a6f6;box-shadow:4px 4px 0 #1a6eb0;padding:20px;text-align:center;">
+    <img id="qr-img" alt="QR de login" style="max-width:100%;image-rendering:pixelated;"/>
+    <p id="qr-caption" style="font-family:'VT323',monospace;font-size:18px;color:#0d0e1a;margin-top:10px;word-break:break-all;"></p>
+  </div>
+
+  <p style="font-family:'Press Start 2P',monospace;font-size:7px;color:#a53030;background:#2a1018;border:2px solid #a53030;padding:10px;line-height:1.8;">
+    ⚠ SOLO DESARROLLO · EL CONTENIDO DEL QR SE ENVÍA A api.qrserver.com PARA RENDERIZARSE.
+  </p>
+</div>
+</FlowLayout>
+
+<script>
+  const correo   = document.getElementById('correo')  as HTMLInputElement
+  const contra   = document.getElementById('contra')  as HTMLInputElement
+  const fmt      = document.getElementById('fmt')     as HTMLSelectElement
+  const genBtn   = document.getElementById('gen-btn') as HTMLButtonElement
+  const box      = document.getElementById('qr-box')  as HTMLDivElement
+  const img      = document.getElementById('qr-img')  as HTMLImageElement
+  const caption  = document.getElementById('qr-caption') as HTMLParagraphElement
+  const btnDoc   = document.getElementById('demo-doc')  as HTMLButtonElement
+  const btnPat   = document.getElementById('demo-pat')  as HTMLButtonElement
+  const btnPhar  = document.getElementById('demo-phar') as HTMLButtonElement
+
+  function payload(): string {
+    const c = correo.value.trim()
+    const p = contra.value
+    if (fmt.value === 'url') {
+      const u = new URL('rxpro://login')
+      u.searchParams.set('correo',    c)
+      u.searchParams.set('contrasena', p)
+      return u.toString()
+    }
+    return JSON.stringify({ correo: c, contrasena: p })
+  }
+
+  function render() {
+    const data = payload()
+    const src  = `https://api.qrserver.com/v1/create-qr-code/?size=320x320&margin=16&data=${encodeURIComponent(data)}`
+    img.src = src
+    caption.textContent = data
+    box.style.display = 'block'
+  }
+
+  genBtn.addEventListener('click', render)
+  btnDoc .addEventListener('click', () => { correo.value = 'doctor@rxpro.demo';   contra.value = 'demo1234'; render() })
+  btnPat .addEventListener('click', () => { correo.value = 'paciente@rxpro.demo'; contra.value = 'demo1234'; render() })
+  btnPhar.addEventListener('click', () => { correo.value = 'farma@rxpro.demo';    contra.value = 'demo1234'; render() })
+</script>

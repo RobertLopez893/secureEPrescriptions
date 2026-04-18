@@ -1,0 +1,301 @@
+---
+import FlowLayout from '../../layouts/FlowLayout.astro'
+const steps=[{label:'ACCESO',href:'/pharmacy/login'},{label:'ESCANEAR',href:'/pharmacy'},{label:'VERIFICAR',href:'/pharmacy/verify'},{label:'DISPENSAR',href:'/pharmacy/seal'}]
+---
+<FlowLayout title="Farmacia — Acceso" role="pharmacy" steps={steps} currentStep={0}>
+<div class="anim-slide" style="display:flex;flex-direction:column;gap:20px;">
+
+  <!-- Header -->
+  <div style="text-align:center;">
+    <div class="anim-bounce" style="display:flex;justify-content:center;margin-bottom:14px;">
+      <svg width="56" height="66" viewBox="0 0 24 28" style="image-rendering:pixelated;">
+        <use href="#ico-pharmacist"/>
+      </svg>
+    </div>
+    <h1 style="font-family:'Press Start 2P',monospace;font-size:13px;color:#f4f4f4;margin-bottom:8px;line-height:1.7;">
+      ACCESO FARMACIA
+    </h1>
+    <p style="font-family:'VT323',monospace;font-size:22px;color:#c0cbdc;">
+      Escanea la tarjeta digital del farmacéutico
+    </p>
+  </div>
+
+  <!-- QR CARD READER -->
+  <div style="background:#222639;border:3px solid #e8003d;box-shadow:4px 4px 0 #8c0025;padding:20px;">
+
+    <div style="font-family:'Press Start 2P',monospace;font-size:8px;color:#e8003d;margin-bottom:14px;display:flex;align-items:center;gap:8px;">
+      <span class="anim-blink" style="display:inline-block;width:8px;height:8px;background:#e8003d;"></span>
+      LECTOR QR — CREDENCIAL FARMACÉUTICO
+    </div>
+
+    <!-- Scanner viewport -->
+    <div id="qr-viewport"
+         style="background:#160404;border:3px solid #e8003d;position:relative;overflow:hidden;margin-bottom:18px;height:240px;">
+
+      <!-- Live camera feed -->
+      <video id="qr-video" playsinline muted
+             style="display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:saturate(1.2) contrast(1.05);image-rendering:pixelated;"></video>
+
+      <!-- QR grid rojo -->
+      <div class="qr-grid" style="background-image:linear-gradient(rgba(232,0,61,.1) 1px,transparent 1px),linear-gradient(90deg,rgba(232,0,61,.1) 1px,transparent 1px);background-size:16px 16px;animation:qrGridPulse 2.8s ease-in-out infinite;"></div>
+
+      <!-- Scan line -->
+      <div id="qr-scan-line"
+           style="position:absolute;left:0;right:0;height:3px;
+                  background:linear-gradient(90deg,transparent,#e8003d,transparent);
+                  box-shadow:0 0 14px #e8003d,0 0 4px #e8003d;
+                  animation:qrScan 2.2s linear infinite;"></div>
+
+      <!-- Corner brackets -->
+      <div style="position:absolute;top:10px;left:10px;width:28px;height:28px;border-top:4px solid #e8003d;border-left:4px solid #e8003d;z-index:2;"></div>
+      <div style="position:absolute;top:10px;right:10px;width:28px;height:28px;border-top:4px solid #e8003d;border-right:4px solid #e8003d;z-index:2;"></div>
+      <div style="position:absolute;bottom:10px;left:10px;width:28px;height:28px;border-bottom:4px solid #e8003d;border-left:4px solid #e8003d;z-index:2;"></div>
+      <div style="position:absolute;bottom:10px;right:10px;width:28px;height:28px;border-bottom:4px solid #e8003d;border-right:4px solid #e8003d;z-index:2;"></div>
+
+      <!-- Idle state -->
+      <div id="card-idle" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;">
+        <svg width="170" height="108" viewBox="0 0 170 108" style="image-rendering:pixelated;filter:drop-shadow(0 0 8px rgba(232,0,61,.4));" class="anim-float">
+          <rect width="170" height="108" rx="5" fill="#1a0d0d"/>
+          <rect width="170" height="108" rx="5" fill="none" stroke="#e8003d" stroke-width="2"/>
+          <rect y="0" width="170" height="36" rx="5" fill="rgba(232,0,61,.08)"/>
+          <rect x="12" y="42" width="32" height="24" rx="2" fill="#ffcd75"/>
+          <rect x="16" y="46" width="24" height="16" rx="1" fill="#c48c00"/>
+          <rect x="20" y="50" width="14" height="2" fill="#ffcd75"/>
+          <rect x="20" y="54" width="14" height="2" fill="#ffcd75"/>
+          <rect x="20" y="58" width="14" height="2" fill="#ffcd75"/>
+          <g transform="translate(100,34)" fill="#e8003d" opacity=".9">
+            <rect x="0"  y="0"  width="18" height="18" fill="none" stroke="#e8003d" stroke-width="2"/>
+            <rect x="4"  y="4"  width="10" height="10"/>
+            <rect x="26" y="0"  width="18" height="18" fill="none" stroke="#e8003d" stroke-width="2"/>
+            <rect x="30" y="4"  width="10" height="10"/>
+            <rect x="0"  y="26" width="18" height="18" fill="none" stroke="#e8003d" stroke-width="2"/>
+            <rect x="4"  y="30" width="10" height="10"/>
+            <rect x="20" y="4"  width="4" height="4"/>
+            <rect x="22" y="10" width="2" height="2"/>
+            <rect x="20" y="14" width="2" height="4"/>
+            <rect x="20" y="26" width="4" height="2"/>
+            <rect x="26" y="20" width="2" height="4"/>
+            <rect x="30" y="20" width="6" height="2"/>
+            <rect x="36" y="22" width="2" height="6"/>
+            <rect x="32" y="24" width="2" height="4"/>
+          </g>
+          <text x="12" y="22" fill="#f4f4f4" style="font-family:monospace;font-size:11px;font-weight:bold;letter-spacing:1px;">RxPro</text>
+          <text x="12" y="34" fill="#e8003d" style="font-family:monospace;font-size:6px;letter-spacing:2px;">QFB · FARMACIA</text>
+          <text x="12" y="88" fill="#e8003d" style="font-family:monospace;font-size:8px;letter-spacing:3px;">LIC ████ ████ ••••</text>
+          <text x="12" y="100" fill="#8c0025" style="font-family:monospace;font-size:5px;letter-spacing:1px;">CREDENCIAL DISPENSACIÓN • E2E</text>
+        </svg>
+        <p id="qr-status" style="font-family:'Press Start 2P',monospace;font-size:8px;color:#e8003d;letter-spacing:.08em;" class="anim-blink">
+          ACERQUE CREDENCIAL
+        </p>
+      </div>
+
+      <!-- Scanning state -->
+      <div id="card-scanning" style="display:none;position:absolute;inset:0;align-items:center;justify-content:center;flex-direction:column;gap:16px;">
+        <div style="position:relative;width:72px;height:72px;">
+          <div style="position:absolute;inset:0;border:4px solid #2a0808;border-top-color:#e8003d;animation:spinnerRot .6s steps(8,end) infinite;"></div>
+          <div style="position:absolute;inset:8px;display:flex;align-items:center;justify-content:center;">
+            <svg width="28" height="20" viewBox="0 0 28 16" style="image-rendering:pixelated;color:#e8003d;">
+              <use href="#ico-key"/>
+            </svg>
+          </div>
+        </div>
+        <p id="derive-status" style="font-family:'Press Start 2P',monospace;font-size:8px;color:#e8003d;letter-spacing:.06em;text-align:center;max-width:220px;line-height:1.8;" class="anim-blink">
+          LEYENDO QR...
+        </p>
+      </div>
+
+      <!-- Success state -->
+      <div id="card-success" style="display:none;position:absolute;inset:0;align-items:center;justify-content:center;flex-direction:column;gap:12px;padding:16px;">
+        <svg width="40" height="46" viewBox="0 0 24 28" style="image-rendering:pixelated;color:#38b764;">
+          <use href="#ico-shield"/>
+        </svg>
+        <p style="font-family:'Press Start 2P',monospace;font-size:9px;color:#38b764;">LICENCIA VÁLIDA</p>
+        <div style="background:#0a1a0a;border:2px solid #38b764;padding:8px 12px;width:100%;text-align:center;">
+          <span id="name-preview" style="font-family:'VT323',monospace;font-size:16px;color:#38b764;letter-spacing:.1em;word-break:break-all;">
+            ••••••••••••••••
+          </span>
+        </div>
+        <p style="font-family:'Press Start 2P',monospace;font-size:6px;color:#257a43;line-height:1.8;text-align:center;">
+          ACCEDIENDO...
+        </p>
+      </div>
+
+      <!-- Progress bar -->
+      <div id="scan-progress-track" style="display:none;position:absolute;bottom:10px;left:16px;right:16px;height:6px;border:2px solid #e8003d;background:#0d0e1a;z-index:3;">
+        <div id="scan-progress-fill" style="height:100%;width:0%;background:repeating-linear-gradient(90deg,#e8003d 0px,#e8003d 6px,#8c0025 6px,#8c0025 12px);"></div>
+      </div>
+    </div>
+
+    <!-- Info strip -->
+    <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
+      {['QR SEED','BCRYPT','JWT','E2E'].map(t => (
+        <span style="font-family:'Press Start 2P',monospace;font-size:6px;padding:3px 6px;border:2px solid #29366f;color:#e8003d;background:#29366f22;">{t}</span>
+      ))}
+    </div>
+
+    <!-- Scan button -->
+    <button type="button" id="scan-btn"
+            style="width:100%;padding:14px;background:#160404;border:3px solid #e8003d;box-shadow:4px 4px 0 #8c0025;font-family:'Press Start 2P',monospace;font-size:9px;color:#e8003d;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:16px;">
+      <svg width="20" height="20" viewBox="0 0 20 20" style="image-rendering:pixelated;flex-shrink:0;">
+        <rect x="0" y="0" width="8" height="8" fill="none" stroke="#e8003d" stroke-width="1.5"/>
+        <rect x="2" y="2" width="4" height="4" fill="#e8003d"/>
+        <rect x="12" y="0" width="8" height="8" fill="none" stroke="#e8003d" stroke-width="1.5"/>
+        <rect x="14" y="2" width="4" height="4" fill="#e8003d"/>
+        <rect x="0" y="12" width="8" height="8" fill="none" stroke="#e8003d" stroke-width="1.5"/>
+        <rect x="2" y="14" width="4" height="4" fill="#e8003d"/>
+        <rect x="12" y="12" width="2" height="2" fill="#e8003d"/>
+        <rect x="16" y="12" width="2" height="4" fill="#e8003d"/>
+        <rect x="12" y="16" width="6" height="2" fill="#e8003d"/>
+        <rect x="10" y="10" width="2" height="2" fill="#e8003d"/>
+        <rect x="10" y="4"  width="2" height="4" fill="#e8003d"/>
+      </svg>
+      ESCANEAR CREDENCIAL
+    </button>
+
+    <!-- Error -->
+    <p id="scan-error" style="display:none;font-family:'Press Start 2P',monospace;font-size:7px;color:#a53030;background:#2a1018;border:2px solid #a53030;padding:10px;line-height:1.8;"></p>
+  </div>
+
+  <!-- Security notice -->
+  <div style="display:flex;align-items:flex-start;gap:10px;padding:12px 14px;border:2px solid #29366f;background:#29366f18;">
+    <svg width="16" height="20" viewBox="0 0 20 24" style="image-rendering:pixelated;color:#29366f;flex-shrink:0;margin-top:2px;">
+      <use href="#ico-lock"/>
+    </svg>
+    <p style="font-family:'Press Start 2P',monospace;font-size:6px;color:#29366f;line-height:2;">
+      CREDENCIALES VERIFICADAS SOLO POR EL BACKEND · NINGUNA CONTRASEÑA ES ALMACENADA EN EL DISPOSITIVO
+    </p>
+  </div>
+</div>
+</FlowLayout>
+
+<script>
+  import { Api, ApiError, getSession } from '../../utils/api.ts'
+  import { startQrScanner } from '../../utils/qrScanner.ts'
+
+  // Si ya hay sesión válida de farmacéutico, saltamos al escaneo.
+  const existing = getSession()
+  if (existing && (existing.role === 'Farmaceutico' || existing.role === 'Administrador')) {
+    window.location.href = '/pharmacy'
+  }
+
+  const btn          = document.getElementById('scan-btn')      as HTMLButtonElement
+  const video        = document.getElementById('qr-video')      as HTMLVideoElement
+  const viewport     = document.getElementById('qr-viewport')   as HTMLDivElement
+  const scanLine     = document.getElementById('qr-scan-line')  as HTMLDivElement
+  const cardIdle     = document.getElementById('card-idle')     as HTMLDivElement
+  const cardScanning = document.getElementById('card-scanning') as HTMLDivElement
+  const cardSuccess  = document.getElementById('card-success')  as HTMLDivElement
+  const deriveStatus = document.getElementById('derive-status') as HTMLParagraphElement
+  const namePreview  = document.getElementById('name-preview')  as HTMLSpanElement
+  const progTrack    = document.getElementById('scan-progress-track') as HTMLDivElement
+  const progFill     = document.getElementById('scan-progress-fill')  as HTMLDivElement
+  const scanError    = document.getElementById('scan-error')    as HTMLParagraphElement | null
+
+  function showPanel(panel: 'idle' | 'scanning' | 'success') {
+    cardIdle.style.display     = panel === 'idle'     ? 'flex' : 'none'
+    cardScanning.style.display = panel === 'scanning' ? 'flex' : 'none'
+    cardSuccess.style.display  = panel === 'success'  ? 'flex' : 'none'
+  }
+  function setStatus(msg: string, color: string) {
+    deriveStatus.textContent   = msg
+    deriveStatus.style.color   = color
+    scanLine.style.boxShadow   = `0 0 12px ${color}`
+    scanLine.style.background  = `linear-gradient(90deg,transparent,${color},transparent)`
+    viewport.style.borderColor = color
+  }
+  function showError(msg: string) { if (scanError) { scanError.textContent = msg; scanError.style.display = 'block' } }
+  function hideError()             { if (scanError) { scanError.style.display = 'none' } }
+
+  /**
+   * QR del farmacéutico: JSON {correo, contrasena} o rxpro://login?correo=&contrasena=
+   */
+  function parsePharmaQr(raw: string): { correo?: string; contrasena?: string } {
+    const trimmed = raw.trim()
+    try {
+      const obj = JSON.parse(trimmed)
+      if (obj && typeof obj === 'object') return obj
+    } catch {}
+    if (trimmed.startsWith('rxpro://')) {
+      try {
+        const u = new URL(trimmed)
+        return Object.fromEntries(u.searchParams.entries())
+      } catch {}
+    }
+    return {}
+  }
+
+  btn.addEventListener('click', async () => {
+    hideError()
+    btn.disabled = true
+    btn.textContent = 'INICIANDO CÁMARA...'
+    btn.style.color = '#ffcd75'
+    btn.style.borderColor = '#ffcd75'
+
+    showPanel('scanning')
+    progTrack.style.display = 'block'
+    video.style.display     = 'block'
+
+    let pct = 0
+    const pulse = setInterval(() => { pct = (pct + 6) % 100; progFill.style.width = pct + '%' }, 90)
+
+    setStatus('ABRIENDO CÁMARA...', '#e8003d')
+    const scanner = startQrScanner({ video, facingMode: 'environment' })
+    setTimeout(() => setStatus('BUSCANDO CREDENCIAL...', '#e8003d'), 800)
+
+    let raw = ''
+    try {
+      raw = await scanner.result
+    } catch (err: any) {
+      clearInterval(pulse)
+      progFill.style.width = '0%'
+      video.style.display = 'none'
+      showPanel('idle')
+      showError(err?.message || 'No se pudo leer el QR.')
+      btn.disabled = false
+      btn.textContent = 'ESCANEAR CREDENCIAL'
+      btn.style.color = '#e8003d'
+      btn.style.borderColor = '#e8003d'
+      return
+    }
+
+    clearInterval(pulse)
+    progFill.style.width = '100%'
+    video.style.display = 'none'
+    setStatus('LICENCIA DETECTADA · VERIFICANDO...', '#ffcd75')
+
+    const parsed = parsePharmaQr(raw)
+    if (!parsed.correo || !parsed.contrasena) {
+      showPanel('idle')
+      showError('El QR leído no es una credencial de farmacéutico válida.')
+      btn.disabled = false
+      btn.textContent = 'ESCANEAR CREDENCIAL'
+      btn.style.color = '#e8003d'
+      btn.style.borderColor = '#e8003d'
+      return
+    }
+
+    try {
+      const session = await Api.loginAndPersist({
+        correo: String(parsed.correo),
+        contrasena: String(parsed.contrasena),
+      })
+      if (session.role !== 'Farmaceutico' && session.role !== 'Administrador') {
+        throw new ApiError(403, `El QR pertenece al rol "${session.role}", no a un farmacéutico.`)
+      }
+      namePreview.textContent = session.correo
+      sessionStorage.setItem('rxpro_auth_method', 'qr_card')
+      showPanel('success')
+      viewport.style.borderColor = '#38b764'
+      viewport.style.background  = '#04100a'
+      setTimeout(() => { window.location.href = '/pharmacy' }, 800)
+    } catch (err) {
+      const msg = err instanceof ApiError ? err.detail : (err as any)?.message || 'Error al autenticar.'
+      showPanel('idle')
+      showError(msg)
+      btn.disabled = false
+      btn.textContent = 'ESCANEAR CREDENCIAL'
+      btn.style.color = '#e8003d'
+      btn.style.borderColor = '#e8003d'
+    }
+  })
+</script>

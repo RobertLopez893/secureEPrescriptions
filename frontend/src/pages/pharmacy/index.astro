@@ -1,8 +1,8 @@
 ---
 import FlowLayout from '../../layouts/FlowLayout.astro'
-const steps=[{label:'ESCANEAR',href:'/pharmacy'},{label:'VERIFICAR',href:'/pharmacy/verify'},{label:'DISPENSAR',href:'/pharmacy/seal'}]
+const steps=[{label:'ACCESO',href:'/pharmacy/login'},{label:'ESCANEAR',href:'/pharmacy'},{label:'VERIFICAR',href:'/pharmacy/verify'},{label:'DISPENSAR',href:'/pharmacy/seal'}]
 ---
-<FlowLayout title="Farmacia — Escanear" role="pharmacy" steps={steps} currentStep={0}>
+<FlowLayout title="Farmacia — Escanear" role="pharmacy" steps={steps} currentStep={1}>
 <div class="anim-slide" style="display:flex;flex-direction:column;gap:20px;">
 
   <!-- Header -->
@@ -218,6 +218,13 @@ const steps=[{label:'ESCANEAR',href:'/pharmacy'},{label:'VERIFICAR',href:'/pharm
 
 <script>
   import { startQrScanner } from '../../utils/qrScanner.ts'
+  import { getSession } from '../../utils/api.ts'
+
+  // Guardia de sesión: solo farmacéuticos (o admin) pueden escanear recetas.
+  const pharmaSession = getSession()
+  if (!pharmaSession || (pharmaSession.role !== 'Farmaceutico' && pharmaSession.role !== 'Administrador')) {
+    window.location.href = '/pharmacy/login'
+  }
 
   const btn          = document.getElementById('scan-btn')      as HTMLButtonElement
   const video        = document.getElementById('qr-video')      as HTMLVideoElement

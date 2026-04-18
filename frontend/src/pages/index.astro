@@ -140,7 +140,7 @@ import '../styles/global.css'
             <svg width="18" height="21" viewBox="0 0 24 28" style="image-rendering:pixelated;"><use href="#ico-patient"/></svg>
             SOY PACIENTE
           </a>
-          <a href="/pharmacy" class="px-btn px-btn-red" style="text-decoration:none;gap:8px;font-size:9px;padding:14px 20px;">
+          <a href="/pharmacy/login" class="px-btn px-btn-red" style="text-decoration:none;gap:8px;font-size:9px;padding:14px 20px;">
             <svg width="18" height="21" viewBox="0 0 24 28" style="image-rendering:pixelated;"><use href="#ico-pharmacist"/></svg>
             FARMACÉUTICO
           </a>
@@ -209,7 +209,7 @@ import '../styles/global.css'
     {[
       {href:'/doctor',   ico:'doctor',      title:'MÉDICO',       c:'#38b764',dark:'#257a43',features:['Formulario paso a paso','Firma ECDSA P-256','Envío inmediato'],btn:'px-btn-green',desc:'Emite recetas digitales firmadas. El paciente las recibe al instante.'},
       {href:'/patient',  ico:'patient',     title:'PACIENTE',     c:'#41a6f6',dark:'#1a6eb0',features:['Tarjeta Digital QR','Llave derivada en memoria','Solo tú lo descifras'],  btn:'px-btn-blue', desc:'Escanea tu tarjeta digital QR y accede a tus recetas cifradas. Tu llave nunca se almacena.'},
-      {href:'/pharmacy', ico:'pharmacist',  title:'FARMACÉUTICO', c:'#e8003d',dark:'#8c0025',features:['Verificación automática','Sello criptográfico','Registro permanente'],btn:'px-btn-red',desc:'Verifica y sella el despacho con un solo clic.'},
+      {href:'/pharmacy/login', ico:'pharmacist',  title:'FARMACÉUTICO', c:'#e8003d',dark:'#8c0025',features:['Verificación automática','Sello criptográfico','Registro permanente'],btn:'px-btn-red',desc:'Verifica y sella el despacho con un solo clic.'},
     ].map((card,idx)=>{
       const cs = 'text-decoration:none;display:block;background:#222639;border:3px solid '+card.c+';box-shadow:6px 6px 0 '+card.dark+';padding:26px;transition:transform .08s;'
       const bs = '8px 10px 0 '+card.dark
