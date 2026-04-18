@@ -8,41 +8,139 @@
    DR. MARIO PIXEL ART — DESIGN SYSTEM
    ════════════════════════════════════════════ */
 
-:root {
-  --bg:     #1a1c2c;
-  --navy:   #29366f;
-  --blue:   #41a6f6;
-  --red:    #e8003d;
-  --yellow: #ffcd75;
-  --green:  #38b764;
-  --white:  #f4f4f4;
-  --gray:   #c0cbdc;
-  --dark:   #1a1c2c;
-  --shadow: 4px 4px 0 0 #1a1c2c;
+/* =========================================================
+   TEMAS
+   ---------------------------------------------------------
+   Los *colores de rol* (doctor verde, paciente azul, farmacia
+   roja, warn amarillo) conservan su identidad Dr. Mario pixel
+   art en ambos temas. El "chrome" (fondos, bordes, textos) es
+   lo que cambia entre dark y light. El light se inclina a una
+   paleta de salud: verdes, morados y azules sobre casi blanco.
+   ========================================================= */
+
+:root,
+:root[data-theme="dark"] {
+  /* --- Rol / identidad (idénticos en ambos temas) ----------------- */
+  --role-doctor:    #38b764;
+  --role-doctor-d:  #257a43;
+  --role-patient:   #41a6f6;
+  --role-patient-d: #1a6eb0;
+  --role-pharmacy:  #e8003d;
+  --role-pharmacy-d:#8c0025;
+  --accent-warn:    #ffcd75;
+  --accent-warn-d:  #c48c00;
+  --accent-purple:  #7c5ac7;  /* acento extra para UI neutra en light */
+  --accent-purple-d:#523a8a;
+
+  /* --- Superficies (chrome del layout) --------------------------- */
+  --surface-page:          #1a1c2c;  /* fondo global */
+  --surface-topbar:        #0d0e1a;  /* topbar / footer */
+  --surface-topbar-border: #070810;  /* bordes duros debajo del topbar */
+  --surface-stepbar:       #1a1e30;  /* barra de pasos */
+  --surface-card:          #222639;  /* card principal sobre la página */
+  --surface-inset:         #0d0e1a;  /* input oscuro / viewport */
+  --tint-subtle:           #29366f22;/* tintes suaves de bordes */
+
+  /* --- Tipografía / bordes -------------------------------------- */
+  --border-default:  #29366f;
+  --border-strong:   #1a1c2c;
+  --text-primary:    #f4f4f4;
+  --text-muted:      #c0cbdc;
+  --text-subtle:     #29366f;
+  --text-dim:        #5b6ee1;
+
+  /* --- Sombras pixel ("4px 4px 0") ------------------------------- */
+  --shadow-base:   4px 4px 0 0 #1a1c2c;
+  --shadow-dark:   4px 4px 0 0 #0d0e1a;
   --shadow-blue:   4px 4px 0 0 #1a6eb0;
   --shadow-green:  4px 4px 0 0 #257a43;
   --shadow-red:    4px 4px 0 0 #8c0025;
   --shadow-yellow: 4px 4px 0 0 #c48c00;
+
+  /* --- Textura de fondo ----------------------------------------- */
+  --grid-dot: rgba(65,166,246,.06);
+
+  /* Aliases legacy para no romper .px-* */
+  --bg:     var(--surface-page);
+  --navy:   #29366f;
+  --blue:   var(--role-patient);
+  --red:    var(--role-pharmacy);
+  --yellow: var(--accent-warn);
+  --green:  var(--role-doctor);
+  --white:  var(--text-primary);
+  --gray:   var(--text-muted);
+  --dark:   #1a1c2c;
+  --shadow: var(--shadow-base);
+}
+
+:root[data-theme="light"] {
+  /* Roles ligeramente más oscuros para mantener contraste sobre blanco */
+  --role-doctor:    #2f8f52;
+  --role-doctor-d:  #1e6339;
+  --role-patient:   #2e78c4;
+  --role-patient-d: #1a5a94;
+  --role-pharmacy:  #c01344;
+  --role-pharmacy-d:#7a0a2a;
+  --accent-warn:    #d68a1a;
+  --accent-warn-d:  #8a5510;
+  --accent-purple:  #6b42c0;
+  --accent-purple-d:#432785;
+
+  --surface-page:          #eef3f5;  /* blanco tirando a gris-verde muy suave */
+  --surface-topbar:        #e0e8ec;
+  --surface-topbar-border: #bfd2d6;
+  --surface-stepbar:       #e8eff2;
+  --surface-card:          #ffffff;
+  --surface-inset:         #f1f6f4;
+  --tint-subtle:           #7c5ac722;
+
+  --border-default:  #bfd2d6;  /* borde gris-azulado claro */
+  --border-strong:   #1b3a3f;
+  --text-primary:    #1b3a3f;
+  --text-muted:      #4a6569;
+  --text-subtle:     #7a8e93;
+  --text-dim:        #6b42c0;  /* morado en links secundarios */
+
+  --shadow-base:   4px 4px 0 0 rgba(27,58,63,.18);
+  --shadow-dark:   4px 4px 0 0 rgba(27,58,63,.30);
+  --shadow-blue:   4px 4px 0 0 rgba(27,58,63,.20);
+  --shadow-green:  4px 4px 0 0 rgba(27,58,63,.20);
+  --shadow-red:    4px 4px 0 0 rgba(27,58,63,.20);
+  --shadow-yellow: 4px 4px 0 0 rgba(27,58,63,.20);
+
+  --grid-dot: rgba(124,90,199,.12);
+
+  /* Alias legacy — heredan de las nuevas vars */
+  --bg:     var(--surface-page);
+  --navy:   #c4d1d6;    /* "navy" claro: gris frío para backgrounds internos */
+  --blue:   var(--role-patient);
+  --red:    var(--role-pharmacy);
+  --yellow: var(--accent-warn);
+  --green:  var(--role-doctor);
+  --white:  var(--surface-card);
+  --gray:   var(--text-muted);
+  --dark:   var(--border-strong);
+  --shadow: var(--shadow-base);
 }
 
 @layer base {
   html { -webkit-font-smoothing: none; image-rendering: pixelated; }
   body {
-    background: var(--bg);
-    color: var(--white);
+    background: var(--surface-page);
+    color: var(--text-primary);
     font-family: 'VT323', monospace;
     font-size: 20px;
     min-height: 100vh;
     /* Pixel grid texture */
     background-image:
-      radial-gradient(circle, rgba(65,166,246,.06) 1px, transparent 1px);
+      radial-gradient(circle, var(--grid-dot) 1px, transparent 1px);
     background-size: 24px 24px;
   }
   * { box-sizing: border-box; image-rendering: pixelated; }
   ::-webkit-scrollbar { width: 8px; }
-  ::-webkit-scrollbar-track { background: var(--bg); }
-  ::-webkit-scrollbar-thumb { background: var(--navy); border: 2px solid var(--bg); }
-  ::-webkit-scrollbar-thumb:hover { background: var(--blue); }
+  ::-webkit-scrollbar-track { background: var(--surface-page); }
+  ::-webkit-scrollbar-thumb { background: var(--border-default); border: 2px solid var(--surface-page); }
+  ::-webkit-scrollbar-thumb:hover { background: var(--role-patient); }
   input, select, textarea { outline: none; font-family: 'VT323', monospace; font-size: 20px; }
 }
 
@@ -62,10 +160,10 @@
     box-shadow: var(--shadow);
   }
   .px-card-dark {
-    background: #222639;
-    color: var(--white);
-    border: 3px solid var(--navy);
-    box-shadow: 4px 4px 0 0 #0d0e1a;
+    background: var(--surface-card);
+    color: var(--text-primary);
+    border: 3px solid var(--border-default);
+    box-shadow: var(--shadow-dark);
   }
 
   /* ── PIXEL BUTTON ────────────────────────── */
@@ -98,11 +196,11 @@
   .px-btn-yellow { background: var(--yellow); color: var(--dark);  box-shadow: var(--shadow-yellow); }
   .px-btn-yellow:hover { background: #ffdd99; }
   .px-btn-ghost  {
-    background: transparent; color: var(--white);
-    border: 3px solid var(--gray);
-    box-shadow: 4px 4px 0 0 rgba(255,255,255,.15);
+    background: transparent; color: var(--text-primary);
+    border: 3px solid var(--text-muted);
+    box-shadow: var(--shadow-base);
   }
-  .px-btn-ghost:hover { background: rgba(255,255,255,.08); }
+  .px-btn-ghost:hover { background: color-mix(in srgb, var(--text-primary) 8%, transparent); }
   .px-btn-white  { background: var(--white); color: var(--dark); box-shadow: var(--shadow); }
   .px-btn-white:hover { background: #ffffee; }
 
@@ -110,13 +208,17 @@
   .px-input {
     width: 100%;
     background: #f8f8f0;
-    color: var(--dark);
-    border: 3px solid var(--dark);
+    color: #1a1c2c;
+    border: 3px solid var(--border-strong);
     padding: 12px 14px;
     font-family: 'VT323', monospace;
     font-size: 22px;
     box-shadow: inset 2px 2px 0 rgba(0,0,0,.15);
     transition: border-color .1s;
+  }
+  :root[data-theme="light"] .px-input {
+    background: #ffffff;
+    border-color: var(--border-strong);
   }
   .px-input:focus { border-color: var(--blue); box-shadow: inset 2px 2px 0 rgba(0,0,0,.1), 0 0 0 3px rgba(65,166,246,.3); }
   .px-input.green:focus { border-color: var(--green); box-shadow: inset 2px 2px 0 rgba(0,0,0,.1), 0 0 0 3px rgba(56,183,100,.3); }
@@ -129,7 +231,7 @@
     display: block;
     font-family: 'Press Start 2P', monospace;
     font-size: 8px;
-    color: var(--navy);
+    color: var(--text-subtle);
     letter-spacing: .08em;
     margin-bottom: 8px;
     text-transform: uppercase;
@@ -137,7 +239,7 @@
   .px-label-light {
     font-family: 'Press Start 2P', monospace;
     font-size: 8px;
-    color: var(--gray);
+    color: var(--text-muted);
     letter-spacing: .08em;
     text-transform: uppercase;
   }
@@ -159,21 +261,23 @@
   /* ── PIXEL DIVIDER ───────────────────────── */
   .px-divider {
     border: none;
-    border-top: 3px solid var(--navy);
+    border-top: 3px solid var(--border-default);
     margin: 20px 0;
   }
   .px-divider-light { border-top-color: rgba(255,255,255,.12); }
+  :root[data-theme="light"] .px-divider-light { border-top-color: rgba(27,58,63,.15); }
 
   /* ── STAT BOX ────────────────────────────── */
   .px-stat {
-    background: var(--navy);
-    border: 3px solid var(--dark);
+    background: var(--surface-card);
+    color: var(--text-primary);
+    border: 3px solid var(--border-default);
     box-shadow: var(--shadow);
     padding: 16px;
     text-align: center;
   }
   .px-stat-num   { font-family: 'Press Start 2P', monospace; font-size: 28px; display: block; }
-  .px-stat-label { font-family: 'VT323', monospace; font-size: 18px; color: var(--gray); display: block; margin-top: 4px; }
+  .px-stat-label { font-family: 'VT323', monospace; font-size: 18px; color: var(--text-muted); display: block; margin-top: 4px; }
 
   /* ── STEP DOT ────────────────────────────── */
   .px-step {
@@ -184,22 +288,22 @@
     font-size: 10px;
     flex-shrink: 0;
   }
-  .px-step.done   { background: var(--green);  border-color: var(--green);  color: var(--white); box-shadow: 3px 3px 0 var(--shadow-green); }
-  .px-step.active { background: var(--yellow); border-color: var(--dark);   color: var(--dark);  box-shadow: 3px 3px 0 var(--shadow-yellow); }
-  .px-step.wait   { background: var(--navy);   border-color: var(--navy);   color: var(--gray); }
+  .px-step.done   { background: var(--role-doctor);   border-color: var(--role-doctor);   color: #ffffff;         box-shadow: 3px 3px 0 var(--shadow-green); }
+  .px-step.active { background: var(--accent-warn);   border-color: var(--border-strong); color: var(--border-strong); box-shadow: 3px 3px 0 var(--shadow-yellow); }
+  .px-step.wait   { background: var(--surface-card);  border-color: var(--border-default); color: var(--text-subtle); }
 
   /* ── STEP LINE ───────────────────────────── */
-  .px-step-line { flex:1; height:3px; background: var(--navy); min-width: 8px; }
-  .px-step-line.done { background: var(--green); }
+  .px-step-line { flex:1; height:3px; background: var(--border-default); min-width: 8px; }
+  .px-step-line.done { background: var(--role-doctor); }
 
   /* ── TABLE ───────────────────────────────── */
   .px-table { width: 100%; border-collapse: collapse; }
-  .px-table thead { background: var(--navy); border-bottom: 3px solid var(--dark); }
-  .px-table thead th { padding: 10px 14px; text-align: left; font-family: 'Press Start 2P', monospace; font-size: 8px; color: var(--gray); letter-spacing: .06em; }
-  .px-table tbody tr { border-bottom: 2px solid rgba(255,255,255,.08); cursor: pointer; transition: background .1s; }
-  .px-table tbody tr:hover { background: rgba(65,166,246,.1); }
-  .px-table tbody tr.selected { background: rgba(65,166,246,.2); border-left: 4px solid var(--blue); }
-  .px-table tbody td { padding: 14px 14px; font-family: 'VT323', monospace; font-size: 20px; color: var(--white); }
+  .px-table thead { background: var(--surface-stepbar); border-bottom: 3px solid var(--border-default); }
+  .px-table thead th { padding: 10px 14px; text-align: left; font-family: 'Press Start 2P', monospace; font-size: 8px; color: var(--text-muted); letter-spacing: .06em; }
+  .px-table tbody tr { border-bottom: 2px solid rgba(127,127,127,.18); cursor: pointer; transition: background .1s; }
+  .px-table tbody tr:hover { background: color-mix(in srgb, var(--role-patient) 12%, transparent); }
+  .px-table tbody tr.selected { background: color-mix(in srgb, var(--role-patient) 20%, transparent); border-left: 4px solid var(--role-patient); }
+  .px-table tbody td { padding: 14px 14px; font-family: 'VT323', monospace; font-size: 20px; color: var(--text-primary); }
   .px-table tbody tr:last-child { border-bottom: none; }
 }
 
@@ -305,16 +409,16 @@
 /* ── Progress bar ── */
 .px-progress-track {
   width: 200px; height: 12px;
-  border: 3px solid var(--navy);
-  background: #0d0e1a;
+  border: 3px solid var(--border-default);
+  background: var(--surface-inset);
   overflow: hidden;
   image-rendering: pixelated;
 }
 .px-progress-fill {
   height: 100%;
   background: repeating-linear-gradient(90deg,
-    var(--green) 0px, var(--green) 8px,
-    #257a43 8px, #257a43 16px);
+    var(--role-doctor)   0px, var(--role-doctor)   8px,
+    var(--role-doctor-d) 8px, var(--role-doctor-d) 16px);
   animation: progressFill .7s steps(8, end) .05s both;
 }
 @keyframes progressFill { from { width:0 } to { width:100% } }
@@ -322,8 +426,8 @@
 /* ── Spinner (rotating pill) ── */
 .px-spinner {
   width: 32px; height: 32px;
-  border: 3px solid var(--navy);
-  border-top-color: var(--green);
+  border: 3px solid var(--border-default);
+  border-top-color: var(--role-doctor);
   animation: spinnerRot .6s steps(8, end) infinite;
   image-rendering: pixelated;
 }
@@ -405,13 +509,13 @@
 
 /* Processing state */
 .px-processing {
-  background: #0a1a0a;
-  border-color: var(--green) !important;
+  background: color-mix(in srgb, var(--role-doctor) 18%, var(--surface-inset));
+  border-color: var(--role-doctor) !important;
   animation: processingPulse .5s ease infinite;
 }
 @keyframes processingPulse {
-  0%,100% { border-color: var(--green); }
-  50%     { border-color: #257a43; }
+  0%,100% { border-color: var(--role-doctor); }
+  50%     { border-color: var(--role-doctor-d); }
 }
 
 /* ── Success explosion ── */
@@ -455,13 +559,13 @@
 /* ── Notification pop ── */
 .px-toast {
   position: fixed; bottom: 24px; right: 24px; z-index: 8000;
-  background: var(--navy);
-  border: 3px solid var(--green);
-  box-shadow: 4px 4px 0 var(--shadow-green);
+  background: var(--surface-card);
+  border: 3px solid var(--role-doctor);
+  box-shadow: var(--shadow-green);
   padding: 14px 18px;
   font-family: 'Press Start 2P', monospace;
   font-size: 8px;
-  color: var(--green);
+  color: var(--role-doctor);
   animation: toastIn .25s steps(4,end) both, toastOut .25s steps(4,end) 2.5s both;
   min-width: 200px;
 }

@@ -20,147 +20,147 @@ const rows = [
 <div class="anim-slide" style="display:flex;flex-direction:column;gap:20px;">
 
   <div>
-    <h1 style="font-family:'Press Start 2P',monospace;font-size:13px;color:#f4f4f4;margin-bottom:6px;">REVISAR Y FIRMAR</h1>
-    <p style="font-family:'VT323',monospace;font-size:22px;color:#ffcd75;">Una vez firmada, la receta no puede modificarse.</p>
+    <h1 style="font-family:'Press Start 2P',monospace;font-size:13px;color:var(--text-primary);margin-bottom:6px;">REVISAR Y FIRMAR</h1>
+    <p style="font-family:'VT323',monospace;font-size:22px;color:var(--accent-warn);">Una vez firmada, la receta no puede modificarse.</p>
   </div>
 
   <!-- Resumen receta -->
-  <div style="background:#222639;border:3px solid #38b764;box-shadow:4px 4px 0 #257a43;padding:0;overflow:hidden;">
-    <div style="background:#38b764;padding:10px 16px;">
+  <div style="background:var(--surface-card);border:3px solid var(--role-doctor);box-shadow:4px 4px 0 var(--role-doctor-d);padding:0;overflow:hidden;">
+    <div style="background:var(--role-doctor);padding:10px 16px;">
       <span style="font-family:'Press Start 2P',monospace;font-size:8px;color:#1a1c2c;">📋 RESUMEN DE RECETA</span>
     </div>
     <div style="padding:20px;">
       {rows.map(f => (
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:10px 0;border-bottom:2px solid #29366f;gap:12px;">
-          <span style="font-family:'Press Start 2P',monospace;font-size:7px;color:#5b6ee1;flex-shrink:0;width:100px;">{f.l}</span>
-          <span style={'text-align:right;font-family:'+(f.big?'"Press Start 2P"':'"VT323"')+',monospace;font-size:'+(f.big?'11px':'21px')+';color:'+(f.big?'#38b764':'#f4f4f4')+';'}>{f.v}</span>
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:10px 0;border-bottom:2px solid var(--border-default);gap:12px;">
+          <span style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--text-dim);flex-shrink:0;width:100px;">{f.l}</span>
+          <span style={'text-align:right;font-family:'+(f.big?'"Press Start 2P"':'"VT323"')+',monospace;font-size:'+(f.big?'11px':'21px')+';color:'+(f.big?'var(--role-doctor)':'var(--text-primary)')+';'}>{f.v}</span>
         </div>
       ))}
     </div>
   </div>
 
   <!-- ① JSON Canonicalizado -->
-  <div style="background:#0d0e1a;border:3px solid #5b6ee1;box-shadow:4px 4px 0 #29366f;overflow:hidden;">
-    <div style="background:#29366f;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;">
-      <span style="font-family:'Press Start 2P',monospace;font-size:7px;color:#f4f4f4;">① JSON CANONICALIZADO — RFC 8785 / JCS</span>
-      <span style="font-family:'VT323',monospace;font-size:16px;color:#c0cbdc;">canonicalizeJSON() · @noble</span>
+  <div style="background:var(--surface-inset);border:3px solid #5b6ee1;box-shadow:4px 4px 0 var(--border-default);overflow:hidden;">
+    <div style="background:var(--border-default);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;">
+      <span style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--text-primary);">① JSON CANONICALIZADO — RFC 8785 / JCS</span>
+      <span style="font-family:'VT323',monospace;font-size:16px;color:var(--text-muted);">canonicalizeJSON() · @noble</span>
     </div>
     <div style="padding:14px;">
-      <pre id="jcs-output" style="font-family:'VT323',monospace;font-size:17px;color:#41a6f6;white-space:pre-wrap;word-break:break-all;margin:0;line-height:1.5;"></pre>
+      <pre id="jcs-output" style="font-family:'VT323',monospace;font-size:17px;color:var(--role-patient);white-space:pre-wrap;word-break:break-all;margin:0;line-height:1.5;"></pre>
     </div>
   </div>
 
   <!-- ② SHA-256 del payload -->
-  <div style="background:#0d0e1a;border:3px solid #5b6ee1;box-shadow:4px 4px 0 #29366f;overflow:hidden;">
-    <div style="background:#29366f;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;">
-      <span style="font-family:'Press Start 2P',monospace;font-size:7px;color:#f4f4f4;">② SHA-256 DEL PAYLOAD — FIPS 180-4</span>
-      <span style="font-family:'VT323',monospace;font-size:16px;color:#c0cbdc;">sha256() · @noble/hashes</span>
+  <div style="background:var(--surface-inset);border:3px solid #5b6ee1;box-shadow:4px 4px 0 var(--border-default);overflow:hidden;">
+    <div style="background:var(--border-default);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;">
+      <span style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--text-primary);">② SHA-256 DEL PAYLOAD — FIPS 180-4</span>
+      <span style="font-family:'VT323',monospace;font-size:16px;color:var(--text-muted);">sha256() · @noble/hashes</span>
     </div>
     <div style="padding:14px;display:flex;align-items:center;gap:12px;">
       <div style="flex:1;">
-        <p style="font-family:'Press Start 2P',monospace;font-size:6px;color:#5b6ee1;margin-bottom:6px;">DIGEST HEX (256 bits = 64 chars)</p>
-        <p id="sha256-output" style="font-family:'VT323',monospace;font-size:17px;color:#ffcd75;word-break:break-all;line-height:1.5;"></p>
+        <p style="font-family:'Press Start 2P',monospace;font-size:6px;color:var(--text-dim);margin-bottom:6px;">DIGEST HEX (256 bits = 64 chars)</p>
+        <p id="sha256-output" style="font-family:'VT323',monospace;font-size:17px;color:var(--accent-warn);word-break:break-all;line-height:1.5;"></p>
       </div>
-      <div id="sha256-badge" style="display:none;flex-shrink:0;background:#1a2e1a;border:2px solid #38b764;padding:6px 10px;">
-        <span style="font-family:'Press Start 2P',monospace;font-size:7px;color:#38b764;">256 bits ✓</span>
+      <div id="sha256-badge" style="display:none;flex-shrink:0;background:#1a2e1a;border:2px solid var(--role-doctor);padding:6px 10px;">
+        <span style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--role-doctor);">256 bits ✓</span>
       </div>
     </div>
   </div>
 
   <!-- ③ Carga de llave privada -->
-  <div style="background:#1a1a0d;border:3px solid #ffcd75;box-shadow:4px 4px 0 #c48c00;padding:20px;display:flex;flex-direction:column;gap:14px;">
-    <div style="font-family:'Press Start 2P',monospace;font-size:8px;color:#ffcd75;">
+  <div style="background:#1a1a0d;border:3px solid var(--accent-warn);box-shadow:4px 4px 0 var(--accent-warn-d);padding:20px;display:flex;flex-direction:column;gap:14px;">
+    <div style="font-family:'Press Start 2P',monospace;font-size:8px;color:var(--accent-warn);">
       ③ CARGAR LLAVE PRIVADA — ECDSA P-256
     </div>
 
     <!-- Botón usar llave de demo -->
-    <div style="background:#12110a;border:2px solid #29366f;padding:12px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+    <div style="background:#12110a;border:2px solid var(--border-default);padding:12px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
       <div>
-        <p style="font-family:'Press Start 2P',monospace;font-size:7px;color:#5b6ee1;margin-bottom:4px;">MODO DEMO — @noble/curves P-256</p>
-        <p style="font-family:'VT323',monospace;font-size:18px;color:#c0cbdc;">Usa la llave de prueba del médico (testData.ts)</p>
+        <p style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--text-dim);margin-bottom:4px;">MODO DEMO — @noble/curves P-256</p>
+        <p style="font-family:'VT323',monospace;font-size:18px;color:var(--text-muted);">Usa la llave de prueba del médico (testData.ts)</p>
       </div>
       <button type="button" id="use-demo-btn" onclick="useDemoKey()"
-              style="font-family:'Press Start 2P',monospace;font-size:7px;color:#41a6f6;background:#0a1525;border:3px solid #41a6f6;padding:8px 12px;cursor:pointer;white-space:nowrap;">
+              style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--role-patient);background:#0a1525;border:3px solid var(--role-patient);padding:8px 12px;cursor:pointer;white-space:nowrap;">
         ⚙ USAR LLAVE DEMO
       </button>
     </div>
 
     <div style="display:flex;align-items:center;gap:12px;">
       <div style="flex:1;height:2px;background:#29366f;"></div>
-      <span style="font-family:'Press Start 2P',monospace;font-size:7px;color:#29366f;">O CARGAR ARCHIVO</span>
+      <span style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--text-subtle);">O CARGAR ARCHIVO</span>
       <div style="flex:1;height:2px;background:#29366f;"></div>
     </div>
 
     <!-- Drop zone -->
     <div id="drop-zone"
-         style="border:3px dashed #ffcd75;background:#12110a;padding:24px 16px;text-align:center;cursor:pointer;transition:border-color .1s,background .1s;"
+         style="border:3px dashed var(--accent-warn);background:#12110a;padding:24px 16px;text-align:center;cursor:pointer;transition:border-color .1s,background .1s;"
          ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)"
          ondrop="handleDrop(event)" onclick="document.getElementById('key-file-input').click()">
-      <p style="font-family:'Press Start 2P',monospace;font-size:8px;color:#ffcd75;line-height:2;margin-bottom:4px;">
+      <p style="font-family:'Press Start 2P',monospace;font-size:8px;color:var(--accent-warn);line-height:2;margin-bottom:4px;">
         ARRASTRA TU ARCHIVO<br/>O HAZ CLIC AQUÍ
       </p>
-      <p style="font-family:'VT323',monospace;font-size:18px;color:#5b6ee1;">Formatos: .pem · .key · .p12 · .pfx</p>
+      <p style="font-family:'VT323',monospace;font-size:18px;color:var(--text-dim);">Formatos: .pem · .key · .p12 · .pfx</p>
       <input type="file" id="key-file-input" accept=".pem,.key,.p12,.pfx,.der" style="display:none;" onchange="handleFileSelect(event)"/>
     </div>
 
     <!-- Archivo cargado -->
-    <div id="file-loaded" style="display:none;background:#1a2e1a;border:3px solid #38b764;padding:14px;align-items:center;justify-content:space-between;gap:12px;">
+    <div id="file-loaded" style="display:none;background:#1a2e1a;border:3px solid var(--role-doctor);padding:14px;align-items:center;justify-content:space-between;gap:12px;">
       <div>
-        <p id="file-name" style="font-family:'Press Start 2P',monospace;font-size:7px;color:#38b764;"></p>
-        <p id="file-meta" style="font-family:'VT323',monospace;font-size:17px;color:#c0cbdc;margin-top:3px;"></p>
+        <p id="file-name" style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--role-doctor);"></p>
+        <p id="file-meta" style="font-family:'VT323',monospace;font-size:17px;color:var(--text-muted);margin-top:3px;"></p>
       </div>
-      <button type="button" onclick="resetKey()" style="font-family:'Press Start 2P',monospace;font-size:7px;color:#e8003d;background:none;border:2px solid #e8003d;padding:4px 8px;cursor:pointer;flex-shrink:0;">✕</button>
+      <button type="button" onclick="resetKey()" style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--role-pharmacy);background:none;border:2px solid var(--role-pharmacy);padding:4px 8px;cursor:pointer;flex-shrink:0;">✕</button>
     </div>
 
     <!-- Errores -->
-    <div id="err-format" style="display:none;background:#2a0d0d;border:3px solid #e8003d;padding:14px;">
-      <p style="font-family:'Press Start 2P',monospace;font-size:8px;color:#e8003d;margin-bottom:8px;">⛔ FORMATO INVÁLIDO</p>
-      <p style="font-family:'VT323',monospace;font-size:19px;color:#c0cbdc;line-height:1.5;">Usa un archivo .pem o .key generado con ECDSA P-256.</p>
-      <button type="button" onclick="resetKey()" style="margin-top:10px;font-family:'Press Start 2P',monospace;font-size:7px;color:#e8003d;background:none;border:2px solid #e8003d;padding:5px 10px;cursor:pointer;">REINTENTAR</button>
+    <div id="err-format" style="display:none;background:#2a0d0d;border:3px solid var(--role-pharmacy);padding:14px;">
+      <p style="font-family:'Press Start 2P',monospace;font-size:8px;color:var(--role-pharmacy);margin-bottom:8px;">⛔ FORMATO INVÁLIDO</p>
+      <p style="font-family:'VT323',monospace;font-size:19px;color:var(--text-muted);line-height:1.5;">Usa un archivo .pem o .key generado con ECDSA P-256.</p>
+      <button type="button" onclick="resetKey()" style="margin-top:10px;font-family:'Press Start 2P',monospace;font-size:7px;color:var(--role-pharmacy);background:none;border:2px solid var(--role-pharmacy);padding:5px 10px;cursor:pointer;">REINTENTAR</button>
     </div>
-    <div id="err-corrupt" style="display:none;background:#2a0d0d;border:3px solid #e8003d;padding:14px;">
-      <p style="font-family:'Press Start 2P',monospace;font-size:8px;color:#e8003d;margin-bottom:8px;">⛔ LLAVE CORRUPTA</p>
-      <p style="font-family:'VT323',monospace;font-size:19px;color:#c0cbdc;line-height:1.5;">El archivo está dañado o incompleto.</p>
-      <button type="button" onclick="resetKey()" style="margin-top:10px;font-family:'Press Start 2P',monospace;font-size:7px;color:#e8003d;background:none;border:2px solid #e8003d;padding:5px 10px;cursor:pointer;">REINTENTAR</button>
+    <div id="err-corrupt" style="display:none;background:#2a0d0d;border:3px solid var(--role-pharmacy);padding:14px;">
+      <p style="font-family:'Press Start 2P',monospace;font-size:8px;color:var(--role-pharmacy);margin-bottom:8px;">⛔ LLAVE CORRUPTA</p>
+      <p style="font-family:'VT323',monospace;font-size:19px;color:var(--text-muted);line-height:1.5;">El archivo está dañado o incompleto.</p>
+      <button type="button" onclick="resetKey()" style="margin-top:10px;font-family:'Press Start 2P',monospace;font-size:7px;color:var(--role-pharmacy);background:none;border:2px solid var(--role-pharmacy);padding:5px 10px;cursor:pointer;">REINTENTAR</button>
     </div>
-    <div id="err-mismatch" style="display:none;background:#1a0d00;border:3px solid #ffcd75;padding:14px;">
-      <p style="font-family:'Press Start 2P',monospace;font-size:8px;color:#ffcd75;margin-bottom:8px;">⚠ LLAVE NO COINCIDE</p>
-      <p style="font-family:'VT323',monospace;font-size:19px;color:#c0cbdc;line-height:1.5;">La llave no corresponde a la cédula 4892103.</p>
-      <button type="button" onclick="resetKey()" style="margin-top:10px;font-family:'Press Start 2P',monospace;font-size:7px;color:#ffcd75;background:none;border:2px solid #ffcd75;padding:5px 10px;cursor:pointer;">CARGAR OTRA LLAVE</button>
+    <div id="err-mismatch" style="display:none;background:#1a0d00;border:3px solid var(--accent-warn);padding:14px;">
+      <p style="font-family:'Press Start 2P',monospace;font-size:8px;color:var(--accent-warn);margin-bottom:8px;">⚠ LLAVE NO COINCIDE</p>
+      <p style="font-family:'VT323',monospace;font-size:19px;color:var(--text-muted);line-height:1.5;">La llave no corresponde a la cédula 4892103.</p>
+      <button type="button" onclick="resetKey()" style="margin-top:10px;font-family:'Press Start 2P',monospace;font-size:7px;color:var(--accent-warn);background:none;border:2px solid var(--accent-warn);padding:5px 10px;cursor:pointer;">CARGAR OTRA LLAVE</button>
     </div>
 
     <!-- Llave pública derivada -->
-    <div id="pubkey-panel" style="display:none;background:#0d0e1a;border:2px solid #29366f;padding:12px;">
-      <p style="font-family:'Press Start 2P',monospace;font-size:6px;color:#5b6ee1;margin-bottom:5px;">LLAVE PÚBLICA DERIVADA — getPublicKey()</p>
-      <p id="pubkey-output" style="font-family:'VT323',monospace;font-size:14px;color:#41a6f6;word-break:break-all;line-height:1.5;"></p>
+    <div id="pubkey-panel" style="display:none;background:var(--surface-inset);border:2px solid var(--border-default);padding:12px;">
+      <p style="font-family:'Press Start 2P',monospace;font-size:6px;color:var(--text-dim);margin-bottom:5px;">LLAVE PÚBLICA DERIVADA — getPublicKey()</p>
+      <p id="pubkey-output" style="font-family:'VT323',monospace;font-size:14px;color:var(--role-patient);word-break:break-all;line-height:1.5;"></p>
     </div>
 
     <!-- Key OK -->
-    <div id="key-ok" style="display:none;background:#1a2e1a;border:3px solid #38b764;padding:12px;align-items:center;gap:10px;">
-      <svg width="18" height="14" viewBox="0 0 20 16" style="image-rendering:pixelated;color:#38b764;flex-shrink:0;"><use href="#ico-checkmark"/></svg>
+    <div id="key-ok" style="display:none;background:#1a2e1a;border:3px solid var(--role-doctor);padding:12px;align-items:center;gap:10px;">
+      <svg width="18" height="14" viewBox="0 0 20 16" style="image-rendering:pixelated;color:var(--role-doctor);flex-shrink:0;"><use href="#ico-checkmark"/></svg>
       <div>
-        <p style="font-family:'Press Start 2P',monospace;font-size:7px;color:#38b764;">LLAVE VERIFICADA · LISTA PARA FIRMAR</p>
-        <p style="font-family:'VT323',monospace;font-size:17px;color:#c0cbdc;margin-top:3px;">ECDSA P-256 · @noble/curves · La llave nunca abandona este dispositivo.</p>
+        <p style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--role-doctor);">LLAVE VERIFICADA · LISTA PARA FIRMAR</p>
+        <p style="font-family:'VT323',monospace;font-size:17px;color:var(--text-muted);margin-top:3px;">ECDSA P-256 · @noble/curves · La llave nunca abandona este dispositivo.</p>
       </div>
     </div>
   </div>
 
   <!-- ④ Firma generada -->
-  <div id="sig-panel" style="display:none;background:#0d0e1a;border:3px solid #38b764;box-shadow:4px 4px 0 #257a43;overflow:hidden;">
-    <div style="background:#257a43;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;">
-      <span style="font-family:'Press Start 2P',monospace;font-size:7px;color:#f4f4f4;">④ FIRMA ECDSA P-256 — FIPS 186-4</span>
-      <span style="font-family:'VT323',monospace;font-size:16px;color:#c0cbdc;">p256.sign() · @noble/curves</span>
+  <div id="sig-panel" style="display:none;background:var(--surface-inset);border:3px solid var(--role-doctor);box-shadow:4px 4px 0 var(--role-doctor-d);overflow:hidden;">
+    <div style="background:var(--role-doctor-d);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;">
+      <span style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--text-primary);">④ FIRMA ECDSA P-256 — FIPS 186-4</span>
+      <span style="font-family:'VT323',monospace;font-size:16px;color:var(--text-muted);">p256.sign() · @noble/curves</span>
     </div>
     <div style="padding:14px;">
-      <p style="font-family:'Press Start 2P',monospace;font-size:6px;color:#5b6ee1;margin-bottom:6px;">FIRMA HEX (DER-encoded, ~70 bytes)</p>
-      <p id="sig-output" style="font-family:'VT323',monospace;font-size:15px;color:#38b764;word-break:break-all;line-height:1.6;"></p>
+      <p style="font-family:'Press Start 2P',monospace;font-size:6px;color:var(--text-dim);margin-bottom:6px;">FIRMA HEX (DER-encoded, ~70 bytes)</p>
+      <p id="sig-output" style="font-family:'VT323',monospace;font-size:15px;color:var(--role-doctor);word-break:break-all;line-height:1.6;"></p>
     </div>
   </div>
 
   <!-- Errores de backend -->
-  <div id="api-error" style="display:none;background:#2a0d0d;border:3px solid #e8003d;padding:14px;">
-    <p style="font-family:'Press Start 2P',monospace;font-size:8px;color:#e8003d;margin-bottom:8px;">⛔ ERROR AL EMITIR</p>
-    <p id="api-error-msg" style="font-family:'VT323',monospace;font-size:19px;color:#c0cbdc;line-height:1.5;"></p>
+  <div id="api-error" style="display:none;background:#2a0d0d;border:3px solid var(--role-pharmacy);padding:14px;">
+    <p style="font-family:'Press Start 2P',monospace;font-size:8px;color:var(--role-pharmacy);margin-bottom:8px;">⛔ ERROR AL EMITIR</p>
+    <p id="api-error-msg" style="font-family:'VT323',monospace;font-size:19px;color:var(--text-muted);line-height:1.5;"></p>
   </div>
 
   <!-- CTA -->
@@ -171,8 +171,8 @@ const rows = [
   </button>
 
   <div style="display:flex;justify-content:center;gap:24px;">
-    <a href="/doctor/patient"    style="font-family:'Press Start 2P',monospace;font-size:7px;color:#29366f;text-decoration:none;" onmouseover="this.style.color='#c0cbdc'" onmouseout="this.style.color='#29366f'">◄ EDITAR PACIENTE</a>
-    <a href="/doctor/medication" style="font-family:'Press Start 2P',monospace;font-size:7px;color:#29366f;text-decoration:none;" onmouseover="this.style.color='#c0cbdc'" onmouseout="this.style.color='#29366f'">◄ EDITAR MEDICAMENTO</a>
+    <a href="/doctor/patient"    style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--text-subtle);text-decoration:none;" onmouseover="this.style.color='#c0cbdc'" onmouseout="this.style.color='#29366f'">◄ EDITAR PACIENTE</a>
+    <a href="/doctor/medication" style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--text-subtle);text-decoration:none;" onmouseover="this.style.color='#c0cbdc'" onmouseout="this.style.color='#29366f'">◄ EDITAR MEDICAMENTO</a>
   </div>
 </div>
 </FlowLayout>

@@ -7,11 +7,11 @@ const steps=[{label:'ESCANEAR',href:'/pharmacy'},{label:'VERIFICAR',href:'/pharm
 
   <div id="confetti" style="position:fixed;top:30%;left:50%;pointer-events:none;z-index:100;"></div>
 
-  <div style="background:#1a0d0d;border:4px solid #e8003d;box-shadow:8px 8px 0 #8c0025;padding:40px 28px;width:100%;">
+  <div style="background:#1a0d0d;border:4px solid var(--role-pharmacy);box-shadow:8px 8px 0 var(--role-pharmacy-d);padding:40px 28px;width:100%;">
 
     <div style="display:flex;justify-content:center;margin-bottom:20px;">
       <div class="anim-bounce" style="position:relative;">
-        <svg width="64" height="74" viewBox="0 0 24 28" style="image-rendering:pixelated;color:#e8003d;">
+        <svg width="64" height="74" viewBox="0 0 24 28" style="image-rendering:pixelated;color:var(--role-pharmacy);">
           <use href="#ico-shield"/>
         </svg>
         <div style="position:absolute;top:30%;left:50%;transform:translate(-50%,-50%);">
@@ -22,22 +22,22 @@ const steps=[{label:'ESCANEAR',href:'/pharmacy'},{label:'VERIFICAR',href:'/pharm
       </div>
     </div>
 
-    <h1 style="font-family:'Press Start 2P',monospace;font-size:15px;color:#e8003d;margin-bottom:8px;line-height:1.6;">RECETA SELLADA</h1>
-    <p style="font-family:'VT323',monospace;font-size:24px;color:#c0cbdc;margin-bottom:16px;">Medicamento entregado y registrado</p>
+    <h1 style="font-family:'Press Start 2P',monospace;font-size:15px;color:var(--role-pharmacy);margin-bottom:8px;line-height:1.6;">RECETA SELLADA</h1>
+    <p style="font-family:'VT323',monospace;font-size:24px;color:var(--text-muted);margin-bottom:16px;">Medicamento entregado y registrado</p>
 
-    <div style="background:#2a0d0d;border:3px solid #e8003d;padding:12px 20px;display:inline-block;margin-bottom:22px;" class="anim-score">
-      <span style="font-family:'Press Start 2P',monospace;font-size:12px;color:#ffcd75;" id="seal-info">CARGANDO...</span>
+    <div style="background:#2a0d0d;border:3px solid var(--role-pharmacy);padding:12px 20px;display:inline-block;margin-bottom:22px;" class="anim-score">
+      <span style="font-family:'Press Start 2P',monospace;font-size:12px;color:var(--accent-warn);" id="seal-info">CARGANDO...</span>
     </div>
 
     <div style="display:flex;justify-content:center;gap:16px;margin-bottom:24px;">
       {[0,1,2].map(idx=>(
-        <svg width="28" height="28" viewBox="0 0 20 20" style={'image-rendering:pixelated;color:#ffcd75;animation:px-bounce .6s ease-in-out infinite;animation-delay:'+(idx*.15)+'s;'}>
+        <svg width="28" height="28" viewBox="0 0 20 20" style={'image-rendering:pixelated;color:var(--accent-warn);animation:px-bounce .6s ease-in-out infinite;animation-delay:'+(idx*.15)+'s;'}>
           <use href="#ico-star"/>
         </svg>
       ))}
     </div>
 
-    <div style="text-align:left;border-top:3px solid #e8003d;padding-top:18px;">
+    <div style="text-align:left;border-top:3px solid var(--role-pharmacy);padding-top:18px;">
       {[
         {l:'PACIENTE',    v:'García Mendoza, Luis'},
         {l:'MEDICAMENTO', v:'Amoxicilina 500mg · 21 cápsulas'},
@@ -45,9 +45,9 @@ const steps=[{label:'ESCANEAR',href:'/pharmacy'},{label:'VERIFICAR',href:'/pharm
         {l:'FARMACIA',    v:'Farmacia Central'},
         {l:'isSealed',    v:'true ✓'},
       ].map(r=>(
-        <div style="display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:2px solid #29366f;">
-          <span style="font-family:'Press Start 2P',monospace;font-size:6px;color:#5b6ee1;flex-shrink:0;">{r.l}</span>
-          <span style="font-family:'VT323',monospace;font-size:19px;color:#f4f4f4;text-align:right;">{r.v}</span>
+        <div style="display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:2px solid var(--border-default);">
+          <span style="font-family:'Press Start 2P',monospace;font-size:6px;color:var(--text-subtle);flex-shrink:0;">{r.l}</span>
+          <span style="font-family:'VT323',monospace;font-size:19px;color:var(--text-primary);text-align:right;">{r.v}</span>
         </div>
       ))}
     </div>

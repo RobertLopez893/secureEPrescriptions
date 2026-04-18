@@ -6,15 +6,15 @@ const steps=[{label:'ACCESO',href:'/patient'},{label:'MIS RECETAS',href:'/patien
 <div class="anim-slide" style="display:flex;flex-direction:column;gap:20px;">
 
   <!-- Patient ID card (se hidrata con la sesión real si existe) -->
-  <div style="background:#0d1a2e;border:3px solid #41a6f6;box-shadow:4px 4px 0 #1a6eb0;padding:16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+  <div style="background:#0d1a2e;border:3px solid var(--role-patient);box-shadow:4px 4px 0 var(--role-patient-d);padding:16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
     <div style="display:flex;align-items:center;gap:14px;">
       <span style="font-size:40px;">🧑‍💼</span>
       <div>
-        <p id="patient-header-name" style="font-family:'Press Start 2P',monospace;font-size:11px;color:#41a6f6;">PACIENTE</p>
-        <p id="patient-header-sub"  style="font-family:'VT323',monospace;font-size:20px;color:#c0cbdc;margin-top:4px;">—</p>
+        <p id="patient-header-name" style="font-family:'Press Start 2P',monospace;font-size:11px;color:var(--role-patient);">PACIENTE</p>
+        <p id="patient-header-sub"  style="font-family:'VT323',monospace;font-size:20px;color:var(--text-muted);margin-top:4px;">—</p>
       </div>
     </div>
-    <div style="background:#f4f4f4;border:3px solid #1a1c2c;padding:8px;">
+    <div style="background:#f4f4f4;border:3px solid var(--border-strong);padding:8px;">
       <svg width="48" height="48" viewBox="0 0 14 14" style="image-rendering:pixelated;">
         <rect x="0" y="0" width="5" height="5" fill="none" stroke="#1a1c2c" stroke-width="1"/>
         <rect x="1" y="1" width="3" height="3" fill="#1a1c2c"/>
@@ -34,11 +34,11 @@ const steps=[{label:'ACCESO',href:'/patient'},{label:'MIS RECETAS',href:'/patien
   </div>
 
   <!-- Búsqueda por folio (API real) -->
-  <div style="background:#222639;border:3px solid #41a6f6;box-shadow:4px 4px 0 #1a6eb0;padding:14px 16px;">
-    <p style="font-family:'Press Start 2P',monospace;font-size:8px;color:#41a6f6;margin-bottom:10px;">BUSCAR RECETA POR FOLIO</p>
+  <div style="background:var(--surface-card);border:3px solid var(--role-patient);box-shadow:4px 4px 0 var(--role-patient-d);padding:14px 16px;">
+    <p style="font-family:'Press Start 2P',monospace;font-size:8px;color:var(--role-patient);margin-bottom:10px;">BUSCAR RECETA POR FOLIO</p>
     <form id="lookup-form" style="display:flex;gap:10px;align-items:stretch;flex-wrap:wrap;">
       <input type="number" name="id_receta" placeholder="42" min="1" required
-             style="flex:1;min-width:140px;background:#f8f8f0;color:#1a1c2c;border:3px solid #41a6f6;padding:10px 12px;font-family:'VT323',monospace;font-size:22px;text-align:center;letter-spacing:.1em;"/>
+             style="flex:1;min-width:140px;background:#f8f8f0;color:#1a1c2c;border:3px solid var(--role-patient);padding:10px 12px;font-family:'VT323',monospace;font-size:22px;text-align:center;letter-spacing:.1em;"/>
       <button type="submit" class="px-btn px-btn-blue" style="padding:10px 16px;">VER RECETA</button>
     </form>
     <p id="lookup-error" style="display:none;font-family:'Press Start 2P',monospace;font-size:7px;color:#a53030;margin-top:10px;"></p>
@@ -46,34 +46,34 @@ const steps=[{label:'ACCESO',href:'/patient'},{label:'MIS RECETAS',href:'/patien
 
   <!-- Stats (se llenan tras fetch) -->
   <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;">
-    <div class="px-stat"><span class="px-stat-num" style="color:#f4f4f4;" id="stat-total">—</span><span class="px-stat-label">TOTAL</span></div>
-    <div class="px-stat"><span class="px-stat-num" style="color:#38b764;" id="stat-surtida">—</span><span class="px-stat-label">SURTIDAS</span></div>
-    <div class="px-stat"><span class="px-stat-num" style="color:#ffcd75;" id="stat-pendiente">—</span><span class="px-stat-label">ACTIVAS</span></div>
+    <div class="px-stat"><span class="px-stat-num" style="color:var(--text-primary);" id="stat-total">—</span><span class="px-stat-label">TOTAL</span></div>
+    <div class="px-stat"><span class="px-stat-num" style="color:var(--role-doctor);" id="stat-surtida">—</span><span class="px-stat-label">SURTIDAS</span></div>
+    <div class="px-stat"><span class="px-stat-num" style="color:var(--accent-warn);" id="stat-pendiente">—</span><span class="px-stat-label">ACTIVAS</span></div>
   </div>
 
   <!-- Loader -->
-  <div id="rx-loading" style="background:#0d1a2e;border:3px solid #41a6f6;padding:18px;text-align:center;">
-    <p style="font-family:'Press Start 2P',monospace;font-size:8px;color:#41a6f6;" class="anim-blink">
+  <div id="rx-loading" style="background:#0d1a2e;border:3px solid var(--role-patient);padding:18px;text-align:center;">
+    <p style="font-family:'Press Start 2P',monospace;font-size:8px;color:var(--role-patient);" class="anim-blink">
       ⏳ CONSULTANDO RECETAS...
     </p>
   </div>
 
   <!-- Error del listado -->
-  <div id="rx-error" style="display:none;background:#2a0d0d;border:3px solid #e8003d;padding:14px;">
-    <p style="font-family:'Press Start 2P',monospace;font-size:8px;color:#e8003d;margin-bottom:8px;">⛔ NO FUE POSIBLE CARGAR TUS RECETAS</p>
-    <p id="rx-error-msg" style="font-family:'VT323',monospace;font-size:19px;color:#c0cbdc;line-height:1.5;"></p>
+  <div id="rx-error" style="display:none;background:#2a0d0d;border:3px solid var(--role-pharmacy);padding:14px;">
+    <p style="font-family:'Press Start 2P',monospace;font-size:8px;color:var(--role-pharmacy);margin-bottom:8px;">⛔ NO FUE POSIBLE CARGAR TUS RECETAS</p>
+    <p id="rx-error-msg" style="font-family:'VT323',monospace;font-size:19px;color:var(--text-muted);line-height:1.5;"></p>
   </div>
 
   <!-- Empty state -->
-  <div id="rx-empty" style="display:none;background:#222639;border:3px dashed #29366f;padding:30px 18px;text-align:center;">
-    <p style="font-family:'Press Start 2P',monospace;font-size:9px;color:#5b6ee1;margin-bottom:8px;">SIN RECETAS TODAVÍA</p>
-    <p style="font-family:'VT323',monospace;font-size:20px;color:#c0cbdc;">Cuando un médico te emita una receta aparecerá aquí automáticamente.</p>
+  <div id="rx-empty" style="display:none;background:var(--surface-card);border:3px dashed var(--border-default);padding:30px 18px;text-align:center;">
+    <p style="font-family:'Press Start 2P',monospace;font-size:9px;color:var(--text-dim);margin-bottom:8px;">SIN RECETAS TODAVÍA</p>
+    <p style="font-family:'VT323',monospace;font-size:20px;color:var(--text-muted);">Cuando un médico te emita una receta aparecerá aquí automáticamente.</p>
   </div>
 
   <!-- Prescription list -->
   <div id="rx-list" style="display:flex;flex-direction:column;gap:4px;"></div>
 
-  <p style="text-align:center;font-family:'Press Start 2P',monospace;font-size:7px;color:#29366f;line-height:1.8;">
+  <p style="text-align:center;font-family:'Press Start 2P',monospace;font-size:7px;color:var(--text-subtle);line-height:1.8;">
     🔒 SOLO TÚ, TU MÉDICO Y EL FARMACÉUTICO PUEDEN VER ESTAS RECETAS
   </p>
 </div>

@@ -10,21 +10,21 @@ const steps=[{label:'LOGIN',href:'/doctor'},{label:'PACIENTE',href:'/doctor/pati
     <div class="anim-bounce" style="display:flex;justify-content:center;margin-bottom:14px;">
       <svg width="60" height="70" viewBox="0 0 24 28" style="image-rendering:pixelated;"><use href="#ico-doctor"/></svg>
     </div>
-    <h1 style="font-family:'Press Start 2P',monospace;font-size:13px;color:#f4f4f4;margin-bottom:8px;line-height:1.7;">ACCESO MÉDICO</h1>
-    <p style="font-family:'VT323',monospace;font-size:22px;color:#c0cbdc;">Escanea tu tarjeta médica para iniciar sesión</p>
+    <h1 style="font-family:'Press Start 2P',monospace;font-size:13px;color:var(--text-primary);margin-bottom:8px;line-height:1.7;">ACCESO MÉDICO</h1>
+    <p style="font-family:'VT323',monospace;font-size:22px;color:var(--text-muted);">Escanea tu tarjeta médica para iniciar sesión</p>
   </div>
 
   <!-- QR CARD READER — verde médico -->
-  <div style="background:#222639;border:3px solid #38b764;box-shadow:4px 4px 0 #257a43;padding:20px;">
+  <div style="background:var(--surface-card);border:3px solid var(--role-doctor);box-shadow:4px 4px 0 var(--role-doctor-d);padding:20px;">
 
-    <div style="font-family:'Press Start 2P',monospace;font-size:8px;color:#38b764;margin-bottom:14px;display:flex;align-items:center;gap:8px;">
-      <span class="anim-blink" style="display:inline-block;width:8px;height:8px;background:#38b764;"></span>
+    <div style="font-family:'Press Start 2P',monospace;font-size:8px;color:var(--role-doctor);margin-bottom:14px;display:flex;align-items:center;gap:8px;">
+      <span class="anim-blink" style="display:inline-block;width:8px;height:8px;background:var(--role-doctor);"></span>
       LECTOR QR — TARJETA MÉDICO
     </div>
 
     <!-- Scanner viewport -->
     <div id="qr-viewport"
-         style="background:#040e08;border:3px solid #38b764;position:relative;overflow:hidden;margin-bottom:18px;height:240px;">
+         style="background:#040e08;border:3px solid var(--role-doctor);position:relative;overflow:hidden;margin-bottom:18px;height:240px;">
 
       <!-- Live camera feed -->
       <video id="qr-video" playsinline muted
@@ -35,13 +35,13 @@ const steps=[{label:'LOGIN',href:'/doctor'},{label:'PACIENTE',href:'/doctor/pati
 
       <!-- Scan line verde -->
       <div class="qr-scan-line" id="qr-scan-line"
-           style="background:linear-gradient(90deg,transparent,#38b764,transparent);box-shadow:0 0 14px #38b764;"></div>
+           style="background:linear-gradient(90deg,transparent,var(--role-doctor),transparent);box-shadow:0 0 14px var(--role-doctor);"></div>
 
       <!-- Corner brackets -->
-      <div style="position:absolute;top:10px;left:10px;width:28px;height:28px;border-top:4px solid #38b764;border-left:4px solid #38b764;z-index:2;"></div>
-      <div style="position:absolute;top:10px;right:10px;width:28px;height:28px;border-top:4px solid #38b764;border-right:4px solid #38b764;z-index:2;"></div>
-      <div style="position:absolute;bottom:10px;left:10px;width:28px;height:28px;border-bottom:4px solid #38b764;border-left:4px solid #38b764;z-index:2;"></div>
-      <div style="position:absolute;bottom:10px;right:10px;width:28px;height:28px;border-bottom:4px solid #38b764;border-right:4px solid #38b764;z-index:2;"></div>
+      <div style="position:absolute;top:10px;left:10px;width:28px;height:28px;border-top:4px solid var(--role-doctor);border-left:4px solid var(--role-doctor);z-index:2;"></div>
+      <div style="position:absolute;top:10px;right:10px;width:28px;height:28px;border-top:4px solid var(--role-doctor);border-right:4px solid var(--role-doctor);z-index:2;"></div>
+      <div style="position:absolute;bottom:10px;left:10px;width:28px;height:28px;border-bottom:4px solid var(--role-doctor);border-left:4px solid var(--role-doctor);z-index:2;"></div>
+      <div style="position:absolute;bottom:10px;right:10px;width:28px;height:28px;border-bottom:4px solid var(--role-doctor);border-right:4px solid var(--role-doctor);z-index:2;"></div>
 
       <!-- Tarjeta médico idle -->
       <div id="card-idle" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;">
@@ -77,7 +77,7 @@ const steps=[{label:'LOGIN',href:'/doctor'},{label:'PACIENTE',href:'/doctor/pati
           <text x="14" y="100" fill="#38b764" style="font-family:monospace;font-size:8px;letter-spacing:2px;">DR. ████████████</text>
           <text x="14" y="113" fill="#257a43" style="font-family:monospace;font-size:5px;letter-spacing:1px;">CÉD. ███████ · ECDSA P-256</text>
         </svg>
-        <p id="qr-status" style="font-family:'Press Start 2P',monospace;font-size:8px;color:#38b764;letter-spacing:.08em;" class="anim-blink">
+        <p id="qr-status" style="font-family:'Press Start 2P',monospace;font-size:8px;color:var(--role-doctor);letter-spacing:.08em;" class="anim-blink">
           ACERQUE TARJETA MÉDICO
         </p>
       </div>
@@ -85,48 +85,48 @@ const steps=[{label:'LOGIN',href:'/doctor'},{label:'PACIENTE',href:'/doctor/pati
       <!-- Panel de procesamiento -->
       <div id="card-scanning" style="display:none;position:absolute;inset:0;align-items:center;justify-content:center;flex-direction:column;gap:16px;">
         <div style="position:relative;width:72px;height:72px;">
-          <div style="position:absolute;inset:0;border:4px solid #1a3020;border-top-color:#38b764;animation:spinnerRot .6s steps(8,end) infinite;"></div>
+          <div style="position:absolute;inset:0;border:4px solid #1a3020;border-top-color:var(--role-doctor);animation:spinnerRot .6s steps(8,end) infinite;"></div>
           <div style="position:absolute;inset:8px;display:flex;align-items:center;justify-content:center;">
-            <svg width="28" height="20" viewBox="0 0 28 16" style="image-rendering:pixelated;color:#38b764;">
+            <svg width="28" height="20" viewBox="0 0 28 16" style="image-rendering:pixelated;color:var(--role-doctor);">
               <use href="#ico-key"/>
             </svg>
           </div>
         </div>
-        <p id="derive-status" style="font-family:'Press Start 2P',monospace;font-size:8px;color:#38b764;letter-spacing:.06em;text-align:center;max-width:220px;line-height:1.8;" class="anim-blink">
+        <p id="derive-status" style="font-family:'Press Start 2P',monospace;font-size:8px;color:var(--role-doctor);letter-spacing:.06em;text-align:center;max-width:220px;line-height:1.8;" class="anim-blink">
           LEYENDO QR...
         </p>
       </div>
 
       <!-- Panel de éxito -->
       <div id="card-success" style="display:none;position:absolute;inset:0;align-items:center;justify-content:center;flex-direction:column;gap:12px;padding:16px;">
-        <svg width="40" height="46" viewBox="0 0 24 28" style="image-rendering:pixelated;color:#38b764;">
+        <svg width="40" height="46" viewBox="0 0 24 28" style="image-rendering:pixelated;color:var(--role-doctor);">
           <use href="#ico-shield"/>
         </svg>
-        <p style="font-family:'Press Start 2P',monospace;font-size:9px;color:#38b764;">MÉDICO VERIFICADO</p>
-        <div style="background:#041008;border:2px solid #38b764;padding:8px 12px;width:100%;text-align:center;">
-          <span style="font-family:'VT323',monospace;font-size:16px;color:#38b764;letter-spacing:.1em;">
+        <p style="font-family:'Press Start 2P',monospace;font-size:9px;color:var(--role-doctor);">MÉDICO VERIFICADO</p>
+        <div style="background:#041008;border:2px solid var(--role-doctor);padding:8px 12px;width:100%;text-align:center;">
+          <span style="font-family:'VT323',monospace;font-size:16px;color:var(--role-doctor);letter-spacing:.1em;">
             CÉDULA ••••••• · ECDSA OK
           </span>
         </div>
-        <p style="font-family:'Press Start 2P',monospace;font-size:6px;color:#257a43;line-height:1.8;">ACCEDIENDO AL SISTEMA...</p>
+        <p style="font-family:'Press Start 2P',monospace;font-size:6px;color:var(--role-doctor-d);line-height:1.8;">ACCEDIENDO AL SISTEMA...</p>
       </div>
 
       <!-- Progress bar -->
-      <div id="scan-progress-track" style="display:none;position:absolute;bottom:10px;left:16px;right:16px;height:6px;border:2px solid #38b764;background:#0d0e1a;z-index:3;">
-        <div id="scan-progress-fill" style="height:100%;width:0%;background:repeating-linear-gradient(90deg,#38b764 0px,#38b764 6px,#257a43 6px,#257a43 12px);"></div>
+      <div id="scan-progress-track" style="display:none;position:absolute;bottom:10px;left:16px;right:16px;height:6px;border:2px solid var(--role-doctor);background:var(--surface-inset);z-index:3;">
+        <div id="scan-progress-fill" style="height:100%;width:0%;background:repeating-linear-gradient(90deg,var(--role-doctor) 0px,var(--role-doctor) 6px,var(--role-doctor-d) 6px,var(--role-doctor-d) 12px);"></div>
       </div>
     </div>
 
     <!-- Tech badges -->
     <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
       {['QR SEED','HKDF-SHA256','ECDSA P-256','FIPS 186-5'].map(t => (
-        <span style="font-family:'Press Start 2P',monospace;font-size:6px;padding:3px 6px;border:2px solid #29366f;color:#38b764;background:#29366f22;">{t}</span>
+        <span style="font-family:'Press Start 2P',monospace;font-size:6px;padding:3px 6px;border:2px solid var(--border-default);color:var(--role-doctor);background:#29366f22;">{t}</span>
       ))}
     </div>
 
     <!-- Scan button -->
     <button type="button" id="scan-btn"
-            style="width:100%;padding:14px;background:#061208;border:3px solid #38b764;box-shadow:4px 4px 0 #257a43;font-family:'Press Start 2P',monospace;font-size:9px;color:#38b764;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:16px;">
+            style="width:100%;padding:14px;background:#061208;border:3px solid var(--role-doctor);box-shadow:4px 4px 0 var(--role-doctor-d);font-family:'Press Start 2P',monospace;font-size:9px;color:var(--role-doctor);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:16px;">
       <svg width="20" height="20" viewBox="0 0 20 20" style="image-rendering:pixelated;flex-shrink:0;">
         <rect x="0"  y="0"  width="8" height="8" fill="none" stroke="#38b764" stroke-width="1.5"/>
         <rect x="2"  y="2"  width="4" height="4" fill="#38b764"/>
@@ -148,11 +148,11 @@ const steps=[{label:'LOGIN',href:'/doctor'},{label:'PACIENTE',href:'/doctor/pati
   </div>
 
   <!-- Security notice -->
-  <div style="display:flex;align-items:flex-start;gap:10px;padding:12px 14px;border:2px solid #29366f;background:#29366f18;">
-    <svg width="14" height="18" viewBox="0 0 20 24" style="image-rendering:pixelated;color:#29366f;flex-shrink:0;margin-top:2px;">
+  <div style="display:flex;align-items:flex-start;gap:10px;padding:12px 14px;border:2px solid var(--border-default);background:#29366f18;">
+    <svg width="14" height="18" viewBox="0 0 20 24" style="image-rendering:pixelated;color:var(--text-subtle);flex-shrink:0;margin-top:2px;">
       <use href="#ico-lock"/>
     </svg>
-    <p style="font-family:'Press Start 2P',monospace;font-size:6px;color:#29366f;line-height:2;">
+    <p style="font-family:'Press Start 2P',monospace;font-size:6px;color:var(--text-subtle);line-height:2;">
       LLAVE PRIVADA DERIVADA EN MEMORIA · NUNCA SE ALMACENA · SESIÓN CIFRADA E2E
     </p>
   </div>

@@ -11,38 +11,38 @@ import FlowLayout from '../../layouts/FlowLayout.astro'
 <div class="anim-slide" style="display:flex;flex-direction:column;gap:20px;">
 
   <div style="text-align:center;">
-    <h1 style="font-family:'Press Start 2P',monospace;font-size:13px;color:#f4f4f4;margin-bottom:8px;line-height:1.7;">
+    <h1 style="font-family:'Press Start 2P',monospace;font-size:13px;color:var(--text-primary);margin-bottom:8px;line-height:1.7;">
       GENERADOR QR DE PRUEBA
     </h1>
-    <p style="font-family:'VT323',monospace;font-size:20px;color:#c0cbdc;">
+    <p style="font-family:'VT323',monospace;font-size:20px;color:var(--text-muted);">
       Solo para desarrollo. Crea un QR con credenciales ya existentes en el backend.
     </p>
   </div>
 
-  <div style="background:#222639;border:3px solid #41a6f6;box-shadow:4px 4px 0 #1a6eb0;padding:20px;display:flex;flex-direction:column;gap:12px;">
-    <label style="font-family:'Press Start 2P',monospace;font-size:8px;color:#41a6f6;">CORREO</label>
+  <div style="background:var(--surface-card);border:3px solid var(--role-patient);box-shadow:4px 4px 0 var(--role-patient-d);padding:20px;display:flex;flex-direction:column;gap:12px;">
+    <label style="font-family:'Press Start 2P',monospace;font-size:8px;color:var(--role-patient);">CORREO</label>
     <input id="correo" type="email" value="paciente@rxpro.demo"
-           class="px-input" style="border-color:#41a6f6;font-size:20px;"/>
+           class="px-input" style="border-color:var(--role-patient);font-size:20px;"/>
 
-    <label style="font-family:'Press Start 2P',monospace;font-size:8px;color:#41a6f6;">CONTRASEÑA</label>
+    <label style="font-family:'Press Start 2P',monospace;font-size:8px;color:var(--role-patient);">CONTRASEÑA</label>
     <input id="contra" type="text" value="demo1234"
-           class="px-input" style="border-color:#41a6f6;font-size:20px;"/>
+           class="px-input" style="border-color:var(--role-patient);font-size:20px;"/>
 
-    <label style="font-family:'Press Start 2P',monospace;font-size:8px;color:#41a6f6;">FORMATO</label>
-    <select id="fmt" class="px-input" style="border-color:#41a6f6;font-size:18px;">
+    <label style="font-family:'Press Start 2P',monospace;font-size:8px;color:var(--role-patient);">FORMATO</label>
+    <select id="fmt" class="px-input" style="border-color:var(--role-patient);font-size:18px;">
       <option value="json">JSON ({"{"}"correo":"...","contrasena":"..."{"}"})</option>
       <option value="url">URL rxpro://login?correo=&amp;contrasena=</option>
     </select>
 
     <div style="display:flex;gap:10px;flex-wrap:wrap;">
       <button id="gen-btn" class="px-btn px-btn-blue" style="flex:1;min-width:180px;">GENERAR QR</button>
-      <button id="demo-doc"   type="button" class="px-btn" style="flex:1;min-width:150px;background:#1b1f2f;border-color:#38b764;color:#38b764;">USAR MÉDICO</button>
-      <button id="demo-pat"   type="button" class="px-btn" style="flex:1;min-width:150px;background:#1b1f2f;border-color:#41a6f6;color:#41a6f6;">USAR PACIENTE</button>
+      <button id="demo-doc"   type="button" class="px-btn" style="flex:1;min-width:150px;background:#1b1f2f;border-color:var(--role-doctor);color:var(--role-doctor);">USAR MÉDICO</button>
+      <button id="demo-pat"   type="button" class="px-btn" style="flex:1;min-width:150px;background:#1b1f2f;border-color:var(--role-patient);color:var(--role-patient);">USAR PACIENTE</button>
       <button id="demo-phar"  type="button" class="px-btn px-btn-red" style="flex:1;min-width:150px;">USAR FARMA</button>
     </div>
   </div>
 
-  <div id="qr-box" style="display:none;background:#f4f4f4;border:3px solid #41a6f6;box-shadow:4px 4px 0 #1a6eb0;padding:20px;text-align:center;">
+  <div id="qr-box" style="display:none;background:#f4f4f4;border:3px solid var(--role-patient);box-shadow:4px 4px 0 var(--role-patient-d);padding:20px;text-align:center;">
     <img id="qr-img" alt="QR de login" style="max-width:100%;image-rendering:pixelated;"/>
     <p id="qr-caption" style="font-family:'VT323',monospace;font-size:18px;color:#0d0e1a;margin-top:10px;word-break:break-all;"></p>
   </div>

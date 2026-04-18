@@ -5,26 +5,26 @@ const steps=[{label:'LOGIN',href:'/doctor'},{label:'PACIENTE',href:'/doctor/pati
 <FlowLayout title="Médico — Paciente" role="doctor" steps={steps} currentStep={1} back="/doctor">
 <div class="anim-slide" style="display:flex;flex-direction:column;gap:20px;">
   <div>
-    <h1 style="font-family:'Press Start 2P',monospace;font-size:13px;color:#f4f4f4;margin-bottom:6px;">DATOS DEL PACIENTE</h1>
-    <p style="font-family:'VT323',monospace;font-size:22px;color:#c0cbdc;">¿A quién va dirigida la receta?</p>
+    <h1 style="font-family:'Press Start 2P',monospace;font-size:13px;color:var(--text-primary);margin-bottom:6px;">DATOS DEL PACIENTE</h1>
+    <p style="font-family:'VT323',monospace;font-size:22px;color:var(--text-muted);">¿A quién va dirigida la receta?</p>
   </div>
 
-  <div class="px-card" style="padding:24px;background:#222639;border-color:#38b764;box-shadow:4px 4px 0 #257a43;">
+  <div class="px-card" style="padding:24px;background:var(--surface-card);border-color:var(--role-doctor);box-shadow:4px 4px 0 var(--role-doctor-d);">
     <form id="patient-form" style="display:flex;flex-direction:column;gap:18px;">
       <div style="display:grid;grid-template-columns:2fr 1fr;gap:14px;">
         <div>
-          <label class="px-label" style="color:#38b764;">CURP DEL PACIENTE *</label>
+          <label class="px-label" style="color:var(--role-doctor);">CURP DEL PACIENTE *</label>
           <input type="text" name="curp" placeholder="RAEG920315HMCRND07"
                  class="px-input green" style="text-align:center;letter-spacing:.15em;font-size:22px;text-transform:uppercase;"
                  maxlength="18" required/>
         </div>
         <div>
-          <label class="px-label" style="color:#38b764;">ID PACIENTE *</label>
+          <label class="px-label" style="color:var(--role-doctor);">ID PACIENTE *</label>
           <input type="number" name="id_paciente" placeholder="42" min="1"
                  class="px-input green" style="text-align:center;font-size:22px;" required/>
         </div>
       </div>
-      <p style="font-family:'VT323',monospace;font-size:18px;color:#5b6ee1;margin-top:-6px;text-align:center;">
+      <p style="font-family:'VT323',monospace;font-size:18px;color:var(--text-dim);margin-top:-6px;text-align:center;">
         El ID paciente es el id_usuario emitido por el backend al registrarlo.
       </p>
 
@@ -32,15 +32,15 @@ const steps=[{label:'LOGIN',href:'/doctor'},{label:'PACIENTE',href:'/doctor/pati
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
         <div style="grid-column:1/-1;">
-          <label class="px-label" style="color:#38b764;">NOMBRE COMPLETO *</label>
+          <label class="px-label" style="color:var(--role-doctor);">NOMBRE COMPLETO *</label>
           <input type="text" name="name" placeholder="Nombre del paciente" class="px-input green" required/>
         </div>
         <div>
-          <label class="px-label" style="color:#38b764;">FECHA NACIMIENTO *</label>
+          <label class="px-label" style="color:var(--role-doctor);">FECHA NACIMIENTO *</label>
           <input type="date" name="dob" class="px-input green" required/>
         </div>
         <div>
-          <label class="px-label" style="color:#38b764;">SEXO</label>
+          <label class="px-label" style="color:var(--role-doctor);">SEXO</label>
           <select name="sex" class="px-input green">
             <option value="">SELECCIONAR</option>
             <option>MASCULINO</option>
@@ -50,11 +50,11 @@ const steps=[{label:'LOGIN',href:'/doctor'},{label:'PACIENTE',href:'/doctor/pati
       </div>
 
       <!-- Info box -->
-      <div style="background:#1a2e1a;border:3px solid #38b764;padding:14px;display:flex;gap:12px;align-items:flex-start;">
+      <div style="background:#1a2e1a;border:3px solid var(--role-doctor);padding:14px;display:flex;gap:12px;align-items:flex-start;">
         <span style="font-size:20px;flex-shrink:0;">💡</span>
         <div>
-          <p style="font-family:'Press Start 2P',monospace;font-size:7px;color:#38b764;margin-bottom:6px;">BÚSQUEDA AUTOMÁTICA</p>
-          <p style="font-family:'VT323',monospace;font-size:19px;color:#c0cbdc;line-height:1.5;">Al ingresar el CURP, el sistema busca al paciente. Si existe, los datos se llenan solos.</p>
+          <p style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--role-doctor);margin-bottom:6px;">BÚSQUEDA AUTOMÁTICA</p>
+          <p style="font-family:'VT323',monospace;font-size:19px;color:var(--text-muted);line-height:1.5;">Al ingresar el CURP, el sistema busca al paciente. Si existe, los datos se llenan solos.</p>
         </div>
       </div>
 
