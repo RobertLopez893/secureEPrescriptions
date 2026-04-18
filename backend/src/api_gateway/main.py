@@ -5,6 +5,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from sqlmodel import SQLModel, Session, select
 
+from cryptography.hazmat.primitives.asymmetric import ec
+from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
+
 # Importamos el motor de conexión
 from src.database.database import engine
 
@@ -13,6 +16,25 @@ from src.database.database import engine
 from src.database import models
 from src.core import security
 from src.api_gateway.routers import recetas, auth, usuarios, clinicas
+
+# Llaves privadas de demo (las mismas que el frontend usa en testData.ts).
+# Solo se usan aquí para DERIVAR la pública y sembrar Llave para los
+# usuarios demo, de modo que el flujo criptográfico completo funcione sin
+# registro manual. Nunca se persisten en BD.
+_DEMO_PRIV_MEDICO      = "a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f90"
+_DEMO_PRIV_PACIENTE    = "11223344556677889900aabbccddeeff11223344556677889900aabbccddeeff"
+_DEMO_PRIV_FARMACEUTICO = "ffeeddccbbaa00998877665544332211ffeeddccbbaa00998877665544332211"
+
+
+def _pub_hex_from_priv_hex(priv_hex: str) -> str:
+    """Deriva la llave pública P-256 (uncompressed hex, 130 chars) desde un
+    escalar privado en hex. Usado solo para sembrar usuarios demo."""
+    priv_int = int(priv_hex, 16)
+    priv = ec.derive_private_key(priv_int, ec.SECP256R1())
+    pub_bytes = priv.public_key().public_bytes(
+        Encoding.X962, PublicFormat.UncompressedPoint
+    )
+    return pub_bytes.hex()
 
 def _ensure_roles(session: Session) -> None:
     """Crea los roles base si no existen."""
@@ -113,10 +135,37 @@ def _seed_demo_data(session: Session) -> None:
     session.add(paciente_u)
     session.add(farma_u)
     session.commit()
+
+    # Refrescamos para conocer los ids reales asignados por la BD
+    session.refresh(medico_u)
+    session.refresh(paciente_u)
+    session.refresh(farma_u)
+
+    # Sembramos las llaves públicas derivadas de las privadas de demo
+    # (testData.ts en el frontend) para que el flujo ECDSA de extremo a
+    # extremo funcione sin registro manual.
+    session.add(models.Llave(
+        id_usuario=medico_u.id_usuario,
+        llave_publica=_pub_hex_from_priv_hex(_DEMO_PRIV_MEDICO),
+        activo=True,
+    ))
+    session.add(models.Llave(
+        id_usuario=paciente_u.id_usuario,
+        llave_publica=_pub_hex_from_priv_hex(_DEMO_PRIV_PACIENTE),
+        activo=True,
+    ))
+    session.add(models.Llave(
+        id_usuario=farma_u.id_usuario,
+        llave_publica=_pub_hex_from_priv_hex(_DEMO_PRIV_FARMACEUTICO),
+        activo=True,
+    ))
+    session.commit()
+
     print("Usuarios demo creados:")
     print("  - doctor@rxpro.demo   / demo1234")
     print("  - paciente@rxpro.demo / demo1234")
     print("  - farma@rxpro.demo    / demo1234")
+    print("Llaves públicas demo registradas (P-256) para los 3 usuarios.")
 
 
 def create_initial_data(session: Session):

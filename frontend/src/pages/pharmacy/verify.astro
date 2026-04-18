@@ -275,7 +275,23 @@ const steps = [
       const acceso = cripto.accesos.find(a => a.rol === 'farmaceutico')
       if (!acceso) throw new Error('Esta receta no concede acceso a una farmacia.')
 
-      const doctorPubHex = getPublicKey(testKeys.medico)
+      // Resolvemos las llaves públicas reales del médico emisor y del
+      // paciente dueño desde el directorio del backend. Si el backend no
+      // las tiene registradas todavía (demo offline), caemos a testKeys
+      // para que la verificación visual siga funcionando en dev.
+      let doctorPubHex: string
+      try {
+        doctorPubHex = (await Api.obtenerLlavePublica(cripto.id_medico)).llave_publica
+      } catch {
+        doctorPubHex = getPublicKey(testKeys.medico)
+      }
+      let pacientePubHex: string
+      try {
+        pacientePubHex = (await Api.obtenerLlavePublica(cripto.id_paciente)).llave_publica
+      } catch {
+        pacientePubHex = getPublicKey(testKeys.paciente)
+      }
+
       const dek = KeyWrapModule.unwrap(
         acceso.wrappedKey, acceso.nonce,
         testKeys.farmaceutico, doctorPubHex,
@@ -298,7 +314,7 @@ const steps = [
         dek_hex: bytesToHex(dek),
         contenedor,
         doctorPubHex,
-        pacientePubHex: getPublicKey(testKeys.paciente),
+        pacientePubHex,
       }))
       return true
     } catch (e) {

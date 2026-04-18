@@ -178,7 +178,7 @@ const rows = [
 </FlowLayout>
 
 <script>
-  import { canonicalizeJSON, signData, getPublicKey } from '../../utils/cryptoFlow.ts'
+  import { canonicalizeJSON, signData, getPublicKey, signEnvelope } from '../../utils/cryptoFlow.ts'
   import { sha256 } from '@noble/hashes/sha2.js'
   import { utf8ToBytes, bytesToHex } from '@noble/hashes/utils.js'
   import { testKeys, recetaPrueba } from '../../utils/testData.ts'
@@ -186,6 +186,10 @@ const rows = [
   import { Api, ApiError, getSession } from '../../utils/api.ts'
   import { requireSession } from '../../utils/sessionGuard.ts'
   requireSession('Medico', '/doctor')
+
+  // Id del farmacéutico demo usado como destinatario de la cápsula.
+  // En un despliegue real, el paciente elige la farmacia en otro paso.
+  const DEMO_FARMA_ID = 3
 
   /* ══ ESTADO GLOBAL ══ */
   let activePrivKeyHex: string | null = null
@@ -392,13 +396,38 @@ const rows = [
         throw new Error('Falta el ID del paciente (regresa al paso PACIENTE).')
       }
 
-      // ── 3) Construir cápsula cifrada E2E con CryptoEngine ───────────────
-      // Las llaves públicas de destinatarios son las de demo mientras no haya
-      // endpoint de directorio; el backend sólo persiste blobs opacos.
-      const pacientePub     = getPublicKey(testKeys.paciente)
-      const farmaceuticoPub = getPublicKey(testKeys.farmaceutico)
-      const doctorPub       = getPublicKey(activePrivKeyHex)
+      // ── 3) Obtener llaves públicas reales desde el directorio ──────────
+      // El backend persiste la llave pública de cada usuario en la tabla
+      // Llave. Si no existe, caemos a la derivada de testKeys (demo offline).
+      btn.textContent = '⏳ RESOLVIENDO LLAVES PÚBLICAS...'
+      const doctorPub = getPublicKey(activePrivKeyHex)
 
+      let pacientePub: string
+      try {
+        pacientePub = (await Api.obtenerLlavePublica(ID_PACIENTE)).llave_publica
+      } catch (err) {
+        console.warn('[doctor/sign] paciente sin llave registrada, usando testKey:', err)
+        pacientePub = getPublicKey(testKeys.paciente)
+      }
+
+      let farmaceuticoPub: string
+      try {
+        farmaceuticoPub = (await Api.obtenerLlavePublica(DEMO_FARMA_ID)).llave_publica
+      } catch (err) {
+        console.warn('[doctor/sign] farmacéutico sin llave registrada, usando testKey:', err)
+        farmaceuticoPub = getPublicKey(testKeys.farmaceutico)
+      }
+
+      // Registrar la llave pública del propio médico si aún no está en el
+      // directorio (primera emisión). Si ya existe, el backend devuelve la
+      // sobre-escritura como rotación — idempotente para nuestra sesión.
+      try {
+        await Api.registrarMiLlavePublica(doctorPub)
+      } catch (err) {
+        console.warn('[doctor/sign] no se pudo registrar llave pública del médico:', err)
+      }
+
+      // ── 4) Construir cápsula cifrada E2E con CryptoEngine ──────────────
       btn.textContent = '⏳ CIFRANDO CÁPSULA E2E...'
       const cifrada = CryptoEngine.emitirRecetaGlobal(
         RECETA.datos as any,
@@ -409,7 +438,23 @@ const rows = [
         doctorPub,
       )
 
-      // ── 4) POST /api/v1/recetas ─────────────────────────────────────────
+      // ── 5) Firmar el "envelope" que el backend sí puede ver ────────────
+      // sha256(`${id_medico}\n${id_paciente}\n${capsula}\n${iv}\n${exp_unix}`)
+      // El backend verifica esta firma contra la llave pública del médico
+      // sin conocer el contenido de la receta.
+      btn.textContent = '⏳ FIRMANDO ENVELOPE...'
+      const firmaEnvelope = signEnvelope(
+        {
+          id_medico:       ID_MEDICO,
+          id_paciente:     ID_PACIENTE,
+          capsula_cifrada: cifrada.capsula_cifrada,
+          iv_aes_gcm:      cifrada.iv_aes_gcm,
+          expira_iso:      FECHA_VENC,
+        },
+        activePrivKeyHex,
+      )
+
+      // ── 6) POST /api/v1/recetas ────────────────────────────────────────
       btn.textContent = '⏳ ENVIANDO AL BACKEND...'
       const created = await Api.crearReceta({
         id_medico:       ID_MEDICO,
@@ -418,6 +463,7 @@ const rows = [
         capsula_cifrada: cifrada.capsula_cifrada,
         iv_aes_gcm:      cifrada.iv_aes_gcm,
         accesos:         cifrada.accesos,
+        firma_envelope:  firmaEnvelope,
       })
 
       // Persistir id real devuelto por el backend para la pantalla "done"

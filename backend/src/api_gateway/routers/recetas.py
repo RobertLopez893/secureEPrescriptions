@@ -1,14 +1,80 @@
+from datetime import datetime, timezone
 from typing import List, Optional
 
+from cryptography.exceptions import InvalidSignature
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.asymmetric import ec, utils as ec_utils
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlmodel import Session, select
 
 from src.core.security import CurrentUser, get_current_user
 from src.database.database import get_session
-from src.database.models import Receta, Usuario
+from src.database.models import Llave, Receta, Usuario
 from src.api_gateway import schemas
 
 router = APIRouter()
+
+
+# ---------------------------------------------------------------------------
+# Envelope signature helpers
+# ---------------------------------------------------------------------------
+def _envelope_message(
+    id_medico: int,
+    id_paciente: int,
+    capsula_cifrada: str,
+    iv_aes_gcm: str,
+    expira_en: datetime,
+) -> bytes:
+    """Construye el mensaje canónico que el médico firma con su llave
+    privada para probar autoría de la cápsula cifrada. El formato es una
+    concatenación simple separada por '\\n' para evitar ambigüedades entre
+    canónicos JSON de JS y Python:
+
+        <id_medico>\\n<id_paciente>\\n<capsula_cifrada>\\n<iv_aes_gcm>\\n<expira_unix>
+
+    `expira_unix` es segundos enteros desde epoch UTC. Si el datetime es
+    naive, lo asumimos UTC."""
+    dt = expira_en if expira_en.tzinfo else expira_en.replace(tzinfo=timezone.utc)
+    expira_unix = int(dt.timestamp())
+    return (
+        f"{id_medico}\n{id_paciente}\n{capsula_cifrada}\n{iv_aes_gcm}\n{expira_unix}"
+    ).encode("utf-8")
+
+
+def _verify_p256_ecdsa(pub_hex: str, message: bytes, sig_compact_hex: str) -> bool:
+    """Verifica una firma ECDSA P-256 en formato compacto r||s (64 bytes)
+    contra un mensaje y una llave pública uncompressed hex (65 bytes).
+    Devuelve True si la firma es válida, False en cualquier error.
+    """
+    try:
+        pub_bytes = bytes.fromhex(pub_hex)
+        if len(pub_bytes) != 65 or pub_bytes[0] != 0x04:
+            return False
+        pub = ec.EllipticCurvePublicKey.from_encoded_point(
+            ec.SECP256R1(), pub_bytes
+        )
+        sig_bytes = bytes.fromhex(sig_compact_hex)
+        if len(sig_bytes) != 64:
+            return False
+        r = int.from_bytes(sig_bytes[:32], "big")
+        s = int.from_bytes(sig_bytes[32:], "big")
+        der = ec_utils.encode_dss_signature(r, s)
+        pub.verify(der, message, ec.ECDSA(hashes.SHA256()))
+        return True
+    except (InvalidSignature, ValueError):
+        return False
+    except Exception:
+        return False
+
+
+def _get_active_public_key(session: Session, id_usuario: int) -> Optional[str]:
+    """Devuelve la llave pública activa (hex) de un usuario o None."""
+    llave = session.exec(
+        select(Llave)
+        .where(Llave.id_usuario == id_usuario, Llave.activo == True)
+        .order_by(Llave.creado_en.desc())
+    ).first()
+    return llave.llave_publica if llave else None
 
 
 @router.get("/recetas", response_model=List[schemas.RecetaDetailPublic])
@@ -132,10 +198,41 @@ def emitir_receta(
     # Si es médico, el id_medico del body se ignora y se usa el del token.
     # Admin sí puede especificar cualquier id_medico (útil para tooling).
     id_medico = current_user.id if current_user.role == "Medico" else receta_in.id_medico
+    if id_medico is None:
+        raise HTTPException(
+            status_code=400,
+            detail="Falta el id_medico emisor (Administrador debe especificarlo).",
+        )
 
     # Validamos que el paciente existe (evitamos referencias rotas en la BD).
     if not session.get(Usuario, receta_in.id_paciente):
         raise HTTPException(status_code=404, detail="Paciente no encontrado.")
+
+    # ── Verificación ECDSA de autoría ────────────────────────────────────
+    # El médico firma el "envelope" (metadatos + blobs opacos) con su
+    # llave privada. El backend verifica con la llave pública registrada
+    # sin necesidad de conocer el contenido real de la receta.
+    pub_hex = _get_active_public_key(session, id_medico)
+    if not pub_hex:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"El médico {id_medico} no tiene llave pública registrada. "
+                "Registra una con PUT /usuarios/me/llave antes de emitir recetas."
+            ),
+        )
+    envelope_msg = _envelope_message(
+        id_medico=id_medico,
+        id_paciente=receta_in.id_paciente,
+        capsula_cifrada=receta_in.capsula_cifrada,
+        iv_aes_gcm=receta_in.iv_aes_gcm,
+        expira_en=receta_in.expira_en,
+    )
+    if not _verify_p256_ecdsa(pub_hex, envelope_msg, receta_in.firma_envelope):
+        raise HTTPException(
+            status_code=400,
+            detail="Firma de autoría inválida: la cápsula no pudo verificarse contra la llave pública del médico.",
+        )
 
     db_receta = Receta(
         id_medico=id_medico,
@@ -198,6 +295,8 @@ def obtener_cripto_receta(
 
     return schemas.RecetaCriptoPublic(
         id_receta=receta.id_receta,
+        id_medico=receta.id_medico,
+        id_paciente=receta.id_paciente,
         capsula_cifrada=receta.capsula_cifrada,
         iv_aes_gcm=receta.iv_aes_gcm,
         accesos=[schemas.AccesoPublic(**a) for a in receta.accesos],

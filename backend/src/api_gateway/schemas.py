@@ -18,6 +18,12 @@ class RecetaCreate(BaseModel):
     capsula_cifrada: str   # Ciphertext hex
     iv_aes_gcm: str        # Nonce AES-GCM hex
     accesos: List[AccesoCreate]
+    # Firma ECDSA P-256 del "envelope" (los metadatos + cápsula opaca)
+    # calculada sobre SHA-256(canonical_json({id_medico,id_paciente,
+    # capsula_cifrada,iv_aes_gcm,expira_en})). Esto permite al backend
+    # verificar autoría sin conocer el contenido de la receta.
+    # Formato: 64 bytes r||s en hex (128 chars).
+    firma_envelope: str
 
 
 class AccesoPublic(BaseModel):
@@ -42,6 +48,11 @@ class RecetaDetailPublic(RecetaPublic):
 
 class RecetaCriptoPublic(BaseModel):
     id_receta: int
+    # Ids de las partes para que el cliente pueda consultar sus llaves
+    # públicas activas vía GET /usuarios/{id}/llave sin una segunda llamada
+    # al detalle de la receta.
+    id_medico: int
+    id_paciente: int
     capsula_cifrada: str
     iv_aes_gcm: str
     accesos: List[AccesoPublic]
@@ -86,6 +97,10 @@ class PacienteCreate(BaseModel):
     nacimiento: date
     sexo: str
     tel_emergencia: str
+    # Llave pública P-256 (uncompressed hex, 130 chars) generada en el cliente
+    # al momento del registro. Opcional en la API (flujo legacy sin llave),
+    # pero el frontend debería enviarla siempre para el flujo criptográfico.
+    llave_publica: Optional[str] = None
 
 class MedicoCreate(BaseModel):
     # Datos del usuario base
@@ -99,6 +114,7 @@ class MedicoCreate(BaseModel):
     cedula: str
     especialidad: str
     universidad: str
+    llave_publica: Optional[str] = None
 
 class FarmaceuticoCreate(BaseModel):
     # Datos del usuario base
@@ -111,6 +127,18 @@ class FarmaceuticoCreate(BaseModel):
     # Datos del perfil de farmacéutico
     licencia: str
     turno: str  # "Matutino" | "Vespertino" | "Nocturno"
+    llave_publica: Optional[str] = None
+
+
+# --- Schemas de Llaves públicas ---
+
+class LlavePublicaIn(BaseModel):
+    """Payload para registrar/rotar la llave pública del usuario autenticado."""
+    llave_publica: str  # P-256 uncompressed hex (130 chars, empieza con 04)
+
+class LlavePublicaOut(BaseModel):
+    id_usuario: int
+    llave_publica: str
 
 
 # --- Schemas de Clinica ---

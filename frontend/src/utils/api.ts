@@ -168,6 +168,12 @@ export interface RecetaCreateDTO {
   capsula_cifrada: string;    // hex
   iv_aes_gcm: string;         // hex
   accesos: AccesoDTO[];
+  /**
+   * Firma ECDSA P-256 (compacta r||s, 128 chars hex) del "envelope":
+   *   sha256(`${id_medico}\n${id_paciente}\n${capsula_cifrada}\n${iv_aes_gcm}\n${expira_unix}`)
+   * El backend la verifica contra la llave pública activa del médico.
+   */
+  firma_envelope: string;
 }
 
 export interface RecetaPublicDTO {
@@ -186,6 +192,11 @@ export interface RecetaDetailDTO extends RecetaPublicDTO {
 
 export interface RecetaCriptoDTO {
   id_receta: number;
+  // Ids necesarios para que el cliente pueda resolver las llaves públicas
+  // activas del médico emisor y del paciente dueño sin una llamada extra
+  // al endpoint de detalle.
+  id_medico: number;
+  id_paciente: number;
   capsula_cifrada: string;
   iv_aes_gcm: string;
   accesos: AccesoDTO[];
@@ -214,6 +225,7 @@ export interface PacienteCreateDTO {
   nacimiento: string;          // YYYY-MM-DD
   sexo: string;
   tel_emergencia: string;
+  llave_publica?: string;      // P-256 uncompressed hex (130 chars)
 }
 
 export interface MedicoCreateDTO {
@@ -226,6 +238,7 @@ export interface MedicoCreateDTO {
   cedula: string;
   especialidad: string;
   universidad: string;
+  llave_publica?: string;
 }
 
 export interface FarmaceuticoCreateDTO {
@@ -237,6 +250,12 @@ export interface FarmaceuticoCreateDTO {
   id_clinica?: number | null;
   licencia: string;
   turno: string;             // "Matutino" | "Vespertino" | "Nocturno"
+  llave_publica?: string;
+}
+
+export interface LlavePublicaDTO {
+  id_usuario: number;
+  llave_publica: string;
 }
 
 export interface ClinicaCreateDTO {
@@ -368,6 +387,20 @@ export const Api = {
     return request<RecetaPublicDTO>(`/api/v1/recetas/${idReceta}/sellar`, {
       method: 'PUT',
       body: JSON.stringify(body),
+    });
+  },
+
+  // ---- Llaves públicas ----
+  /** Devuelve la llave pública activa del usuario o lanza ApiError si no existe. */
+  async obtenerLlavePublica(idUsuario: number): Promise<LlavePublicaDTO> {
+    return request<LlavePublicaDTO>(`/api/v1/usuarios/${idUsuario}/llave`);
+  },
+
+  /** Registra/rota la llave pública del usuario autenticado. */
+  async registrarMiLlavePublica(llavePublica: string): Promise<LlavePublicaDTO> {
+    return request<LlavePublicaDTO>('/api/v1/usuarios/me/llave', {
+      method: 'PUT',
+      body: JSON.stringify({ llave_publica: llavePublica }),
     });
   },
 
