@@ -35,3 +35,6 @@ yarn-error.log*
 # --- Sistema Operativo ---
 .DS_Store
 Thumbs.db
+
+# --- Herramientas locales ---
+.claude/
