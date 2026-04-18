@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session, select
 
 from src.database.database import get_session
-from src.database.models import Usuario, Paciente, Medico, Rol
+from src.database.models import Usuario, Paciente, Medico, Farmaceutico, Rol
 from src.core import security
 from src.api_gateway import schemas
 
@@ -66,6 +66,36 @@ def registrar_medico(*, session: Session = Depends(get_session), medico_in: sche
         contrasena=security.get_password_hash(medico_in.contrasena),
         id_rol=rol_medico.id_rol,
         medico=perfil_medico
+    )
+
+    session.add(db_usuario)
+    session.commit()
+    session.refresh(db_usuario)
+
+    return schemas.UsuarioPublic(
+        **db_usuario.model_dump(), rol_nombre=db_usuario.rol.nombre
+    )
+
+
+@router.post("/usuarios/farmaceuticos", response_model=schemas.UsuarioPublic, status_code=status.HTTP_201_CREATED)
+def registrar_farmaceutico(*, session: Session = Depends(get_session), farma_in: schemas.FarmaceuticoCreate):
+    """Registra un nuevo usuario con el rol de Farmacéutico."""
+    if session.exec(select(Usuario).where(Usuario.correo == farma_in.correo)).first():
+        raise HTTPException(status_code=400, detail="El correo ya está registrado.")
+
+    rol_farma = get_rol_by_name(session, "Farmaceutico")
+
+    perfil_farma = Farmaceutico(
+        licencia=farma_in.licencia,
+        turno=farma_in.turno,
+    )
+
+    usuario_data = farma_in.model_dump(exclude={"licencia", "turno", "contrasena"})
+    db_usuario = Usuario(
+        **usuario_data,
+        contrasena=security.get_password_hash(farma_in.contrasena),
+        id_rol=rol_farma.id_rol,
+        farmaceutico=perfil_farma,
     )
 
     session.add(db_usuario)

@@ -198,6 +198,37 @@ export interface MedicoCreateDTO {
   universidad: string;
 }
 
+export interface FarmaceuticoCreateDTO {
+  nombre: string;
+  paterno: string;
+  materno?: string | null;
+  correo: string;
+  contrasena: string;
+  id_clinica?: number | null;
+  licencia: string;
+  turno: string;             // "Matutino" | "Vespertino" | "Nocturno"
+}
+
+export interface ClinicaCreateDTO {
+  nombre: string;
+  clues: string;
+  calle: string;
+  colonia: string;
+  municipio: string;
+  estado: string;
+  cp: string;
+  tipo: string;              // "Centro Medico" | "Hospital"
+}
+
+export interface ClinicaPublicDTO {
+  id_clinica: number;
+  nombre: string;
+  clues: string;
+  municipio: string;
+  estado: string;
+  tipo: string;
+}
+
 export interface UsuarioPublicDTO {
   id_usuario: number;
   correo: string;
@@ -245,6 +276,25 @@ export const Api = {
 
   async registerMedico(body: MedicoCreateDTO): Promise<UsuarioPublicDTO> {
     return request<UsuarioPublicDTO>('/api/v1/usuarios/medicos', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+  },
+
+  async registerFarmaceutico(body: FarmaceuticoCreateDTO): Promise<UsuarioPublicDTO> {
+    return request<UsuarioPublicDTO>('/api/v1/usuarios/farmaceuticos', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+  },
+
+  // ---- Clínicas ----
+  async listarClinicas(): Promise<ClinicaPublicDTO[]> {
+    return request<ClinicaPublicDTO[]>('/api/v1/clinicas');
+  },
+
+  async crearClinica(body: ClinicaCreateDTO): Promise<ClinicaPublicDTO> {
+    return request<ClinicaPublicDTO>('/api/v1/clinicas', {
       method: 'POST',
       body: JSON.stringify(body),
     });

@@ -94,3 +94,36 @@ class MedicoCreate(BaseModel):
     cedula: str
     especialidad: str
     universidad: str
+
+class FarmaceuticoCreate(BaseModel):
+    # Datos del usuario base
+    nombre: str
+    paterno: str
+    materno: Optional[str] = None
+    correo: str
+    contrasena: str
+    id_clinica: Optional[int] = None
+    # Datos del perfil de farmacéutico
+    licencia: str
+    turno: str  # "Matutino" | "Vespertino" | "Nocturno"
+
+
+# --- Schemas de Clinica ---
+
+class ClinicaCreate(BaseModel):
+    nombre: str
+    clues: str
+    calle: str
+    colonia: str
+    municipio: str
+    estado: str
+    cp: str
+    tipo: str  # "Centro Medico" | "Hospital"
+
+class ClinicaPublic(BaseModel):
+    id_clinica: int
+    nombre: str
+    clues: str
+    municipio: str
+    estado: str
+    tipo: str
