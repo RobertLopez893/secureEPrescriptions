@@ -113,6 +113,28 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
       const data = await res.json();
       if (data?.detail) detail = typeof data.detail === 'string' ? data.detail : JSON.stringify(data.detail);
     } catch { /* no-json */ }
+
+    // Token vencido o inválido: dejamos la sesión en un estado consistente
+    // y (si estamos en una página protegida) redirigimos a la landing.
+    // No redirigimos desde /auth/login para no entrar en loop cuando
+    // las credenciales son incorrectas.
+    if (res.status === 401 && !path.startsWith('/api/v1/auth/')) {
+      try {
+        const prevRole = getSession()?.role;
+        clearSession();
+        if (typeof window !== 'undefined') {
+          const target = prevRole === 'Medico'       ? '/doctor'
+                       : prevRole === 'Paciente'     ? '/patient'
+                       : prevRole === 'Farmaceutico' ? '/pharmacy/login'
+                       : '/';
+          // Evita redirigir si ya estamos en la página de login destino.
+          if (!window.location.pathname.startsWith(target)) {
+            window.location.replace(target);
+          }
+        }
+      } catch { /* noop */ }
+    }
+
     throw new ApiError(res.status, detail);
   }
 

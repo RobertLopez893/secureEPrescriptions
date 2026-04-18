@@ -237,6 +237,8 @@ const steps = [
   import { Api, ApiError } from '../../utils/api.ts'
   import { KeyWrapModule } from '../../crypto/keyWrap.ts'
   import { EncryptionModule } from '../../crypto/encryption.ts'
+  import { requireSession } from '../../utils/sessionGuard.ts'
+  requireSession('Farmaceutico', '/pharmacy/login')
 
   /* ══ ESTADO ══ */
   let storedCanonical = ''

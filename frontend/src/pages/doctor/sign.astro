@@ -184,6 +184,8 @@ const rows = [
   import { testKeys, recetaPrueba } from '../../utils/testData.ts'
   import { CryptoEngine } from '../../crypto/index.ts'
   import { Api, ApiError, getSession } from '../../utils/api.ts'
+  import { requireSession } from '../../utils/sessionGuard.ts'
+  requireSession('Medico', '/doctor')
 
   /* ══ ESTADO GLOBAL ══ */
   let activePrivKeyHex: string | null = null

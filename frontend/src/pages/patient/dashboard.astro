@@ -81,6 +81,8 @@ const steps=[{label:'ACCESO',href:'/patient'},{label:'MIS RECETAS',href:'/patien
 
 <script>
   import { Api, ApiError, getSession } from '../../utils/api.ts'
+  import { requireSession } from '../../utils/sessionGuard.ts'
+  requireSession('Paciente', '/patient')
 
   const form     = document.getElementById('lookup-form')  as HTMLFormElement
   const errorBox = document.getElementById('lookup-error') as HTMLParagraphElement

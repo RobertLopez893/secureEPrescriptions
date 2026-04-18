@@ -341,7 +341,7 @@ const roleLabelStyle = "font-family:'Press Start 2P',monospace;font-size:8px;col
     </div>
 
     <!-- Nav with role icons -->
-    <nav style="display:flex;gap:3px;">
+    <nav style="display:flex;gap:3px;align-items:center;">
       {navLinks.map((r) => (
         <a href={r.href}
            title={r.label}
@@ -354,6 +354,24 @@ const roleLabelStyle = "font-family:'Press Start 2P',monospace;font-size:8px;col
           <span style={r.spanStyle} class="sm:inline">{r.label}</span>
         </a>
       ))}
+
+      <!-- Logout: visible solo cuando hay sesión (ver script al final). -->
+      <button id="rxpro-logout" type="button" title="Cerrar sesión"
+              style="display:none;margin-left:6px;padding:5px 8px;border:2px solid #29366f;background:transparent;color:#c0cbdc;box-shadow:none;cursor:pointer;font-family:'Press Start 2P',monospace;font-size:7px;letter-spacing:.08em;align-items:center;gap:6px;transition:all .05s;"
+              onmouseover="this.style.borderColor='#e8003d';this.style.color='#e8003d';this.style.background='#e8003d15'"
+              onmouseout="this.style.borderColor='#29366f';this.style.color='#c0cbdc';this.style.background='transparent'">
+        <svg width="12" height="12" viewBox="0 0 16 16" style="image-rendering:pixelated;">
+          <rect x="0" y="0" width="4" height="4" fill="currentColor"/>
+          <rect x="12" y="0" width="4" height="4" fill="currentColor"/>
+          <rect x="4" y="4" width="4" height="4" fill="currentColor"/>
+          <rect x="8" y="4" width="4" height="4" fill="currentColor"/>
+          <rect x="4" y="8" width="4" height="4" fill="currentColor"/>
+          <rect x="8" y="8" width="4" height="4" fill="currentColor"/>
+          <rect x="0" y="12" width="4" height="4" fill="currentColor"/>
+          <rect x="12" y="12" width="4" height="4" fill="currentColor"/>
+        </svg>
+        SALIR
+      </button>
     </nav>
   </div>
 </header>
@@ -459,6 +477,24 @@ const roleLabelStyle = "font-family:'Press Start 2P',monospace;font-size:8px;col
     document.getElementById('toast-container').appendChild(t)
     setTimeout(() => t.remove(), 2900)
   }
+
+  // ── Botón de logout en el topbar ─────────────────────────────
+  // El botón vive en todos los layouts, pero solo se muestra si hay
+  // sesión. No mezclamos con el flujo de login/landing (donde no aplica).
+  try {
+    const logoutBtn = document.getElementById('rxpro-logout')
+    if (logoutBtn) {
+      const raw = sessionStorage.getItem('rxpro_session')
+      if (raw) {
+        logoutBtn.style.display = 'inline-flex'
+        logoutBtn.addEventListener('click', () => {
+          sessionStorage.removeItem('rxpro_token')
+          sessionStorage.removeItem('rxpro_session')
+          window.location.replace('/')
+        })
+      }
+    }
+  } catch { /* sessionStorage bloqueado: ignorar */ }
 </script>
 
 </body>

@@ -93,6 +93,8 @@ const steps=[{label:'ACCESO',href:'/patient'},{label:'MIS RECETAS',href:'/patien
   import { CryptoEngine } from '../../crypto/index.ts'
   import { getPublicKey } from '../../utils/cryptoFlow.ts'
   import { testKeys } from '../../utils/testData.ts'
+  import { requireSession } from '../../utils/sessionGuard.ts'
+  requireSession('Paciente', '/patient')
 
   const params = new URLSearchParams(window.location.search)
   const idReceta = Number(params.get('id') || 0)

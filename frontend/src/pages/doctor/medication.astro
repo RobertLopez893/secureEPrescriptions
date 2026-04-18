@@ -90,6 +90,9 @@ const steps=[{label:'LOGIN',href:'/doctor'},{label:'PACIENTE',href:'/doctor/pati
 </FlowLayout>
 
 <script>
+import { requireSession } from '../../utils/sessionGuard.ts'
+requireSession('Medico', '/doctor')
+
 // ─────────────────────────────────────────────────────────────────────────────
 // IMPORTANTE: Este script pasa por Vite/TypeScript — NO usar define:vars
 // MAX_MEDS está fijado aquí directamente (NOM-004-SSA3)

@@ -60,6 +60,8 @@ const checklist=['MEDICAMENTO CORRECTO (AMOXICILINA 500MG)','CANTIDAD CORRECTA (
   import { CryptoEngine } from '../../crypto/index.ts'
   import { testKeys } from '../../utils/testData.ts'
   import { getPublicKey } from '../../utils/cryptoFlow.ts'
+  import { requireSession } from '../../utils/sessionGuard.ts'
+  requireSession('Farmaceutico', '/pharmacy/login')
 
   function toggleCheck(i: number) {
     const lbl = document.getElementById('lbl-'+i) as HTMLLabelElement

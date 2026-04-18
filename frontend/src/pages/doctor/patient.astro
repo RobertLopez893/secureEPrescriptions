@@ -67,6 +67,9 @@ const steps=[{label:'LOGIN',href:'/doctor'},{label:'PACIENTE',href:'/doctor/pati
 </FlowLayout>
 
 <script>
+  import { requireSession } from '../../utils/sessionGuard.ts'
+  requireSession('Medico', '/doctor')
+
   const form = document.getElementById('patient-form') as HTMLFormElement
 
   // Rehidratar si ya hay datos guardados

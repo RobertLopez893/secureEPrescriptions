@@ -71,6 +71,9 @@ const steps=[{label:'ESCANEAR',href:'/pharmacy'},{label:'VERIFICAR',href:'/pharm
 </FlowLayout>
 
 <script>
+  import { requireSession } from '../../utils/sessionGuard.ts'
+  requireSession('Farmaceutico', '/pharmacy/login')
+
   document.getElementById('seal-info').textContent = 'XYZ-123 · ' + new Date().toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'}).toUpperCase()
   const container = document.getElementById('confetti')
   const colors = ['#e8003d','#ffcd75','#41a6f6','#38b764','#f4f4f4']
