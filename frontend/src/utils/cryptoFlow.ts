@@ -4,6 +4,12 @@ import { sha256 } from '@noble/hashes/sha2.js';
 import { hmac } from '@noble/hashes/hmac.js';
 import { utf8ToBytes, bytesToHex, hexToBytes } from '@noble/hashes/utils.js';
 
+// Nota ECDSA: @noble/curves v2 aplica SHA-256 al mensaje internamente
+// cuando `p256.sign`/`verify` reciben `{ prehash: true }`. El backend usa
+// `ec.ECDSA(hashes.SHA256())` que también hashea internamente, así que
+// siempre se le pasa el mensaje original y se deja `prehash:true` para
+// que las dos partes hasheen una única vez.
+
 export function canonicalizeJSON(obj: any): string {
   const sortKeys = (o: any): any => {
     if (o === null || typeof o !== 'object') return o;
@@ -17,15 +23,13 @@ export function canonicalizeJSON(obj: any): string {
 }
 
 export function signData(canonicalStr: string, privateKeyHex: string) {
-  const msgHash = sha256(utf8ToBytes(canonicalStr));
-  const signature = p256.sign(msgHash, hexToBytes(privateKeyHex));
+  const signature = p256.sign(utf8ToBytes(canonicalStr), hexToBytes(privateKeyHex), { prehash: true });
   return (signature as any).toHex();
 }
 
 export function verifySignature(canonicalStr: string, signatureHex: string, publicKeyHex: string): boolean {
   try {
-    const msgHash = sha256(utf8ToBytes(canonicalStr));
-    return p256.verify(hexToBytes(signatureHex), msgHash, hexToBytes(publicKeyHex));
+    return p256.verify(hexToBytes(signatureHex), utf8ToBytes(canonicalStr), hexToBytes(publicKeyHex), { prehash: true });
   } catch { return false; }
 }
 
@@ -79,8 +83,7 @@ export function envelopeMessage(fields: EnvelopeFields): string {
  */
 export function signEnvelope(fields: EnvelopeFields, privateKeyHex: string): string {
   const msg = envelopeMessage(fields);
-  const hash = sha256(utf8ToBytes(msg));
-  const sig: any = p256.sign(hash, hexToBytes(privateKeyHex));
+  const sig: any = p256.sign(utf8ToBytes(msg), hexToBytes(privateKeyHex), { prehash: true });
   // noble/curves: .toCompactRawBytes() → 64 bytes r||s
   const compact: Uint8Array = typeof sig?.toCompactRawBytes === 'function'
     ? sig.toCompactRawBytes()
