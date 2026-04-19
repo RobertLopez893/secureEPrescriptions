@@ -249,11 +249,17 @@ function updateUI() {
 }
 
 // ── Preview en tiempo real ────────────────────────────────────────────────
+// Se construye con DOM API (no innerHTML) para que los valores que el
+// doctor escribe en los inputs no puedan interpretarse como HTML/JS al
+// pintarlos en el preview.
 function syncPreview() {
-  previewList.innerHTML = ''
+  previewList.replaceChildren()
 
   if (medications.length === 0) {
-    previewList.innerHTML = '<p style="font-family:\'VT323\',monospace;font-size:18px;color:#29366f;">Agrega medicamentos para verlos aquí...</p>'
+    const empty = document.createElement('p')
+    empty.style.cssText = "font-family:'VT323',monospace;font-size:18px;color:#29366f;"
+    empty.textContent = 'Agrega medicamentos para verlos aquí...'
+    previewList.appendChild(empty)
     return
   }
 
@@ -272,18 +278,32 @@ function syncPreview() {
 
     const row = document.createElement('div')
     row.style.cssText = 'display:flex;align-items:flex-start;gap:12px;padding-bottom:10px;border-bottom:2px solid #1a3a1a;'
-    row.innerHTML = `
-      <span style="font-family:'Press Start 2P',monospace;font-size:9px;color:#38b764;flex-shrink:0;margin-top:2px;">
-        ${String(idx + 1).padStart(2, '0')}
-      </span>
-      <div style="flex:1;">
-        <div style="font-family:'Press Start 2P',monospace;font-size:8px;color:#f4f4f4;margin-bottom:4px;">${name}</div>
-        <div style="font-family:'VT323',monospace;font-size:19px;color:#c0cbdc;">
-          ${dose} · ${form} · ${qty} unidades
-        </div>
-        ${instr ? `<div style="font-family:'VT323',monospace;font-size:17px;color:#637087;margin-top:2px;">${instr}</div>` : ''}
-      </div>
-    `
+
+    const num = document.createElement('span')
+    num.style.cssText = "font-family:'Press Start 2P',monospace;font-size:9px;color:#38b764;flex-shrink:0;margin-top:2px;"
+    num.textContent = String(idx + 1).padStart(2, '0')
+
+    const body = document.createElement('div')
+    body.style.cssText = 'flex:1;'
+
+    const title = document.createElement('div')
+    title.style.cssText = "font-family:'Press Start 2P',monospace;font-size:8px;color:#f4f4f4;margin-bottom:4px;"
+    title.textContent = name
+
+    const meta = document.createElement('div')
+    meta.style.cssText = "font-family:'VT323',monospace;font-size:19px;color:#c0cbdc;"
+    meta.textContent = `${dose} · ${form} · ${qty} unidades`
+
+    body.append(title, meta)
+
+    if (instr) {
+      const instrEl = document.createElement('div')
+      instrEl.style.cssText = "font-family:'VT323',monospace;font-size:17px;color:#637087;margin-top:2px;"
+      instrEl.textContent = instr
+      body.appendChild(instrEl)
+    }
+
+    row.append(num, body)
     previewList.appendChild(row)
   })
 }

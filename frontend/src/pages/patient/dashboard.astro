@@ -129,8 +129,18 @@ const steps=[{label:'ACCESO',href:'/patient'},{label:'MIS RECETAS',href:'/patien
     } catch { return iso.slice(0,10) }
   }
 
+  function makeBadge(kind: 'red' | 'yellow' | 'green', text: string): HTMLSpanElement {
+    const s = document.createElement('span')
+    s.className = `px-badge px-badge-${kind}`
+    s.textContent = text
+    return s
+  }
+
   function renderList(rxs: Array<any>, highlightId?: number) {
-    listEl.innerHTML = ''
+    // Se construye con DOM API (no innerHTML) porque los campos provienen
+    // del backend (folio, nombre del médico, nombre del paciente) y no
+    // deben poder interpretarse como HTML/JS.
+    listEl.replaceChildren()
     for (const [idx, rx] of rxs.entries()) {
       const isNew       = highlightId === rx.id_receta
       const isVencida   = !!rx.vencida && rx.estado !== 'surtida'
@@ -141,14 +151,8 @@ const steps=[{label:'ACCESO',href:'/patient'},{label:'MIS RECETAS',href:'/patien
       const folio    = 'RX-' + String(rx.id_receta).padStart(5,'0')
       const medLabel = `DR. ${String(rx.medico?.nombre_completo || '—').toUpperCase()}`
       const fecha    = formatFecha(rx.creada_en)
-      const badge    = isVencida
-        ? '<span class="px-badge px-badge-red">⚠ VENCIDA</span>'
-        : (isPendiente
-          ? '<span class="px-badge px-badge-yellow">⏳ ACTIVA</span>'
-          : '<span class="px-badge px-badge-green">✓ SURTIDA</span>')
-      const newChip = isNew
-        ? `<div style="position:absolute;top:0;right:0;background:#ffcd75;color:#1a1c2c;font-family:'Press Start 2P',monospace;font-size:7px;padding:4px 8px;">NEW!</div>`
-        : ''
+      const pacNombre = rx.paciente?.nombre_completo || ''
+
       const a = document.createElement('a')
       a.href = `/patient/detail?id=${rx.id_receta}`
       a.className = 'anim-slide d' + (idx+1)
@@ -157,18 +161,44 @@ const steps=[{label:'ACCESO',href:'/patient'},{label:'MIS RECETAS',href:'/patien
         `background:${bg};border:3px solid ${rxBorder};box-shadow:${rxShadow};position:relative;transition:transform .08s;`
       a.onmouseover = () => { a.style.transform = 'translateX(4px)' }
       a.onmouseout  = () => { a.style.transform = '' }
-      a.innerHTML = `
-        ${newChip}
-        <span style="font-size:28px;flex-shrink:0;">💊</span>
-        <div style="flex:1;min-width:0;">
-          <p style="font-family:'Press Start 2P',monospace;font-size:9px;color:#f4f4f4;margin-bottom:6px;">${folio}</p>
-          <p style="font-family:'VT323',monospace;font-size:19px;color:#c0cbdc;">${medLabel}</p>
-          <p style="font-family:'VT323',monospace;font-size:17px;color:#5b6ee1;">${fecha} · PACIENTE ${rx.paciente?.nombre_completo || ''}</p>
-        </div>
-        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
-          ${badge}
-          <span style="font-family:'Press Start 2P',monospace;font-size:9px;color:#5b6ee1;">►</span>
-        </div>`
+
+      if (isNew) {
+        const chip = document.createElement('div')
+        chip.style.cssText = "position:absolute;top:0;right:0;background:#ffcd75;color:#1a1c2c;font-family:'Press Start 2P',monospace;font-size:7px;padding:4px 8px;"
+        chip.textContent = 'NEW!'
+        a.appendChild(chip)
+      }
+
+      const icon = document.createElement('span')
+      icon.style.cssText = 'font-size:28px;flex-shrink:0;'
+      icon.textContent = '💊'
+      a.appendChild(icon)
+
+      const main = document.createElement('div')
+      main.style.cssText = 'flex:1;min-width:0;'
+      const pFolio = document.createElement('p')
+      pFolio.style.cssText = "font-family:'Press Start 2P',monospace;font-size:9px;color:#f4f4f4;margin-bottom:6px;"
+      pFolio.textContent = folio
+      const pMed = document.createElement('p')
+      pMed.style.cssText = "font-family:'VT323',monospace;font-size:19px;color:#c0cbdc;"
+      pMed.textContent = medLabel
+      const pFecha = document.createElement('p')
+      pFecha.style.cssText = "font-family:'VT323',monospace;font-size:17px;color:#5b6ee1;"
+      pFecha.textContent = `${fecha} · PACIENTE ${pacNombre}`
+      main.append(pFolio, pMed, pFecha)
+      a.appendChild(main)
+
+      const right = document.createElement('div')
+      right.style.cssText = 'display:flex;flex-direction:column;align-items:flex-end;gap:6px;'
+      const badge = isVencida
+        ? makeBadge('red', '⚠ VENCIDA')
+        : (isPendiente ? makeBadge('yellow', '⏳ ACTIVA') : makeBadge('green', '✓ SURTIDA'))
+      const arrow = document.createElement('span')
+      arrow.style.cssText = "font-family:'Press Start 2P',monospace;font-size:9px;color:#5b6ee1;"
+      arrow.textContent = '►'
+      right.append(badge, arrow)
+      a.appendChild(right)
+
       listEl.appendChild(a)
     }
   }
