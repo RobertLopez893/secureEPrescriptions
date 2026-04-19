@@ -108,6 +108,7 @@ def registrar_paciente(
     if paciente_in.llave_publica:
         _set_active_key(session, db_usuario.id_usuario, paciente_in.llave_publica)
         session.commit()
+        session.refresh(db_usuario)
 
     return schemas.UsuarioPublic(
         **db_usuario.model_dump(), rol_nombre=db_usuario.rol.nombre
@@ -149,6 +150,7 @@ def registrar_medico(
     if medico_in.llave_publica:
         _set_active_key(session, db_usuario.id_usuario, medico_in.llave_publica)
         session.commit()
+        session.refresh(db_usuario)
 
     return schemas.UsuarioPublic(
         **db_usuario.model_dump(), rol_nombre=db_usuario.rol.nombre
@@ -191,6 +193,7 @@ def registrar_farmaceutico(
     if farma_in.llave_publica:
         _set_active_key(session, db_usuario.id_usuario, farma_in.llave_publica)
         session.commit()
+        session.refresh(db_usuario)
 
     return schemas.UsuarioPublic(
         **db_usuario.model_dump(), rol_nombre=db_usuario.rol.nombre

@@ -6,7 +6,11 @@ FROM node:22-alpine AS base
 WORKDIR /app
 # Solo copiamos los archivos de paquetes para instalar librerías
 COPY package*.json ./
-RUN npm install
+# --legacy-peer-deps: @astrojs/tailwind@5 declara peer astro@3|4|5 y el
+# proyecto ya está en astro@6. Tailwind sigue funcionando en runtime;
+# el fix definitivo es migrar a @tailwindcss/vite (deuda técnica para
+# cerrar en otra ronda).
+RUN npm install --legacy-peer-deps
 
 # ==========================================
 # 2. ETAPA DE DESARROLLO (Dev)

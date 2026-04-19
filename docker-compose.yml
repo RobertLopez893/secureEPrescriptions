@@ -10,6 +10,15 @@ services:
       - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    # pg_isready confirma que el server acepta conexiones. Sin esto, el
+    # backend intenta conectar mientras postgres aún corre su
+    # post-bootstrap y aborta el lifespan.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+      start_period: 5s
 
   backend:
     build:
@@ -27,7 +36,8 @@ services:
     volumes:
       - ./backend:/app:Z
     depends_on:
-      - db
+      db:
+        condition: service_healthy
 
   frontend:
     build:

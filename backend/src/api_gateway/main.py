@@ -264,9 +264,36 @@ def _warn_if_multiworker() -> None:
         )
 
 
+def _wait_for_db(max_attempts: int = 30, delay_seconds: float = 1.0) -> None:
+    """Espera a que postgres acepte conexiones antes de crear tablas.
+
+    docker-compose ya declara `depends_on: db: service_healthy`, pero si
+    alguien corre el backend fuera de compose (o la BD se reinicia en
+    caliente) necesitamos tolerar unos segundos de arranque.
+    """
+    from sqlalchemy.exc import OperationalError
+    import time
+
+    for attempt in range(1, max_attempts + 1):
+        try:
+            with engine.connect() as conn:
+                conn.exec_driver_sql("SELECT 1")
+            return
+        except OperationalError as exc:
+            if attempt == max_attempts:
+                raise
+            print(
+                f"[startup] DB aún no responde (intento {attempt}/{max_attempts}): {exc.orig}. "
+                f"Reintento en {delay_seconds:.1f}s..."
+            )
+            time.sleep(delay_seconds)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # --- Lógica de Inicio (Startup) ---
+    print("Esperando a que la base de datos acepte conexiones...")
+    _wait_for_db()
     print("Verificando y creando tablas de la base de datos...")
     SQLModel.metadata.create_all(engine)
     with Session(engine) as session:
