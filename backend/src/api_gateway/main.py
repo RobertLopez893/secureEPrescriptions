@@ -105,7 +105,11 @@ def _seed_demo_data(session: Session) -> None:
     """
     Siembra una clínica + un usuario por rol cuando APP_ENV=development.
     Credenciales conocidas para poder probar el login QR de punta a punta.
-    Se ejecuta solo si NO existen usuarios aún (idempotente por primera corrida).
+
+    Es idempotente a nivel de cada entidad: si un arranque anterior creó
+    la clínica pero murió antes de crear los usuarios (p.ej. el bug de
+    passlib/bcrypt), este método reusa lo existente en vez de chocar con
+    los UNIQUE de `clues`/correos.
     """
     if os.getenv("APP_ENV", "development").lower() != "development":
         return
@@ -114,20 +118,24 @@ def _seed_demo_data(session: Session) -> None:
 
     print("Sembrando datos demo (APP_ENV=development)...")
 
-    # 1 clínica demo
-    clinica = models.Clinica(
-        nombre="Clínica Demo RxFlow",
-        clues="DEMO0000001",
-        calle="Av. Ficticia 123",
-        colonia="Centro",
-        municipio="Ciudad Demo",
-        estado="CDMX",
-        cp="01000",
-        tipo="Centro Medico",
-    )
-    session.add(clinica)
-    session.commit()
-    session.refresh(clinica)
+    # Clínica demo: select-or-create por CLUES (único).
+    clinica = session.exec(
+        select(models.Clinica).where(models.Clinica.clues == "DEMO0000001")
+    ).first()
+    if clinica is None:
+        clinica = models.Clinica(
+            nombre="Clínica Demo RxFlow",
+            clues="DEMO0000001",
+            calle="Av. Ficticia 123",
+            colonia="Centro",
+            municipio="Ciudad Demo",
+            estado="CDMX",
+            cp="01000",
+            tipo="Centro Medico",
+        )
+        session.add(clinica)
+        session.commit()
+        session.refresh(clinica)
 
     rol_medico = _get_rol(session, "Medico")
     rol_paciente = _get_rol(session, "Paciente")
