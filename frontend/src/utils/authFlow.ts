@@ -12,7 +12,7 @@ import { sha256 } from '@noble/hashes/sha2.js'
 import { bytesToHex, hexToBytes } from '@noble/hashes/utils.js'
 
 import { deriveKeysFromSeed } from '../crypto/seedDerivation.ts'
-import { Api, decodeJwtPayload, saveSession, type SessionData } from './api.ts'
+import { Api, decodeJwtPayload, saveSession, saveUserSeed, type SessionData } from './api.ts'
 import type { CardPayload } from './cardQr.ts'
 
 /**
@@ -60,5 +60,9 @@ export async function loginWithCard(card: CardPayload): Promise<SessionData> {
     role: String(payload.role || ''),
   }
   saveSession(token.access_token, session)
+  // Persistir la semilla para que páginas posteriores (sign, seal, verify,
+  // detail) puedan re-derivar la llave privada cuando necesiten firmar o
+  // descifrar, sin pedir otra vez el QR.
+  saveUserSeed(card.seedHex)
   return session
 }

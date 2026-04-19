@@ -170,10 +170,17 @@ def login_for_access_token(
 # ---------------------------------------------------------------------------
 # Login por tarjeta (challenge / response ECDSA P-256)
 # ---------------------------------------------------------------------------
-# Nota: el cache de retos vive en memoria del proceso. Para producción
-# real habría que moverlo a Redis o a la BD, pero para este prototipo
-# con un único worker es suficiente. TTL corto = baja probabilidad de
-# replay si la firma se filtra.
+# IMPORTANTE: el cache de retos vive en memoria del proceso, así que esta
+# implementación solo es segura si el backend corre con UN ÚNICO worker
+# (uvicorn/gunicorn con --workers 1). Con más workers:
+#   - El challenge emitido en el worker A no existe en el worker B, así
+#     que el verify contra B siempre falla → login roto.
+#   - Peor: un atacante que intercepte una firma podría intentar replay
+#     contra otro worker sin que éste haya visto el nonce, pero como
+#     tampoco puede canjearlo (no lo conoce), solo hay DoS, no bypass.
+# Para producción se debe mover a Redis (con TTL nativo) o a una tabla
+# `auth_challenges` con índice único y limpieza periódica. Mientras tanto,
+# `main.py` emite un warning al arranque si se detecta WEB_CONCURRENCY>1.
 _CHALLENGE_TTL_SECONDS = 120
 _challenge_cache: Dict[Tuple[str, str], Tuple[str, datetime]] = {}
 _challenge_lock = Lock()

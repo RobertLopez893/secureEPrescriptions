@@ -232,11 +232,10 @@ const steps = [
   import { canonicalizeJSON, verifySignature } from '../../utils/cryptoFlow.ts'
   import { sha256 } from '@noble/hashes/sha2.js'
   import { utf8ToBytes, bytesToHex, hexToBytes } from '@noble/hashes/utils.js'
-  import { testKeys } from '../../utils/testData.ts'
-  import { getPublicKey } from '../../utils/cryptoFlow.ts'
   import { Api, ApiError } from '../../utils/api.ts'
   import { KeyWrapModule } from '../../crypto/keyWrap.ts'
   import { EncryptionModule } from '../../crypto/encryption.ts'
+  import { getUserPrivKeyHex } from '../../utils/userKeys.ts'
   import { requireSession } from '../../utils/sessionGuard.ts'
   requireSession('Farmaceutico', '/pharmacy/login')
 
@@ -276,25 +275,20 @@ const steps = [
       if (!acceso) throw new Error('Esta receta no concede acceso a una farmacia.')
 
       // Resolvemos las llaves públicas reales del médico emisor y del
-      // paciente dueño desde el directorio del backend. Si el backend no
-      // las tiene registradas todavía (demo offline), caemos a testKeys
-      // para que la verificación visual siga funcionando en dev.
-      let doctorPubHex: string
-      try {
-        doctorPubHex = (await Api.obtenerLlavePublica(cripto.id_medico)).llave_publica
-      } catch {
-        doctorPubHex = getPublicKey(testKeys.medico)
-      }
-      let pacientePubHex: string
-      try {
-        pacientePubHex = (await Api.obtenerLlavePublica(cripto.id_paciente)).llave_publica
-      } catch {
-        pacientePubHex = getPublicKey(testKeys.paciente)
+      // paciente dueño desde el directorio del backend. Sin fallbacks:
+      // si no hay llave pública registrada, la cripto E2E no es posible.
+      const doctorPubHex   = (await Api.obtenerLlavePublica(cripto.id_medico)).llave_publica
+      const pacientePubHex = (await Api.obtenerLlavePublica(cripto.id_paciente)).llave_publica
+
+      // La llave privada del farmacéutico viene de su seed de sesión.
+      const farmaceuticoPriv = getUserPrivKeyHex()
+      if (!farmaceuticoPriv) {
+        throw new Error('No hay llave derivada en esta sesión. Vuelve a iniciar con tu tarjeta QR.')
       }
 
       const dek = KeyWrapModule.unwrap(
         acceso.wrappedKey, acceso.nonce,
-        testKeys.farmaceutico, doctorPubHex,
+        farmaceuticoPriv, doctorPubHex,
       )
       const contenedor = EncryptionModule.decrypt(
         cripto.capsula_cifrada, cripto.iv_aes_gcm, dek,
@@ -330,14 +324,10 @@ const steps = [
     storedCanonical = storedCanonical || sessionStorage.getItem('rxflow_canonical') || canonicalizeJSON(RECETA_BASE)
     storedPubHex    = storedPubHex    || sessionStorage.getItem('rxflow_pubkey')   || ''
 
-    // Si no hay firma: generar firma demo con testKeys.medico
-    if (!storedSigHex || !storedPubHex) {
-      storedPubHex    = getPublicKey(testKeys.medico)
-      storedSigHex    = (await import('../../utils/cryptoFlow.ts')).signData(storedCanonical, testKeys.medico)
-      sessionStorage.setItem('rxflow_signature', storedSigHex)
-      sessionStorage.setItem('rxflow_canonical',  storedCanonical)
-      sessionStorage.setItem('rxflow_pubkey',     storedPubHex)
-    }
+    // Si no hay firma ni llave pública almacenadas, ya no generamos una
+    // firma demo con llave fija: eso falsearía la verificación. Pintamos
+    // el panel técnico con lo que haya y la verificación caerá como
+    // inválida, que es el estado correcto.
 
     // Panel técnico
     ;(document.getElementById('tech-canonical') as HTMLPreElement).textContent =

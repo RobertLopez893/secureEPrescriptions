@@ -76,12 +76,12 @@ const rows = [
     <!-- Botón usar llave de demo -->
     <div style="background:#12110a;border:2px solid var(--border-default);padding:12px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
       <div>
-        <p style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--text-dim);margin-bottom:4px;">MODO DEMO — @noble/curves P-256</p>
-        <p style="font-family:'VT323',monospace;font-size:18px;color:var(--text-muted);">Usa la llave de prueba del médico (testData.ts)</p>
+        <p style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--text-dim);margin-bottom:4px;">LLAVE DE SESIÓN — @noble/curves P-256</p>
+        <p style="font-family:'VT323',monospace;font-size:18px;color:var(--text-muted);">Usa la llave derivada de tu tarjeta QR (no sale del navegador)</p>
       </div>
       <button type="button" id="use-demo-btn" onclick="useDemoKey()"
               style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--role-patient);background:#0a1525;border:3px solid var(--role-patient);padding:8px 12px;cursor:pointer;white-space:nowrap;">
-        ⚙ USAR LLAVE DEMO
+        ⚙ USAR LLAVE DE SESIÓN
       </button>
     </div>
 
@@ -181,9 +181,9 @@ const rows = [
   import { canonicalizeJSON, signData, getPublicKey, signEnvelope } from '../../utils/cryptoFlow.ts'
   import { sha256 } from '@noble/hashes/sha2.js'
   import { utf8ToBytes, bytesToHex } from '@noble/hashes/utils.js'
-  import { testKeys, recetaPrueba } from '../../utils/testData.ts'
   import { CryptoEngine } from '../../crypto/index.ts'
   import { Api, ApiError, getSession } from '../../utils/api.ts'
+  import { getUserPrivKeyHex } from '../../utils/userKeys.ts'
   import { requireSession } from '../../utils/sessionGuard.ts'
   requireSession('Medico', '/doctor')
 
@@ -248,26 +248,33 @@ const rows = [
 
   init()
 
-  /* ══ USAR LLAVE DEMO (testData.ts) ══ */
+  /* ══ USAR LLAVE DE SESIÓN (derivada del QR del login) ══ */
   function useDemoKey() {
     const btn = document.getElementById('use-demo-btn') as HTMLButtonElement
     btn.textContent  = '⏳ CARGANDO...'
     btn.disabled     = true
 
-    try {
-      activePrivKeyHex = testKeys.medico
+    const priv = getUserPrivKeyHex()
+    if (!priv) {
+      btn.textContent = '⛔ SIN LLAVE EN SESIÓN'
+      btn.style.color = '#e8003d'
+      btn.style.borderColor = '#e8003d'
+      showApiError('No hay llave derivada en esta sesión. Vuelve a iniciar con tu tarjeta QR.')
+      return
+    }
 
-      // Derivar y mostrar llave pública
+    try {
+      activePrivKeyHex = priv
+
       const pubHex = getPublicKey(activePrivKeyHex)
       sessionStorage.setItem('rxflow_pubkey', pubHex)
       ;(document.getElementById('pubkey-output') as HTMLParagraphElement).textContent = pubHex
       ;(document.getElementById('pubkey-panel') as HTMLDivElement).style.display = 'block'
 
-      // Ocultar drop zone, mostrar key OK
       ;(document.getElementById('drop-zone') as HTMLDivElement).style.display = 'none'
       ;(document.getElementById('key-ok') as HTMLDivElement).style.display    = 'flex'
-      ;(document.getElementById('file-name') as HTMLParagraphElement).textContent = 'testKeys.medico (demo)'
-      ;(document.getElementById('file-meta') as HTMLParagraphElement).textContent = '32 bytes · ECDSA P-256 · @noble/curves'
+      ;(document.getElementById('file-name') as HTMLParagraphElement).textContent = 'Llave de sesión (QR)'
+      ;(document.getElementById('file-meta') as HTMLParagraphElement).textContent = '32 bytes · ECDSA P-256 · derivada de tu tarjeta'
       ;(document.getElementById('file-loaded') as HTMLDivElement).style.display = 'flex'
 
       btn.textContent       = '✓ LLAVE CARGADA'
@@ -331,17 +338,16 @@ const rows = [
       return
     }
 
-    // Simulación: primer intento → mismatch, segundo → OK con llave demo
-    const attempts = parseInt(sessionStorage.getItem(KEY_ATTEMPT) || '0')
-    if (attempts === 0) {
-      sessionStorage.setItem(KEY_ATTEMPT, '1')
+    // En el flujo real la llave privada viene de la seed del QR; el upload
+    // de archivo PEM del prototipo no parseaba contenido real. Mantenemos
+    // la UI pero caemos siempre a la llave de sesión y mostramos el nombre
+    // del archivo como referencia. Si no hay sesión por QR, error claro.
+    const priv = getUserPrivKeyHex()
+    if (!priv) {
       ;(document.getElementById('err-mismatch') as HTMLDivElement).style.display = 'block'
       return
     }
-    sessionStorage.removeItem(KEY_ATTEMPT)
-
-    // Usar llave demo como fallback
-    activePrivKeyHex = testKeys.medico
+    activePrivKeyHex = priv
     const pubHex = getPublicKey(activePrivKeyHex)
     sessionStorage.setItem('rxflow_pubkey', pubHex)
     ;(document.getElementById('pubkey-output') as HTMLParagraphElement).textContent = pubHex
@@ -398,7 +404,8 @@ const rows = [
 
       // ── 3) Obtener llaves públicas reales desde el directorio ──────────
       // El backend persiste la llave pública de cada usuario en la tabla
-      // Llave. Si no existe, caemos a la derivada de testKeys (demo offline).
+      // Llave. Si no existe, fallamos explícitamente: no usamos fallbacks
+      // con llaves fijas porque invalidaría el cifrado E2E.
       btn.textContent = '⏳ RESOLVIENDO LLAVES PÚBLICAS...'
       const doctorPub = getPublicKey(activePrivKeyHex)
 
@@ -406,16 +413,19 @@ const rows = [
       try {
         pacientePub = (await Api.obtenerLlavePublica(ID_PACIENTE)).llave_publica
       } catch (err) {
-        console.warn('[doctor/sign] paciente sin llave registrada, usando testKey:', err)
-        pacientePub = getPublicKey(testKeys.paciente)
+        throw new Error(
+          `El paciente (id=${ID_PACIENTE}) no tiene llave pública registrada. ` +
+          `Pídele que escanee su tarjeta QR al menos una vez para registrarla.`
+        )
       }
 
       let farmaceuticoPub: string
       try {
         farmaceuticoPub = (await Api.obtenerLlavePublica(DEMO_FARMA_ID)).llave_publica
       } catch (err) {
-        console.warn('[doctor/sign] farmacéutico sin llave registrada, usando testKey:', err)
-        farmaceuticoPub = getPublicKey(testKeys.farmaceutico)
+        throw new Error(
+          `La farmacia destino (id=${DEMO_FARMA_ID}) no tiene llave pública registrada.`
+        )
       }
 
       // Registrar la llave pública del propio médico si aún no está en el

@@ -24,10 +24,15 @@ function resolveApiBase(): string {
 export const API_BASE = resolveApiBase();
 
 // ---------------------------------------------------------------------------
-// Storage keys (para JWT + sesión)
+// Storage keys (para JWT + sesión + semilla del usuario)
 // ---------------------------------------------------------------------------
 const TOKEN_KEY = 'rxpro_token';
 const SESSION_KEY = 'rxpro_session';
+// La semilla del QR del usuario logueado se persiste en sessionStorage
+// para poder re-derivar su llave privada cuando una página necesite firmar
+// o descifrar (sign, seal, verify, detail). Nunca sale del cliente y se
+// borra en clearSession() / cierre de pestaña.
+const SEED_KEY = 'rxpro_seed';
 
 export interface SessionData {
   id: number;
@@ -58,6 +63,24 @@ export function clearSession(): void {
   if (typeof sessionStorage === 'undefined') return;
   sessionStorage.removeItem(TOKEN_KEY);
   sessionStorage.removeItem(SESSION_KEY);
+  sessionStorage.removeItem(SEED_KEY);
+}
+
+/**
+ * Guarda la semilla hex del QR del usuario logueado. Solo debe llamarse
+ * desde el flujo de login por tarjeta (loginWithCard).
+ */
+export function saveUserSeed(seedHex: string): void {
+  if (typeof sessionStorage === 'undefined') return;
+  const clean = (seedHex || '').trim().toLowerCase();
+  if (!/^[0-9a-f]{64}$/.test(clean)) return;
+  sessionStorage.setItem(SEED_KEY, clean);
+}
+
+/** Devuelve la semilla hex del usuario logueado, o null si no hay sesión con tarjeta. */
+export function getUserSeed(): string | null {
+  if (typeof sessionStorage === 'undefined') return null;
+  return sessionStorage.getItem(SEED_KEY);
 }
 
 /**

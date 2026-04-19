@@ -1,4 +1,7 @@
 import os
+import secrets
+import hashlib
+import hmac
 from datetime import date
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -17,24 +20,68 @@ from src.database import models
 from src.core import security
 from src.api_gateway.routers import recetas, auth, usuarios, clinicas
 
-# Llaves privadas de demo (las mismas que el frontend usa en testData.ts).
-# Solo se usan aquí para DERIVAR la pública y sembrar Llave para los
-# usuarios demo, de modo que el flujo criptográfico completo funcione sin
-# registro manual. Nunca se persisten en BD.
-_DEMO_PRIV_MEDICO      = "a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f90"
-_DEMO_PRIV_PACIENTE    = "11223344556677889900aabbccddeeff11223344556677889900aabbccddeeff"
-_DEMO_PRIV_FARMACEUTICO = "ffeeddccbbaa00998877665544332211ffeeddccbbaa00998877665544332211"
+
+# ── Derivación de llaves demo ────────────────────────────────────────────
+# El backend no necesita (ni debe) conocer llaves privadas. Lo único que
+# requiere para sembrar los usuarios demo es su llave pública, derivada de
+# la semilla de la tarjeta QR.
+#
+# La derivación aquí es equivalente a la del frontend
+# (`frontend/src/crypto/seedDerivation.ts`): HKDF-SHA256 sobre la semilla
+# con los mismos salt/info/counter. Debe mantenerse en sincronía.
+_HKDF_SALT = b"rxpro-2026:cardkey-salt:v1"
+_HKDF_INFO = b"rxpro-v1:p256:identity-key"
+# Orden del subgrupo de P-256 (NIST FIPS 186-4, D.1.2.3).
+_P256_N = 0xffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551
 
 
-def _pub_hex_from_priv_hex(priv_hex: str) -> str:
-    """Deriva la llave pública P-256 (uncompressed hex, 130 chars) desde un
-    escalar privado en hex. Usado solo para sembrar usuarios demo."""
-    priv_int = int(priv_hex, 16)
-    priv = ec.derive_private_key(priv_int, ec.SECP256R1())
-    pub_bytes = priv.public_key().public_bytes(
-        Encoding.X962, PublicFormat.UncompressedPoint
-    )
-    return pub_bytes.hex()
+def _hkdf_sha256(ikm: bytes, salt: bytes, info: bytes, length: int) -> bytes:
+    prk = hmac.new(salt, ikm, hashlib.sha256).digest()
+    okm = b""
+    prev = b""
+    counter = 1
+    while len(okm) < length:
+        prev = hmac.new(prk, prev + info + bytes([counter]), hashlib.sha256).digest()
+        okm += prev
+        counter += 1
+    return okm[:length]
+
+
+def _pub_hex_from_seed_hex(seed_hex: str) -> str:
+    """Deriva la llave pública P-256 (uncompressed hex, 130 chars) desde una
+    semilla hex de 32 bytes siguiendo el mismo HKDF que el frontend."""
+    seed = bytes.fromhex(seed_hex.strip().lower())
+    if len(seed) != 32:
+        raise ValueError("La semilla debe ser exactamente 32 bytes.")
+    for counter in range(256):
+        info = _HKDF_INFO + bytes([counter])
+        raw = _hkdf_sha256(seed, _HKDF_SALT, info, 32)
+        scalar = int.from_bytes(raw, "big")
+        if 0 < scalar < _P256_N:
+            priv = ec.derive_private_key(scalar, ec.SECP256R1())
+            pub_bytes = priv.public_key().public_bytes(
+                Encoding.X962, PublicFormat.UncompressedPoint
+            )
+            return pub_bytes.hex()
+    raise RuntimeError("No se pudo derivar un escalar válido desde la semilla.")
+
+
+def _resolve_demo_seed(env_var: str, label: str) -> str:
+    """Devuelve la semilla demo para `label`:
+
+    - Si `env_var` está definida con 64 hex chars, se usa esa (permite que
+      los QRs demo sean estables entre reinicios).
+    - Si no, se genera una aleatoria y se imprime con un banner al stdout
+      para que el operador pueda regenerar los QRs demo. En ese caso las
+      seeds cambian en cada arranque — solo útil en ejecuciones de dev.
+    """
+    raw = (os.getenv(env_var) or "").strip().lower()
+    if len(raw) == 64 and all(c in "0123456789abcdef" for c in raw):
+        return raw
+    generated = secrets.token_hex(32)
+    print(f"⚠ Semilla demo generada para {label}: {generated}")
+    print(f"  Guarda en tu .env como {env_var}={generated} si quieres persistirla.")
+    return generated
 
 def _ensure_roles(session: Session) -> None:
     """Crea los roles base si no existen."""
@@ -141,22 +188,27 @@ def _seed_demo_data(session: Session) -> None:
     session.refresh(paciente_u)
     session.refresh(farma_u)
 
-    # Sembramos las llaves públicas derivadas de las privadas de demo
-    # (testData.ts en el frontend) para que el flujo ECDSA de extremo a
-    # extremo funcione sin registro manual.
+    # Sembramos las llaves públicas derivadas de las semillas demo. Las
+    # semillas se toman de variables de entorno si están presentes; si no,
+    # se generan aleatorias y se imprimen al stdout para que el operador
+    # pueda regenerar los QRs demo. Las privadas nunca viven en el backend.
+    seed_medico    = _resolve_demo_seed("DEMO_SEED_MEDICO",      "médico")
+    seed_paciente  = _resolve_demo_seed("DEMO_SEED_PACIENTE",    "paciente")
+    seed_farma     = _resolve_demo_seed("DEMO_SEED_FARMACEUTICO","farmacéutico")
+
     session.add(models.Llave(
         id_usuario=medico_u.id_usuario,
-        llave_publica=_pub_hex_from_priv_hex(_DEMO_PRIV_MEDICO),
+        llave_publica=_pub_hex_from_seed_hex(seed_medico),
         activo=True,
     ))
     session.add(models.Llave(
         id_usuario=paciente_u.id_usuario,
-        llave_publica=_pub_hex_from_priv_hex(_DEMO_PRIV_PACIENTE),
+        llave_publica=_pub_hex_from_seed_hex(seed_paciente),
         activo=True,
     ))
     session.add(models.Llave(
         id_usuario=farma_u.id_usuario,
-        llave_publica=_pub_hex_from_priv_hex(_DEMO_PRIV_FARMACEUTICO),
+        llave_publica=_pub_hex_from_seed_hex(seed_farma),
         activo=True,
     ))
     session.commit()
@@ -185,6 +237,25 @@ def create_initial_data(session: Session):
     _ensure_roles(session)
     _seed_demo_data(session)
 
+def _warn_if_multiworker() -> None:
+    """El cache de retos en auth.py vive en memoria del proceso y NO se
+    comparte entre workers. Con >1 worker los login por tarjeta fallan y
+    queda expuesto a replay parciales. Aborta con warning al stdout si
+    detectamos un entorno multi-worker. Migrar a Redis para levantar esta
+    restricción."""
+    raw = os.getenv("WEB_CONCURRENCY") or os.getenv("UVICORN_WORKERS") or os.getenv("GUNICORN_WORKERS")
+    try:
+        workers = int(raw) if raw else 1
+    except ValueError:
+        workers = 1
+    if workers > 1:
+        print(
+            "⚠  WEB_CONCURRENCY/workers > 1 detectado. El cache de challenges "
+            "de login-por-tarjeta NO se comparte entre workers. Corre con "
+            "--workers 1 hasta mover los retos a Redis o BD."
+        )
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # --- Lógica de Inicio (Startup) ---
@@ -192,10 +263,11 @@ async def lifespan(app: FastAPI):
     SQLModel.metadata.create_all(engine)
     with Session(engine) as session:
         create_initial_data(session)
+    _warn_if_multiworker()
     print("Base de datos sincronizada.")
-    
+
     yield  # Aquí es donde el servidor "vive" y acepta peticiones
-    
+
     # --- Lógica de Cierre (Shutdown) ---
     print("Cerrando recursos...")
 

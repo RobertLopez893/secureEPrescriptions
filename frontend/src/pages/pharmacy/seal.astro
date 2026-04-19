@@ -58,8 +58,7 @@ const checklist=['MEDICAMENTO CORRECTO (AMOXICILINA 500MG)','CANTIDAD CORRECTA (
 <script>
   import { Api, ApiError, getSession } from '../../utils/api.ts'
   import { CryptoEngine } from '../../crypto/index.ts'
-  import { testKeys } from '../../utils/testData.ts'
-  import { getPublicKey } from '../../utils/cryptoFlow.ts'
+  import { getUserPrivKeyHex } from '../../utils/userKeys.ts'
   import { requireSession } from '../../utils/sessionGuard.ts'
   requireSession('Farmaceutico', '/pharmacy/login')
 
@@ -113,21 +112,14 @@ const checklist=['MEDICAMENTO CORRECTO (AMOXICILINA 500MG)','CANTIDAD CORRECTA (
 
     try {
       const payload = JSON.parse(payloadRaw)
-      // Reempaqueta la cápsula llamando a CryptoEngine.sellar que añade el HMAC
-      // y regenera los keyWraps para paciente y doctor
-      const sellada = CryptoEngine.sellar(
-        payload.contenedor.capsula_cifrada || '', // no aplica, sellar espera ciphertext original
-        '',                                        // idem
-        '',                                        // wrappedKey original (no necesario en demo)
-        '',                                        // nonce kw original (no necesario en demo)
-        testKeys.farmaceutico,
-        payload.doctorPubHex,
-        payload.pacientePubHex,
-      ) as any
 
-      // NOTA: CryptoEngine.sellar como está necesita el ciphertext + wrap; en
-      // esta iteración construimos la nueva cápsula manualmente con el
-      // contenedor ya abierto + HMAC.
+      // La llave privada del farmacéutico viene de la seed del QR con la
+      // que inició sesión (no usamos llaves hardcoded).
+      const farmaceuticoPriv = getUserPrivKeyHex()
+      if (!farmaceuticoPriv) {
+        throw new Error('No hay llave derivada en esta sesión. Vuelve a iniciar con tu tarjeta QR.')
+      }
+
       const { EncryptionModule } = await import('../../crypto/encryption.ts')
       const { HmacModule }       = await import('../../crypto/hmac.ts')
       const { KeyWrapModule }    = await import('../../crypto/keyWrap.ts')
@@ -137,7 +129,7 @@ const checklist=['MEDICAMENTO CORRECTO (AMOXICILINA 500MG)','CANTIDAD CORRECTA (
       const fecha = new Date().toISOString()
       const hmacSello = HmacModule.generateSeal(
         `${payload.contenedor.datos.id_receta}-${fecha}`,
-        testKeys.farmaceutico,
+        farmaceuticoPriv,
       )
       const contenedorActualizado = {
         ...payload.contenedor,
@@ -148,8 +140,8 @@ const checklist=['MEDICAMENTO CORRECTO (AMOXICILINA 500MG)','CANTIDAD CORRECTA (
         },
       }
       const nuevoCifrado = EncryptionModule.encrypt(contenedorActualizado as any, dek)
-      const wrapPaciente = KeyWrapModule.wrap(dek, testKeys.farmaceutico, payload.pacientePubHex)
-      const wrapDoctor   = KeyWrapModule.wrap(dek, testKeys.farmaceutico, payload.doctorPubHex)
+      const wrapPaciente = KeyWrapModule.wrap(dek, farmaceuticoPriv, payload.pacientePubHex)
+      const wrapDoctor   = KeyWrapModule.wrap(dek, farmaceuticoPriv, payload.doctorPubHex)
 
       const session = getSession()
       const idFarmaceutico = session && session.role === 'Farmaceutico' ? session.id : 1
