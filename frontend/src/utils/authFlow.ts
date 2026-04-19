@@ -8,7 +8,6 @@
  */
 
 import { p256 } from '@noble/curves/nist.js'
-import { sha256 } from '@noble/hashes/sha2.js'
 import { bytesToHex, hexToBytes } from '@noble/hashes/utils.js'
 
 import { deriveKeysFromSeed } from '../crypto/seedDerivation.ts'
@@ -29,13 +28,14 @@ export async function loginWithCard(card: CardPayload): Promise<SessionData> {
   // 2) Derivar llaves desde la semilla
   const { privateKeyHex } = deriveKeysFromSeed(card.seedHex)
 
-  // 3) Firmar SHA-256(nonce_bytes). El backend verifica con
-  //    ec.ECDSA(hashes.SHA256()), que aplica SHA-256 al mensaje antes de
-  //    verificar — así que el cliente debe hashear antes y pasar el
-  //    digest a p256.sign, que NO re-hashea (espera un digest de 32 B).
+  // 3) Firmar el nonce. El backend verifica con ec.ECDSA(hashes.SHA256()),
+  //    que aplica SHA-256 al mensaje antes de verificar. En @noble/curves
+  //    v2 `p256.sign` también aplica SHA-256 al mensaje cuando se pasa
+  //    `prehash:true`, así que entregamos el nonce crudo y dejamos que
+  //    noble lo hashee. Llamar a sign(sha256(nonce)) sin la opción causa
+  //    un doble hashing y el backend rechaza la firma.
   const nonceBytes = hexToBytes(challenge.nonce_hex)
-  const digest = sha256(nonceBytes)
-  const sig: any = p256.sign(digest, hexToBytes(privateKeyHex))
+  const sig: any = p256.sign(nonceBytes, hexToBytes(privateKeyHex), { prehash: true })
   const compact: Uint8Array =
     typeof sig?.toCompactRawBytes === 'function'
       ? sig.toCompactRawBytes()
