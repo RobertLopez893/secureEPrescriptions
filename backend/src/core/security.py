@@ -2,25 +2,40 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
+import bcrypt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
-from passlib.context import CryptContext
 
 from src.core.config import settings
-
-# Configuración para el hasheo de contraseñas con bcrypt
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # tokenUrl es solo documental para /docs; el login real es /api/v1/auth/login
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login", auto_error=False)
 
+# Se usa bcrypt directo (no passlib) porque passlib 1.7.4 es incompatible
+# con bcrypt >= 4.1: rompe al inspeccionar bcrypt.__about__ y dispara
+# ValueError al detectar su "wrap bug". bcrypt directo funciona con toda
+# la serie 4.x/5.x.
+#
+# bcrypt acepta como máximo 72 bytes: truncamos explícitamente para no
+# propagar el ValueError si alguien envía una contraseña más larga. En la
+# práctica bcrypt ignora los bytes a partir del 72 de todas formas.
+_BCRYPT_MAX_BYTES = 72
+
+
+def _encode(password: str) -> bytes:
+    return password.encode("utf-8")[:_BCRYPT_MAX_BYTES]
+
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return pwd_context.verify(plain_password, hashed_password)
+    try:
+        return bcrypt.checkpw(_encode(plain_password), hashed_password.encode("utf-8"))
+    except (ValueError, TypeError):
+        return False
+
 
 def get_password_hash(password: str) -> str:
-    return pwd_context.hash(password)
+    return bcrypt.hashpw(_encode(password), bcrypt.gensalt()).decode("utf-8")
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     to_encode = data.copy()
