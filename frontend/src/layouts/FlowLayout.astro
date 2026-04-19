@@ -81,14 +81,63 @@ const roleLabelStyle = "font-family:'Press Start 2P',monospace;font-size:8px;col
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
   <title>{title} — RxPro</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 16'><rect x='1' y='3' width='14' height='10' rx='5' fill='%23e8003d'/><rect x='17' y='3' width='14' height='10' rx='5' fill='white'/></svg>"/>
+  <!-- Early theme paint (antes de body) para evitar flash -->
+  <script is:inline>
+    (function () {
+      try {
+        var t = localStorage.getItem('rxpro_theme') || 'dark';
+        if (t !== 'light' && t !== 'dark') t = 'dark';
+        document.documentElement.setAttribute('data-theme', t);
+      } catch (_) {
+        document.documentElement.setAttribute('data-theme', 'dark');
+      }
+    })();
+  </script>
   <style>
     .pill-bg { position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:0; }
     .pill-sprite { position:absolute;animation:pill-fall linear infinite;opacity:0; }
     .virus-ambient { position:absolute;animation:virus-wiggle ease-in-out infinite;opacity:.35; }
-    .topbar { background:#0d0e1a;border-bottom:4px solid #070810;position:sticky;top:0;z-index:50; }
-    .stepbar { background:#1a1e30;border-bottom:3px solid #0d0e1a; }
+    .topbar  { background:var(--surface-topbar);border-bottom:4px solid var(--surface-topbar-border);position:sticky;top:0;z-index:50; }
+    .stepbar { background:var(--surface-stepbar);border-bottom:3px solid var(--surface-topbar); }
     .flow-main { flex:1;display:flex;flex-direction:column;align-items:center;padding:36px 16px;position:relative;z-index:1; }
-    body::after { content:'';position:fixed;inset:0;pointer-events:none;z-index:9998;background:repeating-linear-gradient(0deg,rgba(0,0,0,.035),rgba(0,0,0,.035) 1px,transparent 1px,transparent 3px); }
+    /* Scanline overlay: sutil en dark, aún más sutil en light */
+    body::after { content:'';position:fixed;inset:0;pointer-events:none;z-index:9998;
+                  background:repeating-linear-gradient(0deg,rgba(0,0,0,.035),rgba(0,0,0,.035) 1px,transparent 1px,transparent 3px); }
+    :root[data-theme="light"] body::after {
+      background:repeating-linear-gradient(0deg,rgba(27,58,63,.025),rgba(27,58,63,.025) 1px,transparent 1px,transparent 3px);
+    }
+    /* Visibilidad de animaciones ambientales en light */
+    :root[data-theme="light"] .pill-sprite  { opacity:0; }
+    :root[data-theme="light"] .pill-sprite svg rect:first-child,
+    :root[data-theme="light"] .pill-sprite svg rect:nth-child(2) { filter: saturate(.75); }
+    :root[data-theme="light"] .virus-ambient { opacity:.18; }
+
+    /* Logo wordmark: invierte color según tema */
+    .rxpro-wordmark { color: var(--text-primary); }
+    /* Footer y hints */
+    .rxpro-footer { background:var(--surface-topbar);border-top:3px solid var(--surface-stepbar); }
+    .rxpro-footer .dim { color:var(--text-subtle); }
+    .rxpro-footer .chip { border:2px solid var(--border-default);color:var(--text-subtle); }
+    /* Back button themed */
+    .rxpro-back { color:var(--text-dim);border:2px solid var(--border-default);background:var(--surface-stepbar);box-shadow:2px 2px 0 var(--surface-topbar); }
+    .rxpro-back:hover { color:var(--text-primary);border-color:var(--text-dim); }
+    /* Step "wait" (pendiente) themed */
+    .rxpro-step-wait { width:34px;height:34px;border:3px solid var(--border-default);background:var(--surface-stepbar);
+                       display:flex;align-items:center;justify-content:center;
+                       font-family:'Press Start 2P',monospace;font-size:10px;color:var(--text-subtle); }
+    /* Theme toggle */
+    .rxpro-theme-toggle {
+      display:inline-flex;align-items:center;gap:6px;margin-left:6px;padding:5px 8px;
+      border:2px solid var(--border-default);background:transparent;color:var(--text-muted);
+      font-family:'Press Start 2P',monospace;font-size:7px;letter-spacing:.08em;cursor:pointer;
+      transition:all .05s;
+    }
+    .rxpro-theme-toggle:hover { border-color:var(--accent-purple);color:var(--accent-purple);
+                                background:color-mix(in srgb, var(--accent-purple) 12%, transparent); }
+    .rxpro-theme-toggle .ico-sun  { display:none; }
+    .rxpro-theme-toggle .ico-moon { display:inline-block; }
+    :root[data-theme="light"] .rxpro-theme-toggle .ico-sun  { display:inline-block; }
+    :root[data-theme="light"] .rxpro-theme-toggle .ico-moon { display:none; }
   </style>
 </head>
 <body style="min-height:100vh;display:flex;flex-direction:column;">
@@ -329,7 +378,7 @@ const roleLabelStyle = "font-family:'Press Start 2P',monospace;font-size:8px;col
         <rect x="15" y="3" width="2" height="10" fill="#1a1c2c"/>
         <rect x="2" y="3" width="12" height="4" rx="3" fill="rgba(255,255,255,.25)"/>
       </svg>
-      <span style="font-family:'Press Start 2P',monospace;font-size:12px;color:#f4f4f4;">RxPro</span>
+      <span class="rxpro-wordmark" style="font-family:'Press Start 2P',monospace;font-size:12px;">RxPro</span>
     </a>
 
     <!-- Role badge with icon -->
@@ -341,7 +390,7 @@ const roleLabelStyle = "font-family:'Press Start 2P',monospace;font-size:8px;col
     </div>
 
     <!-- Nav with role icons -->
-    <nav style="display:flex;gap:3px;">
+    <nav style="display:flex;gap:3px;align-items:center;">
       {navLinks.map((r) => (
         <a href={r.href}
            title={r.label}
@@ -354,6 +403,50 @@ const roleLabelStyle = "font-family:'Press Start 2P',monospace;font-size:8px;col
           <span style={r.spanStyle} class="sm:inline">{r.label}</span>
         </a>
       ))}
+
+      <!-- Theme toggle (claro/oscuro) -->
+      <button id="rxpro-theme-toggle" type="button" title="Cambiar tema" class="rxpro-theme-toggle">
+        <svg class="ico-moon" width="11" height="11" viewBox="0 0 14 14" style="image-rendering:pixelated;">
+          <rect x="6" y="0" width="6" height="2" fill="currentColor"/>
+          <rect x="3" y="2" width="7" height="2" fill="currentColor"/>
+          <rect x="1" y="4" width="7" height="2" fill="currentColor"/>
+          <rect x="0" y="6" width="7" height="2" fill="currentColor"/>
+          <rect x="1" y="8" width="7" height="2" fill="currentColor"/>
+          <rect x="3" y="10" width="7" height="2" fill="currentColor"/>
+          <rect x="6" y="12" width="6" height="2" fill="currentColor"/>
+        </svg>
+        <svg class="ico-sun" width="11" height="11" viewBox="0 0 14 14" style="image-rendering:pixelated;">
+          <rect x="6" y="0" width="2" height="3" fill="currentColor"/>
+          <rect x="6" y="11" width="2" height="3" fill="currentColor"/>
+          <rect x="0" y="6" width="3" height="2" fill="currentColor"/>
+          <rect x="11" y="6" width="3" height="2" fill="currentColor"/>
+          <rect x="2" y="2" width="2" height="2" fill="currentColor"/>
+          <rect x="10" y="2" width="2" height="2" fill="currentColor"/>
+          <rect x="2" y="10" width="2" height="2" fill="currentColor"/>
+          <rect x="10" y="10" width="2" height="2" fill="currentColor"/>
+          <rect x="5" y="4" width="4" height="6" fill="currentColor"/>
+          <rect x="4" y="5" width="6" height="4" fill="currentColor"/>
+        </svg>
+        <span id="rxpro-theme-label">MODO</span>
+      </button>
+
+      <!-- Logout: visible solo cuando hay sesión (ver script al final). -->
+      <button id="rxpro-logout" type="button" title="Cerrar sesión"
+              style="display:none;margin-left:6px;padding:5px 8px;border:2px solid var(--border-default);background:transparent;color:var(--text-muted);box-shadow:none;cursor:pointer;font-family:'Press Start 2P',monospace;font-size:7px;letter-spacing:.08em;align-items:center;gap:6px;transition:all .05s;"
+              onmouseover="this.style.borderColor='var(--role-pharmacy)';this.style.color='var(--role-pharmacy)';this.style.background='color-mix(in srgb, var(--role-pharmacy) 12%, transparent)'"
+              onmouseout="this.style.borderColor='var(--border-default)';this.style.color='var(--text-muted)';this.style.background='transparent'">
+        <svg width="12" height="12" viewBox="0 0 16 16" style="image-rendering:pixelated;">
+          <rect x="0" y="0" width="4" height="4" fill="currentColor"/>
+          <rect x="12" y="0" width="4" height="4" fill="currentColor"/>
+          <rect x="4" y="4" width="4" height="4" fill="currentColor"/>
+          <rect x="8" y="4" width="4" height="4" fill="currentColor"/>
+          <rect x="4" y="8" width="4" height="4" fill="currentColor"/>
+          <rect x="8" y="8" width="4" height="4" fill="currentColor"/>
+          <rect x="0" y="12" width="4" height="4" fill="currentColor"/>
+          <rect x="12" y="12" width="4" height="4" fill="currentColor"/>
+        </svg>
+        SALIR
+      </button>
     </nav>
   </div>
 </header>
@@ -372,7 +465,7 @@ const roleLabelStyle = "font-family:'Press Start 2P',monospace;font-size:8px;col
             ) : sd.isActive ? (
               <div style={sd.curStyle}>{sd.num}</div>
             ) : (
-              <div style="width:34px;height:34px;border:3px solid #29366f;background:#1a1e30;display:flex;align-items:center;justify-content:center;font-family:'Press Start 2P',monospace;font-size:10px;color:#29366f;">{sd.num}</div>
+              <div class="rxpro-step-wait">{sd.num}</div>
             )}
             <span style={sd.spanStyle}>{sd.label}</span>
           </div>
@@ -389,10 +482,8 @@ const roleLabelStyle = "font-family:'Press Start 2P',monospace;font-size:8px;col
 <main class="flow-main">
   <div style={mainWidth}>
     {back && (
-      <a href={back}
-         style="display:inline-flex;align-items:center;gap:8px;font-family:'Press Start 2P',monospace;font-size:8px;color:#5b6ee1;text-decoration:none;margin-bottom:24px;padding:8px 12px;border:2px solid #29366f;background:#1a1e30;box-shadow:2px 2px 0 #0d0e1a;"
-         onmouseover="this.style.color='#f4f4f4';this.style.borderColor='#5b6ee1'"
-         onmouseout="this.style.color='#5b6ee1';this.style.borderColor='#29366f'">
+      <a href={back} class="rxpro-back"
+         style="display:inline-flex;align-items:center;gap:8px;font-family:'Press Start 2P',monospace;font-size:8px;text-decoration:none;margin-bottom:24px;padding:8px 12px;">
         <svg width="12" height="10" viewBox="0 0 16 12" style="image-rendering:pixelated;color:currentColor;">
           <rect x="4" y="4" width="12" height="4" fill="currentColor"/>
           <rect x="4" y="0" width="4" height="4" fill="currentColor"/>
@@ -407,7 +498,7 @@ const roleLabelStyle = "font-family:'Press Start 2P',monospace;font-size:8px;col
 </main>
 
 <!-- ═══ FOOTER ═══════════════════════════════════════════════════ -->
-<footer style="background:#0d0e1a;border-top:3px solid #1a1e30;padding:12px 20px;position:relative;z-index:1;">
+<footer class="rxpro-footer" style="padding:12px 20px;position:relative;z-index:1;">
   <div style="max-width:1100px;margin:0 auto;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;">
     <div style="display:flex;align-items:center;gap:8px;">
       <svg width="20" height="10" viewBox="0 0 32 16" style="image-rendering:pixelated;opacity:.5;">
@@ -415,15 +506,41 @@ const roleLabelStyle = "font-family:'Press Start 2P',monospace;font-size:8px;col
         <rect x="17" y="3" width="14" height="10" rx="5" fill="#f4f4f4"/>
         <rect x="15" y="3" width="2" height="10" fill="#1a1c2c"/>
       </svg>
-      <span style="font-family:'Press Start 2P',monospace;font-size:7px;color:#1a1e30;">RxPro · CRYPTOGRAPHY 2026</span>
+      <span class="dim" style="font-family:'Press Start 2P',monospace;font-size:7px;">RxPro · CRYPTOGRAPHY 2026</span>
     </div>
     <div style="display:flex;gap:5px;flex-wrap:wrap;">
       {['ECDSA','AES-GCM','HMAC','RFC8785'].map(t=>(
-        <span style="font-family:'Press Start 2P',monospace;font-size:6px;padding:3px 7px;border:2px solid #29366f;color:#29366f;">{t}</span>
+        <span class="chip" style="font-family:'Press Start 2P',monospace;font-size:6px;padding:3px 7px;">{t}</span>
       ))}
     </div>
   </div>
 </footer>
+
+<!-- ═══ BACKEND OFFLINE BANNER ═══════════════════════════════════ -->
+<!--
+  Se muestra cuando cualquier llamada fetch dentro de utils/api.ts lanza
+  por "failed to fetch" (backend caído, DNS malo, CORS bloqueando, etc).
+  Se oculta automáticamente cuando el siguiente request vuelve a
+  contestar. El botón "reintentar" simplemente recarga la página.
+-->
+<div id="api-offline-banner"
+     style="display:none;position:fixed;top:52px;left:0;right:0;z-index:60;
+            background:#2a1018;border-bottom:3px solid #a53030;color:#f4c4c4;
+            padding:10px 20px;font-family:'Press Start 2P',monospace;font-size:8px;
+            letter-spacing:.08em;display:none;align-items:center;gap:14px;
+            justify-content:center;flex-wrap:wrap;">
+  <span style="display:inline-flex;align-items:center;gap:8px;">
+    <span class="anim-blink" style="display:inline-block;width:8px;height:8px;background:#e8003d;"></span>
+    BACKEND NO RESPONDE
+  </span>
+  <span id="api-offline-detail" style="font-family:'VT323',monospace;font-size:16px;color:#f4a4a4;letter-spacing:normal;"></span>
+  <button id="api-offline-retry" type="button"
+          style="background:#1a0a0a;border:2px solid #e8003d;color:#e8003d;
+                 padding:6px 10px;font-family:'Press Start 2P',monospace;
+                 font-size:8px;cursor:pointer;letter-spacing:.08em;">
+    REINTENTAR
+  </button>
+</div>
 
 <!-- ═══ TOAST NOTIFICATION SLOT ══════════════════════════════════ -->
 <div id="toast-container"></div>
@@ -459,6 +576,66 @@ const roleLabelStyle = "font-family:'Press Start 2P',monospace;font-size:8px;col
     document.getElementById('toast-container').appendChild(t)
     setTimeout(() => t.remove(), 2900)
   }
+
+  // ── Theme toggle (dark ⇄ light, persistido en localStorage) ──
+  try {
+    const toggleBtn = document.getElementById('rxpro-theme-toggle')
+    const toggleLbl = document.getElementById('rxpro-theme-label')
+    const applyLabel = () => {
+      const t = document.documentElement.getAttribute('data-theme') || 'dark'
+      if (toggleLbl) toggleLbl.textContent = t === 'light' ? 'CLARO' : 'OSCURO'
+    }
+    applyLabel()
+    if (toggleBtn) {
+      toggleBtn.addEventListener('click', () => {
+        const cur = document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark'
+        const next = cur === 'light' ? 'dark' : 'light'
+        document.documentElement.setAttribute('data-theme', next)
+        try { localStorage.setItem('rxpro_theme', next) } catch {}
+        applyLabel()
+      })
+    }
+  } catch { /* noop */ }
+
+  // ── Banner "backend offline" ─────────────────────────────────
+  // utils/api.ts dispara eventos globales cuando la red falla o vuelve.
+  // Aquí montamos el listener y el botón de reintentar (recarga la pág).
+  try {
+    const banner = document.getElementById('api-offline-banner')
+    const detail = document.getElementById('api-offline-detail')
+    const retry  = document.getElementById('api-offline-retry')
+    if (banner) {
+      window.addEventListener('rxpro:api-offline', (ev) => {
+        const d = (ev && ev.detail) || {}
+        if (detail && d.message) detail.textContent = '(' + d.message + ')'
+        banner.style.display = 'flex'
+      })
+      window.addEventListener('rxpro:api-online', () => {
+        banner.style.display = 'none'
+      })
+    }
+    if (retry) {
+      retry.addEventListener('click', () => window.location.reload())
+    }
+  } catch { /* noop */ }
+
+  // ── Botón de logout en el topbar ─────────────────────────────
+  // El botón vive en todos los layouts, pero solo se muestra si hay
+  // sesión. No mezclamos con el flujo de login/landing (donde no aplica).
+  try {
+    const logoutBtn = document.getElementById('rxpro-logout')
+    if (logoutBtn) {
+      const raw = sessionStorage.getItem('rxpro_session')
+      if (raw) {
+        logoutBtn.style.display = 'inline-flex'
+        logoutBtn.addEventListener('click', () => {
+          sessionStorage.removeItem('rxpro_token')
+          sessionStorage.removeItem('rxpro_session')
+          window.location.replace('/')
+        })
+      }
+    }
+  } catch { /* sessionStorage bloqueado: ignorar */ }
 </script>
 
 </body>

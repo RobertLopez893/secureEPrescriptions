@@ -1,0 +1,112 @@
+---
+// Pantalla de login del administrador. Esta es la única vía de acceso
+// por correo + contraseña que queda en el sistema: clínicos (médico/
+// paciente/farmacéutico) entran con tarjeta QR emitida justamente desde
+// el panel /admin.
+import '../../styles/global.css'
+---
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>RxPro — Administrador</title>
+  <script is:inline>
+    (function () {
+      try {
+        var t = localStorage.getItem('rxpro_theme') || 'dark';
+        if (t !== 'light' && t !== 'dark') t = 'dark';
+        document.documentElement.setAttribute('data-theme', t);
+      } catch (_) {
+        document.documentElement.setAttribute('data-theme', 'dark');
+      }
+    })();
+  </script>
+</head>
+<body style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;background:var(--surface-base);">
+
+  <div style="width:100%;max-width:440px;">
+    <div style="text-align:center;margin-bottom:28px;">
+      <div style="display:inline-flex;gap:8px;margin-bottom:14px;">
+        <svg width="28" height="14" viewBox="0 0 32 16" style="image-rendering:pixelated;">
+          <rect x="1" y="3" width="14" height="10" rx="5" fill="#e8003d"/>
+          <rect x="17" y="3" width="14" height="10" rx="5" fill="#f4f4f4"/>
+          <rect x="15" y="3" width="2" height="10" fill="#1a1c2c"/>
+        </svg>
+        <span style="font-family:'Press Start 2P',monospace;font-size:12px;color:var(--text-primary);letter-spacing:.1em;">RXPRO</span>
+      </div>
+      <h1 style="font-family:'Press Start 2P',monospace;font-size:11px;color:var(--role-doctor);line-height:1.7;">
+        PANEL DE ADMINISTRACIÓN
+      </h1>
+      <p style="font-family:'VT323',monospace;font-size:20px;color:var(--text-muted);margin-top:6px;">
+        Ingresa con tus credenciales para emitir tarjetas.
+      </p>
+    </div>
+
+    <form id="admin-form" style="background:var(--surface-card);border:3px solid var(--border-default);box-shadow:6px 6px 0 var(--shadow-base);padding:24px;display:flex;flex-direction:column;gap:14px;">
+      <label style="display:flex;flex-direction:column;gap:6px;">
+        <span style="font-family:'Press Start 2P',monospace;font-size:8px;color:var(--text-subtle);">CORREO</span>
+        <input type="email" id="correo" required autocomplete="username"
+               placeholder="admin@rxpro.demo"
+               style="font-family:'VT323',monospace;font-size:20px;padding:10px 12px;background:var(--surface-inset);border:2px solid var(--border-default);color:var(--text-primary);"/>
+      </label>
+      <label style="display:flex;flex-direction:column;gap:6px;">
+        <span style="font-family:'Press Start 2P',monospace;font-size:8px;color:var(--text-subtle);">CONTRASEÑA</span>
+        <input type="password" id="contrasena" required autocomplete="current-password"
+               placeholder="••••••••"
+               style="font-family:'VT323',monospace;font-size:20px;padding:10px 12px;background:var(--surface-inset);border:2px solid var(--border-default);color:var(--text-primary);"/>
+      </label>
+      <p id="login-err" style="display:none;font-family:'VT323',monospace;font-size:18px;color:var(--role-pharmacy);"></p>
+      <button id="login-btn" type="submit" class="px-btn px-btn-green px-btn-lg" style="margin-top:6px;justify-content:center;">
+        INGRESAR
+      </button>
+      <a href="/" style="text-align:center;font-family:'Press Start 2P',monospace;font-size:7px;color:var(--text-subtle);text-decoration:none;margin-top:4px;">
+        ◄ VOLVER AL INICIO
+      </a>
+    </form>
+
+    <p style="font-family:'VT323',monospace;font-size:16px;color:var(--text-subtle);text-align:center;margin-top:16px;line-height:1.5;">
+      Demo: <strong style="color:var(--text-muted);">admin@rxpro.demo</strong> / <strong style="color:var(--text-muted);">admin1234</strong>
+    </p>
+  </div>
+
+<script>
+  import { Api, ApiError, getSession } from '../../utils/api.ts'
+
+  // Si ya hay sesión de admin, saltar directo al panel.
+  const existing = getSession()
+  if (existing && existing.role === 'Administrador') {
+    window.location.replace('/admin')
+  }
+
+  const form = document.getElementById('admin-form') as HTMLFormElement
+  const correoEl = document.getElementById('correo') as HTMLInputElement
+  const pwdEl    = document.getElementById('contrasena') as HTMLInputElement
+  const errEl    = document.getElementById('login-err') as HTMLParagraphElement
+  const btn      = document.getElementById('login-btn') as HTMLButtonElement
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault()
+    errEl.style.display = 'none'
+    btn.disabled = true
+    btn.textContent = 'VERIFICANDO...'
+    try {
+      const session = await Api.loginAndPersist({
+        correo:     correoEl.value.trim(),
+        contrasena: pwdEl.value,
+      })
+      if (session.role !== 'Administrador') {
+        throw new ApiError(403, 'Este usuario no es un Administrador.')
+      }
+      window.location.href = '/admin'
+    } catch (err) {
+      const msg = err instanceof ApiError ? err.detail : (err as any)?.message || 'Error al ingresar.'
+      errEl.textContent = msg
+      errEl.style.display = 'block'
+      btn.disabled = false
+      btn.textContent = 'INGRESAR'
+    }
+  })
+</script>
+</body>
+</html>

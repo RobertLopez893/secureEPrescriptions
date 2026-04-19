@@ -9,16 +9,16 @@ const steps = [
 <FlowLayout title="Farmacia — Verificar" role="pharmacy" steps={steps} currentStep={1} back="/pharmacy" wide={true}>
 <div class="anim-slide" style="display:flex;flex-direction:column;gap:20px;">
   <div>
-    <h1 style="font-family:'Press Start 2P',monospace;font-size:13px;color:#f4f4f4;margin-bottom:6px;">VERIFICAR RECETA</h1>
-    <p style="font-family:'VT323',monospace;font-size:22px;color:#c0cbdc;">
+    <h1 style="font-family:'Press Start 2P',monospace;font-size:13px;color:var(--text-primary);margin-bottom:6px;">VERIFICAR RECETA</h1>
+    <p style="font-family:'VT323',monospace;font-size:22px;color:var(--text-muted);">
       p256.verify() · sha256() · @noble/curves + @noble/hashes
     </p>
   </div>
 
   <!-- Cargando -->
-  <div id="state-loading" style="background:#222639;border:3px solid #29366f;padding:28px;text-align:center;">
-    <p style="font-family:'Press Start 2P',monospace;font-size:9px;color:#5b6ee1;" class="anim-blink">⏳ VERIFICANDO FIRMA...</p>
-    <p style="font-family:'VT323',monospace;font-size:19px;color:#c0cbdc;margin-top:8px;">Ejecutando p256.verify() con @noble/curves</p>
+  <div id="state-loading" style="background:var(--surface-card);border:3px solid var(--border-default);padding:28px;text-align:center;">
+    <p style="font-family:'Press Start 2P',monospace;font-size:9px;color:var(--text-subtle);" class="anim-blink">⏳ VERIFICANDO FIRMA...</p>
+    <p style="font-family:'VT323',monospace;font-size:19px;color:var(--text-muted);margin-top:8px;">Ejecutando p256.verify() con @noble/curves</p>
   </div>
 
   <!-- Grid principal -->
@@ -28,17 +28,17 @@ const steps = [
       <!-- LEFT: detalles receta -->
       <div style="display:flex;flex-direction:column;gap:12px;">
 
-        <div style="background:#0d1a2e;border:3px solid #41a6f6;box-shadow:4px 4px 0 #1a6eb0;padding:16px;display:flex;align-items:center;gap:12px;">
+        <div style="background:#0d1a2e;border:3px solid var(--role-patient);box-shadow:4px 4px 0 var(--role-patient-d);padding:16px;display:flex;align-items:center;gap:12px;">
           <span style="font-size:32px;flex-shrink:0;">🧑‍💼</span>
           <div>
-            <p style="font-family:'Press Start 2P',monospace;font-size:9px;color:#41a6f6;">GARCÍA MENDOZA, LUIS</p>
-            <p style="font-family:'VT323',monospace;font-size:19px;color:#c0cbdc;margin-top:4px;">GARM850315HDFNDS07</p>
-            <p style="font-family:'VT323',monospace;font-size:18px;color:#5b6ee1;">FOLIO XYZ-123 · 20 MAR 2026</p>
+            <p style="font-family:'Press Start 2P',monospace;font-size:9px;color:var(--role-patient);">GARCÍA MENDOZA, LUIS</p>
+            <p style="font-family:'VT323',monospace;font-size:19px;color:var(--text-muted);margin-top:4px;">GARM850315HDFNDS07</p>
+            <p style="font-family:'VT323',monospace;font-size:18px;color:var(--text-subtle);">FOLIO XYZ-123 · 20 MAR 2026</p>
           </div>
         </div>
 
-        <div style="background:#222639;border:3px solid #e8003d;box-shadow:4px 4px 0 #8c0025;overflow:hidden;">
-          <div style="background:#e8003d;padding:8px 14px;">
+        <div style="background:var(--surface-card);border:3px solid var(--role-pharmacy);box-shadow:4px 4px 0 var(--role-pharmacy-d);overflow:hidden;">
+          <div style="background:var(--role-pharmacy);padding:8px 14px;">
             <span style="font-family:'Press Start 2P',monospace;font-size:7px;color:white;">💊 PRESCRIPCIÓN</span>
           </div>
           <div style="padding:16px;">
@@ -49,27 +49,27 @@ const steps = [
               { l:'VIGENCIA',    v:'28 días restantes' },
               { l:'MÉDICO',      v:'Dr. Eduardo Ramírez · Cédula 4892103' },
             ].map(f => (
-              <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:2px solid #29366f;gap:8px;">
-                <span style="font-family:'Press Start 2P',monospace;font-size:6px;color:#5b6ee1;flex-shrink:0;width:80px;">{f.l}</span>
-                <span style={'text-align:right;font-family:\'VT323\',monospace;font-size:'+(f.big?'20px':'18px')+';color:'+(f.big?'#f4f4f4':'#c0cbdc')+';'}>{f.v}</span>
+              <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:2px solid var(--border-default);gap:8px;">
+                <span style="font-family:'Press Start 2P',monospace;font-size:6px;color:var(--text-subtle);flex-shrink:0;width:80px;">{f.l}</span>
+                <span style={'text-align:right;font-family:\'VT323\',monospace;font-size:'+(f.big?'20px':'18px')+';color:'+(f.big?'var(--text-primary)':'var(--text-muted)')+';'}>{f.v}</span>
               </div>
             ))}
           </div>
         </div>
 
-        <div id="doctor-chip" style="background:#1a2e1a;border:3px solid #38b764;padding:12px;display:flex;align-items:center;gap:10px;">
+        <div id="doctor-chip" style="background:#1a2e1a;border:3px solid var(--role-doctor);padding:12px;display:flex;align-items:center;gap:10px;">
           <span style="font-size:22px;">👨‍⚕️</span>
           <div>
-            <p style="font-family:'Press Start 2P',monospace;font-size:8px;color:#38b764;">DR. EDUARDO RAMÍREZ</p>
-            <p style="font-family:'VT323',monospace;font-size:17px;color:#c0cbdc;margin-top:3px;">
-              Cédula 4892103 · <span id="doctor-auth-label" style="color:#38b764;">AUTORIZADO ✓</span>
+            <p style="font-family:'Press Start 2P',monospace;font-size:8px;color:var(--role-doctor);">DR. EDUARDO RAMÍREZ</p>
+            <p style="font-family:'VT323',monospace;font-size:17px;color:var(--text-muted);margin-top:3px;">
+              Cédula 4892103 · <span id="doctor-auth-label" style="color:var(--role-doctor);">AUTORIZADO ✓</span>
             </p>
           </div>
         </div>
 
         <!-- Botones demo de tampering -->
-        <div style="background:#0d0e1a;border:3px dashed #29366f;padding:14px;">
-          <p style="font-family:'Press Start 2P',monospace;font-size:7px;color:#29366f;margin-bottom:10px;">DEMO — SIMULAR ATAQUE</p>
+        <div style="background:#0d0e1a;border:3px dashed var(--border-default);padding:14px;">
+          <p style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--border-default);margin-bottom:10px;">DEMO — SIMULAR ATAQUE</p>
           <div style="display:flex;flex-wrap:wrap;gap:8px;">
             <button id="btn-valid"  onclick="runVerify(false)" class="px-btn px-btn-ghost" style="font-size:7px;padding:5px 10px;">✓ RECETA ORIGINAL</button>
             <button id="btn-tamper" onclick="runVerify(true)"  class="px-btn px-btn-ghost" style="font-size:7px;padding:5px 10px;">⛔ DATOS ALTERADOS</button>
@@ -82,7 +82,7 @@ const steps = [
       <div style="display:flex;flex-direction:column;gap:12px;">
 
         <!-- VÁLIDO -->
-        <div id="result-valid" style="display:none;background:#1a2e1a;border:4px solid #38b764;box-shadow:6px 6px 0 #257a43;padding:28px;text-align:center;flex-direction:column;align-items:center;flex:1;">
+        <div id="result-valid" style="display:none;background:#1a2e1a;border:4px solid var(--role-doctor);box-shadow:6px 6px 0 var(--role-doctor-d);padding:28px;text-align:center;flex-direction:column;align-items:center;flex:1;">
           <div class="anim-float" style="margin-bottom:16px;">
             <svg width="80" height="96" viewBox="0 0 20 24" style="image-rendering:pixelated;">
               <rect x="2" y="0" width="16" height="2" fill="#38b764"/>
@@ -99,22 +99,22 @@ const steps = [
               <rect x="14" y="4"  width="2" height="2" fill="white"/>
             </svg>
           </div>
-          <h2 style="font-family:'Press Start 2P',monospace;font-size:11px;color:#38b764;line-height:1.7;margin-bottom:8px;">FIRMA VÁLIDA</h2>
-          <p style="font-family:'VT323',monospace;font-size:20px;color:#c0cbdc;margin-bottom:16px;line-height:1.4;">
-            p256.verify() → <strong style="color:#38b764;">true</strong>
+          <h2 style="font-family:'Press Start 2P',monospace;font-size:11px;color:var(--role-doctor);line-height:1.7;margin-bottom:8px;">FIRMA VÁLIDA</h2>
+          <p style="font-family:'VT323',monospace;font-size:20px;color:var(--text-muted);margin-bottom:16px;line-height:1.4;">
+            p256.verify() → <strong style="color:var(--role-doctor);">true</strong>
           </p>
-          <div style="width:100%;background:#222639;border:2px solid #38b764;padding:14px;text-align:left;">
+          <div style="width:100%;background:var(--surface-card);border:2px solid var(--role-doctor);padding:14px;text-align:left;">
             {['ECDSA P-256 VERIFY → PASS','SHA-256 HASH ÍNTEGRO','PAYLOAD NO ALTERADO','MÉDICO AUTORIZADO'].map(c => (
-              <div style="display:flex;gap:8px;padding:6px 0;border-bottom:1px solid #29366f;">
-                <span style="color:#38b764;font-family:'Press Start 2P',monospace;font-size:8px;flex-shrink:0;">✓</span>
-                <span style="font-family:'Press Start 2P',monospace;font-size:7px;color:#c0cbdc;line-height:1.7;">{c}</span>
+              <div style="display:flex;gap:8px;padding:6px 0;border-bottom:1px solid var(--border-default);">
+                <span style="color:var(--role-doctor);font-family:'Press Start 2P',monospace;font-size:8px;flex-shrink:0;">✓</span>
+                <span style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--text-muted);line-height:1.7;">{c}</span>
               </div>
             ))}
           </div>
         </div>
 
         <!-- DATOS ALTERADOS -->
-        <div id="result-tamper" style="display:none;background:#2a0d0d;border:4px solid #e8003d;box-shadow:6px 6px 0 #8c0025;padding:28px;text-align:center;flex-direction:column;align-items:center;flex:1;">
+        <div id="result-tamper" style="display:none;background:#2a0d0d;border:4px solid var(--role-pharmacy);box-shadow:6px 6px 0 var(--role-pharmacy-d);padding:28px;text-align:center;flex-direction:column;align-items:center;flex:1;">
           <div class="anim-bounce" style="margin-bottom:16px;">
             <svg width="80" height="96" viewBox="0 0 20 24" style="image-rendering:pixelated;">
               <rect x="2" y="0" width="16" height="2" fill="#e8003d"/>
@@ -129,30 +129,30 @@ const steps = [
               <rect x="5" y="13" width="3" height="3" fill="white"/> <rect x="12" y="13" width="3" height="3" fill="white"/>
             </svg>
           </div>
-          <h2 style="font-family:'Press Start 2P',monospace;font-size:10px;color:#e8003d;line-height:1.7;margin-bottom:8px;">DATOS MANIPULADOS</h2>
-          <p style="font-family:'VT323',monospace;font-size:20px;color:#c0cbdc;margin-bottom:12px;line-height:1.4;">
-            p256.verify() → <strong style="color:#e8003d;">false</strong><br/>
-            <strong style="color:#ffcd75;">No dispensar este medicamento.</strong>
+          <h2 style="font-family:'Press Start 2P',monospace;font-size:10px;color:var(--role-pharmacy);line-height:1.7;margin-bottom:8px;">DATOS MANIPULADOS</h2>
+          <p style="font-family:'VT323',monospace;font-size:20px;color:var(--text-muted);margin-bottom:12px;line-height:1.4;">
+            p256.verify() → <strong style="color:var(--role-pharmacy);">false</strong><br/>
+            <strong style="color:var(--accent-warn);">No dispensar este medicamento.</strong>
           </p>
-          <div style="width:100%;background:#1a0505;border:2px solid #e8003d;padding:12px;margin-bottom:10px;text-align:left;">
-            <p style="font-family:'Press Start 2P',monospace;font-size:6px;color:#e8003d;margin-bottom:8px;">SHA-256 — COMPARACIÓN</p>
-            <p style="font-family:'Press Start 2P',monospace;font-size:6px;color:#5b6ee1;margin-bottom:3px;">FIRMADO:</p>
-            <p id="hash-expected" style="font-family:'VT323',monospace;font-size:14px;color:#ffcd75;word-break:break-all;margin-bottom:8px;line-height:1.4;"></p>
-            <p style="font-family:'Press Start 2P',monospace;font-size:6px;color:#5b6ee1;margin-bottom:3px;">ALTERADO:</p>
-            <p id="hash-received" style="font-family:'VT323',monospace;font-size:14px;color:#e8003d;word-break:break-all;line-height:1.4;"></p>
+          <div style="width:100%;background:#1a0505;border:2px solid var(--role-pharmacy);padding:12px;margin-bottom:10px;text-align:left;">
+            <p style="font-family:'Press Start 2P',monospace;font-size:6px;color:var(--role-pharmacy);margin-bottom:8px;">SHA-256 — COMPARACIÓN</p>
+            <p style="font-family:'Press Start 2P',monospace;font-size:6px;color:var(--text-subtle);margin-bottom:3px;">FIRMADO:</p>
+            <p id="hash-expected" style="font-family:'VT323',monospace;font-size:14px;color:var(--accent-warn);word-break:break-all;margin-bottom:8px;line-height:1.4;"></p>
+            <p style="font-family:'Press Start 2P',monospace;font-size:6px;color:var(--text-subtle);margin-bottom:3px;">ALTERADO:</p>
+            <p id="hash-received" style="font-family:'VT323',monospace;font-size:14px;color:var(--role-pharmacy);word-break:break-all;line-height:1.4;"></p>
           </div>
-          <div style="width:100%;background:#1a0505;border:2px solid #e8003d;padding:12px;text-align:left;">
+          <div style="width:100%;background:#1a0505;border:2px solid var(--role-pharmacy);padding:12px;text-align:left;">
             {[{l:'ECDSA VERIFY',ok:false},{l:'HASH SHA-256',ok:false},{l:'INTEGRIDAD',ok:false},{l:'MÉDICO AUTH',ok:true}].map(c=>(
-              <div style="display:flex;gap:8px;padding:5px 0;border-bottom:1px solid #29366f;">
-                <span style={'color:'+(c.ok?'#38b764':'#e8003d')+';font-family:\'Press Start 2P\',monospace;font-size:8px;flex-shrink:0;'}>{c.ok?'✓':'✗'}</span>
-                <span style={'font-family:\'Press Start 2P\',monospace;font-size:7px;color:'+(c.ok?'#c0cbdc':'#e8003d')+';line-height:1.7;'}>{c.l}{!c.ok?' — FALLO':''}</span>
+              <div style="display:flex;gap:8px;padding:5px 0;border-bottom:1px solid var(--border-default);">
+                <span style={'color:'+(c.ok?'var(--role-doctor)':'var(--role-pharmacy)')+';font-family:\'Press Start 2P\',monospace;font-size:8px;flex-shrink:0;'}>{c.ok?'✓':'✗'}</span>
+                <span style={'font-family:\'Press Start 2P\',monospace;font-size:7px;color:'+(c.ok?'var(--text-muted)':'var(--role-pharmacy)')+';line-height:1.7;'}>{c.l}{!c.ok?' — FALLO':''}</span>
               </div>
             ))}
           </div>
         </div>
 
         <!-- FIRMA FALSA -->
-        <div id="result-badsig" style="display:none;background:#2a0d0d;border:4px solid #e8003d;box-shadow:6px 6px 0 #8c0025;padding:28px;text-align:center;flex-direction:column;align-items:center;flex:1;">
+        <div id="result-badsig" style="display:none;background:#2a0d0d;border:4px solid var(--role-pharmacy);box-shadow:6px 6px 0 var(--role-pharmacy-d);padding:28px;text-align:center;flex-direction:column;align-items:center;flex:1;">
           <div class="anim-bounce" style="margin-bottom:16px;">
             <svg width="80" height="96" viewBox="0 0 20 24" style="image-rendering:pixelated;">
               <rect x="2" y="0" width="16" height="2" fill="#e8003d"/>
@@ -166,15 +166,15 @@ const steps = [
               <rect x="9"  y="14" width="2" height="2" fill="white"/>
             </svg>
           </div>
-          <h2 style="font-family:'Press Start 2P',monospace;font-size:10px;color:#e8003d;line-height:1.7;margin-bottom:8px;">FIRMA INVÁLIDA</h2>
-          <p style="font-family:'VT323',monospace;font-size:20px;color:#c0cbdc;margin-bottom:16px;line-height:1.4;">
-            p256.verify() → <strong style="color:#e8003d;">false</strong><br/>
+          <h2 style="font-family:'Press Start 2P',monospace;font-size:10px;color:var(--role-pharmacy);line-height:1.7;margin-bottom:8px;">FIRMA INVÁLIDA</h2>
+          <p style="font-family:'VT323',monospace;font-size:20px;color:var(--text-muted);margin-bottom:16px;line-height:1.4;">
+            p256.verify() → <strong style="color:var(--role-pharmacy);">false</strong><br/>
             La firma no corresponde a ninguna llave registrada.<br/>
-            <strong style="color:#ffcd75;">No dispensar.</strong>
+            <strong style="color:var(--accent-warn);">No dispensar.</strong>
           </p>
-          <div style="width:100%;background:#1a0505;border:2px solid #e8003d;padding:12px;text-align:left;">
-            <p style="font-family:'Press Start 2P',monospace;font-size:6px;color:#e8003d;margin-bottom:6px;">ERROR</p>
-            <p style="font-family:'VT323',monospace;font-size:17px;color:#c0cbdc;line-height:1.5;">
+          <div style="width:100%;background:#1a0505;border:2px solid var(--role-pharmacy);padding:12px;text-align:left;">
+            <p style="font-family:'Press Start 2P',monospace;font-size:6px;color:var(--role-pharmacy);margin-bottom:6px;">ERROR</p>
+            <p style="font-family:'VT323',monospace;font-size:17px;color:var(--text-muted);line-height:1.5;">
               ECDSA_VERIFY_FAILED · La firma presentada no pudo<br/>
               verificarse con la llave pública del médico registrado.
             </p>
@@ -183,13 +183,13 @@ const steps = [
 
         <!-- Botones de acción -->
         <div id="action-valid" style="display:none;flex-direction:column;gap:8px;">
-          <a href="/pharmacy/seal" class="px-btn px-btn-red px-btn-lg" style="width:100%;justify-content:center;text-decoration:none;font-size:10px;">
+          <a id="dispense-link" href="/pharmacy/seal" class="px-btn px-btn-red px-btn-lg" style="width:100%;justify-content:center;text-decoration:none;font-size:10px;">
             💊 PROCEDER A DISPENSAR
           </a>
           <a href="/pharmacy" class="px-btn px-btn-ghost" style="width:100%;justify-content:center;text-decoration:none;">✕ CANCELAR</a>
         </div>
         <div id="action-error" style="display:none;flex-direction:column;gap:8px;">
-          <a href="/pharmacy" class="px-btn px-btn-ghost" style="width:100%;justify-content:center;text-decoration:none;background:#2a0d0d;border-color:#e8003d;color:#e8003d;">
+          <a href="/pharmacy" class="px-btn px-btn-ghost" style="width:100%;justify-content:center;text-decoration:none;background:#2a0d0d;border-color:var(--role-pharmacy);color:var(--role-pharmacy);">
             ⛔ RECHAZAR RECETA
           </a>
           <a href="/pharmacy" class="px-btn px-btn-ghost" style="width:100%;justify-content:center;text-decoration:none;">◄ ESCANEAR OTRA</a>
@@ -198,26 +198,26 @@ const steps = [
     </div>
 
     <!-- Panel técnico -->
-    <div style="background:#0d0e1a;border:3px solid #29366f;overflow:hidden;">
-      <div style="background:#29366f;padding:10px 16px;">
-        <span style="font-family:'Press Start 2P',monospace;font-size:7px;color:#f4f4f4;">🔬 DETALLE TÉCNICO — @noble/curves + @noble/hashes</span>
+    <div style="background:#0d0e1a;border:3px solid var(--border-default);overflow:hidden;">
+      <div style="background:var(--border-default);padding:10px 16px;">
+        <span style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--text-primary);">🔬 DETALLE TÉCNICO — @noble/curves + @noble/hashes</span>
       </div>
       <div style="padding:16px;display:grid;grid-template-columns:1fr 1fr;gap:12px;">
         <div>
-          <p style="font-family:'Press Start 2P',monospace;font-size:6px;color:#5b6ee1;margin-bottom:5px;">JSON CANÓNICO (canonicalizeJSON)</p>
-          <pre id="tech-canonical" style="font-family:'VT323',monospace;font-size:14px;color:#41a6f6;white-space:pre-wrap;word-break:break-all;background:#060710;padding:10px;margin:0;max-height:140px;overflow-y:auto;line-height:1.4;"></pre>
+          <p style="font-family:'Press Start 2P',monospace;font-size:6px;color:var(--text-subtle);margin-bottom:5px;">JSON CANÓNICO (canonicalizeJSON)</p>
+          <pre id="tech-canonical" style="font-family:'VT323',monospace;font-size:14px;color:var(--role-patient);white-space:pre-wrap;word-break:break-all;background:#060710;padding:10px;margin:0;max-height:140px;overflow-y:auto;line-height:1.4;"></pre>
         </div>
         <div style="display:flex;flex-direction:column;gap:8px;">
           <div>
-            <p style="font-family:'Press Start 2P',monospace;font-size:6px;color:#5b6ee1;margin-bottom:4px;">SHA-256 DEL PAYLOAD</p>
-            <p id="tech-digest" style="font-family:'VT323',monospace;font-size:13px;color:#ffcd75;word-break:break-all;background:#060710;padding:8px;line-height:1.5;"></p>
+            <p style="font-family:'Press Start 2P',monospace;font-size:6px;color:var(--text-subtle);margin-bottom:4px;">SHA-256 DEL PAYLOAD</p>
+            <p id="tech-digest" style="font-family:'VT323',monospace;font-size:13px;color:var(--accent-warn);word-break:break-all;background:#060710;padding:8px;line-height:1.5;"></p>
           </div>
           <div>
-            <p style="font-family:'Press Start 2P',monospace;font-size:6px;color:#5b6ee1;margin-bottom:4px;">FIRMA (primeros 32 bytes)</p>
-            <p id="tech-sig" style="font-family:'VT323',monospace;font-size:13px;color:#38b764;word-break:break-all;background:#060710;padding:8px;line-height:1.5;"></p>
+            <p style="font-family:'Press Start 2P',monospace;font-size:6px;color:var(--text-subtle);margin-bottom:4px;">FIRMA (primeros 32 bytes)</p>
+            <p id="tech-sig" style="font-family:'VT323',monospace;font-size:13px;color:var(--role-doctor);word-break:break-all;background:#060710;padding:8px;line-height:1.5;"></p>
           </div>
           <div>
-            <p style="font-family:'Press Start 2P',monospace;font-size:6px;color:#5b6ee1;margin-bottom:4px;">RESULTADO p256.verify()</p>
+            <p style="font-family:'Press Start 2P',monospace;font-size:6px;color:var(--text-subtle);margin-bottom:4px;">RESULTADO p256.verify()</p>
             <p id="tech-result" style="font-family:'Press Start 2P',monospace;font-size:9px;background:#060710;padding:8px;"></p>
           </div>
         </div>
@@ -232,8 +232,12 @@ const steps = [
   import { canonicalizeJSON, verifySignature } from '../../utils/cryptoFlow.ts'
   import { sha256 } from '@noble/hashes/sha2.js'
   import { utf8ToBytes, bytesToHex, hexToBytes } from '@noble/hashes/utils.js'
-  import { testKeys } from '../../utils/testData.ts'
-  import { getPublicKey } from '../../utils/cryptoFlow.ts'
+  import { Api, ApiError } from '../../utils/api.ts'
+  import { KeyWrapModule } from '../../crypto/keyWrap.ts'
+  import { EncryptionModule } from '../../crypto/encryption.ts'
+  import { getUserPrivKeyHex } from '../../utils/userKeys.ts'
+  import { requireSession } from '../../utils/sessionGuard.ts'
+  requireSession('Farmaceutico', '/pharmacy/login')
 
   /* ══ ESTADO ══ */
   let storedCanonical = ''
@@ -254,19 +258,76 @@ const steps = [
     dispensacion: null,
   }
 
-  async function init() {
-    storedSigHex    = sessionStorage.getItem('rxflow_signature') || ''
-    storedCanonical = sessionStorage.getItem('rxflow_canonical') || canonicalizeJSON(RECETA_BASE)
-    storedPubHex    = sessionStorage.getItem('rxflow_pubkey')   || ''
+  /**
+   * Si hay ?id= en la URL, intenta cargar la receta real del backend,
+   * desenvuelve la DEK con la llave del farmacéutico, descifra la cápsula
+   * y usa esos datos como fuente de verdad para la verificación ECDSA.
+   * Si falla, continúa con el flujo demo offline (sessionStorage).
+   */
+  async function hydrateFromBackend() {
+    const params = new URLSearchParams(window.location.search)
+    const id = Number(params.get('id') || 0)
+    if (!id) return false
 
-    // Si no hay firma: generar firma demo con testKeys.medico
-    if (!storedSigHex || !storedPubHex) {
-      storedPubHex    = getPublicKey(testKeys.medico)
-      storedSigHex    = (await import('../../utils/cryptoFlow.ts')).signData(storedCanonical, testKeys.medico)
+    try {
+      const cripto = await Api.obtenerRecetaCripto(id)
+      const acceso = cripto.accesos.find(a => a.rol === 'farmaceutico')
+      if (!acceso) throw new Error('Esta receta no concede acceso a una farmacia.')
+
+      // Resolvemos las llaves públicas reales del médico emisor y del
+      // paciente dueño desde el directorio del backend. Sin fallbacks:
+      // si no hay llave pública registrada, la cripto E2E no es posible.
+      const doctorPubHex   = (await Api.obtenerLlavePublica(cripto.id_medico)).llave_publica
+      const pacientePubHex = (await Api.obtenerLlavePublica(cripto.id_paciente)).llave_publica
+
+      // La llave privada del farmacéutico viene de su seed de sesión.
+      const farmaceuticoPriv = getUserPrivKeyHex()
+      if (!farmaceuticoPriv) {
+        throw new Error('No hay llave derivada en esta sesión. Vuelve a iniciar con tu tarjeta QR.')
+      }
+
+      const dek = KeyWrapModule.unwrap(
+        acceso.wrappedKey, acceso.nonce,
+        farmaceuticoPriv, doctorPubHex,
+      )
+      const contenedor = EncryptionModule.decrypt(
+        cripto.capsula_cifrada, cripto.iv_aes_gcm, dek,
+      )
+
+      storedCanonical = canonicalizeJSON(contenedor.datos)
+      storedSigHex    = contenedor.firma_medico
+      storedPubHex    = doctorPubHex
+
+      sessionStorage.setItem('rxflow_canonical', storedCanonical)
       sessionStorage.setItem('rxflow_signature', storedSigHex)
-      sessionStorage.setItem('rxflow_canonical',  storedCanonical)
-      sessionStorage.setItem('rxflow_pubkey',     storedPubHex)
+      sessionStorage.setItem('rxflow_pubkey',    storedPubHex)
+
+      // Payload que la pantalla de sello necesita para reempaquetar
+      sessionStorage.setItem('rxpro_pharmacy_payload', JSON.stringify({
+        id_receta: id,
+        dek_hex: bytesToHex(dek),
+        contenedor,
+        doctorPubHex,
+        pacientePubHex,
+      }))
+      return true
+    } catch (e) {
+      const msg = e instanceof ApiError ? `Backend ${e.status}: ${e.detail}` : (e as any)?.message || 'Error'
+      console.warn('[pharmacy/verify] backend hydrate failed, fallback demo:', msg)
+      return false
     }
+  }
+
+  async function init() {
+    await hydrateFromBackend()
+    storedSigHex    = storedSigHex    || sessionStorage.getItem('rxflow_signature') || ''
+    storedCanonical = storedCanonical || sessionStorage.getItem('rxflow_canonical') || canonicalizeJSON(RECETA_BASE)
+    storedPubHex    = storedPubHex    || sessionStorage.getItem('rxflow_pubkey')   || ''
+
+    // Si no hay firma ni llave pública almacenadas, ya no generamos una
+    // firma demo con llave fija: eso falsearía la verificación. Pintamos
+    // el panel técnico con lo que haya y la verificación caerá como
+    // inválida, que es el estado correcto.
 
     // Panel técnico
     ;(document.getElementById('tech-canonical') as HTMLPreElement).textContent =
@@ -279,7 +340,33 @@ const steps = [
     ;(document.getElementById('state-loading') as HTMLDivElement).style.display = 'none'
     ;(document.getElementById('main-grid') as HTMLDivElement).style.display = 'flex'
 
+    // Propagar ?id= al link "PROCEDER A DISPENSAR" para que seal.astro sepa
+    // qué receta sellar.
+    const params = new URLSearchParams(window.location.search)
+    const rxId = params.get('id')
+    if (rxId) {
+      const link = document.getElementById('dispense-link') as HTMLAnchorElement | null
+      if (link) link.href = `/pharmacy/seal?id=${rxId}`
+    }
+
     await runVerify(false)
+
+    // Si la receta está vencida, bloqueamos el botón de dispensar aunque la
+    // firma sea válida. Fuente de verdad: el propio backend.
+    if (rxId) {
+      try {
+        const info = await Api.obtenerRecetaInfo(Number(rxId))
+        if (info.vencida) {
+          const link = document.getElementById('dispense-link') as HTMLAnchorElement | null
+          if (link) {
+            link.removeAttribute('href')
+            link.style.opacity = '0.5'
+            link.style.pointerEvents = 'none'
+            link.textContent = '⚠ RECETA VENCIDA — NO DISPENSAR'
+          }
+        }
+      } catch (_) { /* si falla, dejamos la UI tal cual */ }
+    }
   }
 
   async function runVerify(tampered: boolean) {

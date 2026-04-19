@@ -8,12 +8,12 @@ const steps=[{label:'LOGIN',href:'/doctor'},{label:'PACIENTE',href:'/doctor/pati
   <!-- Confetti pieces -->
   <div id="confetti" style="position:fixed;top:30%;left:50%;pointer-events:none;z-index:100;"></div>
 
-  <div style="background:#1a2e1a;border:4px solid #38b764;box-shadow:8px 8px 0 #257a43;padding:40px 28px;width:100%;">
+  <div style="background:#1a2e1a;border:4px solid var(--role-doctor);box-shadow:8px 8px 0 var(--role-doctor-d);padding:40px 28px;width:100%;">
 
     <!-- Animated shield checkmark -->
     <div style="display:flex;justify-content:center;margin-bottom:20px;">
       <div class="anim-bounce" style="position:relative;">
-        <svg width="64" height="74" viewBox="0 0 24 28" style="image-rendering:pixelated;color:#38b764;">
+        <svg width="64" height="74" viewBox="0 0 24 28" style="image-rendering:pixelated;color:var(--role-doctor);">
           <use href="#ico-shield"/>
         </svg>
         <div style="position:absolute;top:30%;left:50%;transform:translate(-50%,-50%);">
@@ -24,41 +24,41 @@ const steps=[{label:'LOGIN',href:'/doctor'},{label:'PACIENTE',href:'/doctor/pati
       </div>
     </div>
 
-    <h1 style="font-family:'Press Start 2P',monospace;font-size:16px;color:#38b764;margin-bottom:8px;line-height:1.6;">RECETA EMITIDA</h1>
-    <p style="font-family:'VT323',monospace;font-size:24px;color:#c0cbdc;margin-bottom:18px;">Firmada y enviada correctamente</p>
+    <h1 style="font-family:'Press Start 2P',monospace;font-size:16px;color:var(--role-doctor);margin-bottom:8px;line-height:1.6;">RECETA EMITIDA</h1>
+    <p style="font-family:'VT323',monospace;font-size:24px;color:var(--text-muted);margin-bottom:18px;">Firmada y enviada correctamente</p>
 
-    <div style="background:#222639;border:3px solid #38b764;padding:12px 20px;display:inline-block;margin-bottom:22px;" class="anim-score">
-      <span style="font-family:'Press Start 2P',monospace;font-size:14px;color:#ffcd75;" id="folio-display">FOLIO: DOC-???</span>
+    <div style="background:var(--surface-card);border:3px solid var(--role-doctor);padding:12px 20px;display:inline-block;margin-bottom:22px;" class="anim-score">
+      <span style="font-family:'Press Start 2P',monospace;font-size:14px;color:var(--accent-warn);" id="folio-display">FOLIO: DOC-???</span>
     </div>
 
     <!-- Stars -->
     <div style="display:flex;justify-content:center;gap:16px;margin-bottom:28px;">
       {[0,1,2].map(idx=>(
-        <svg width="28" height="28" viewBox="0 0 20 20" style={'image-rendering:pixelated;color:#ffcd75;animation:px-bounce .6s ease-in-out infinite;animation-delay:'+(idx*.15)+'s;'}>
+        <svg width="28" height="28" viewBox="0 0 20 20" style={'image-rendering:pixelated;color:var(--accent-warn);animation:px-bounce .6s ease-in-out infinite;animation-delay:'+(idx*.15)+'s;'}>
           <use href="#ico-star"/>
         </svg>
       ))}
     </div>
 
     <!-- What's next -->
-    <div style="text-align:left;border-top:3px solid #38b764;padding-top:18px;display:flex;flex-direction:column;gap:0;">
+    <div style="text-align:left;border-top:3px solid var(--role-doctor);padding-top:18px;display:flex;flex-direction:column;gap:0;">
       {[
         {ico:'patient',  text:'El paciente recibe notificación con su receta digital.'},
         {ico:'lock',     text:'La receta queda cifrada y almacenada en el servidor.'},
         {ico:'pharmacist',text:'El paciente puede mostrar su identificación en la farmacia.'},
       ].map(item=>(
-        <div style="display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:2px solid #29366f;">
-          <svg width="22" height="26" viewBox="0 0 24 28" style={'image-rendering:pixelated;color:#38b764;flex-shrink:0;'+(item.ico==='lock'?'view-box:0 0 20 24;width:18px;height:22px;':'')}>
+        <div style="display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:2px solid var(--border-default);">
+          <svg width="22" height="26" viewBox="0 0 24 28" style={'image-rendering:pixelated;color:var(--role-doctor);flex-shrink:0;'+(item.ico==='lock'?'view-box:0 0 20 24;width:18px;height:22px;':'')}>
             <use href={'#ico-'+item.ico}/>
           </svg>
-          <p style="font-family:'VT323',monospace;font-size:20px;color:#c0cbdc;line-height:1.5;">{item.text}</p>
+          <p style="font-family:'VT323',monospace;font-size:20px;color:var(--text-muted);line-height:1.5;">{item.text}</p>
         </div>
       ))}
     </div>
   </div>
 
   <div style="display:flex;flex-direction:column;gap:12px;width:100%;">
-    <a href="/doctor/patient" class="px-btn px-btn-green px-btn-lg" style="width:100%;justify-content:center;text-decoration:none;">
+    <button type="button" id="new-rx-btn" class="px-btn px-btn-green px-btn-lg" style="width:100%;justify-content:center;text-decoration:none;">
       <svg width="14" height="11" viewBox="0 0 16 12" style="image-rendering:pixelated;color:white;">
         <rect x="0" y="4" width="12" height="4" fill="currentColor"/>
         <rect x="8" y="0" width="4" height="4" fill="currentColor"/>
@@ -68,15 +68,56 @@ const steps=[{label:'LOGIN',href:'/doctor'},{label:'PACIENTE',href:'/doctor/pati
         <rect x="14" y="4" width="2" height="4" fill="currentColor"/>
       </svg>
       EMITIR OTRA RECETA
-    </a>
+    </button>
     <a href="/" class="px-btn px-btn-ghost" style="width:100%;justify-content:center;text-decoration:none;">VOLVER AL INICIO</a>
   </div>
 </div>
 </FlowLayout>
 
 <script>
-  // Random folio
-  document.getElementById('folio-display').textContent = 'FOLIO: DOC-' + Math.floor(Math.random()*900+100)
+  import { requireSession } from '../../utils/sessionGuard.ts'
+  requireSession('Medico', '/doctor')
+
+  // Preferir el folio real devuelto por el backend (rxpro_last_receta)
+  const last = (() => {
+    try { return JSON.parse(sessionStorage.getItem('rxpro_last_receta') || 'null') } catch { return null }
+  })()
+  const folioEl = document.getElementById('folio-display') as HTMLSpanElement
+  if (last && typeof last.id_receta === 'number') {
+    folioEl.textContent = 'FOLIO: RX-' + String(last.id_receta).padStart(5, '0')
+    // Añadir al historial del médico en esta sesión (para listar todas las
+    // recetas emitidas desde este dispositivo si se regresa al dashboard).
+    try {
+      const histRaw = sessionStorage.getItem('rxpro_doctor_history')
+      const hist = histRaw ? JSON.parse(histRaw) as any[] : []
+      if (!hist.find(r => r.id_receta === last.id_receta)) {
+        hist.unshift(last)
+        sessionStorage.setItem('rxpro_doctor_history', JSON.stringify(hist.slice(0, 20)))
+      }
+    } catch { /* noop */ }
+  } else {
+    folioEl.textContent = 'FOLIO: DOC-' + Math.floor(Math.random()*900+100)
+  }
+
+  // --- EMITIR OTRA RECETA: limpiar todo el estado del flujo anterior ---
+  // Mantener únicamente la sesión de médico (rxpro_token / rxpro_session) y el
+  // historial. Cualquier cosa intermedia (paciente, receta, firma, llave) se
+  // borra para que el médico pueda iniciar otra emisión desde cero.
+  const newRxBtn = document.getElementById('new-rx-btn') as HTMLButtonElement | null
+  newRxBtn?.addEventListener('click', () => {
+    const EPHEMERAL = [
+      'rxpro_paciente',
+      'rxpro_receta',
+      'rxpro_last_receta',
+      'rxflow_signature',
+      'rxflow_canonical',
+      'rxflow_digest',
+      'rxflow_pubkey',
+      'rxflow_key_attempt',
+    ]
+    EPHEMERAL.forEach(k => sessionStorage.removeItem(k))
+    window.location.href = '/doctor/patient'
+  })
 
   // Confetti burst
   const container = document.getElementById('confetti')

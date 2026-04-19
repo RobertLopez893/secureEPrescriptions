@@ -1,0 +1,111 @@
+---
+// /dev/qr-card — utilidad de desarrollo para generar tarjetas QR de prueba.
+//
+// Genera un payload con el formato real `rxpro://card/v1/<rol>/<id>/<seed>`
+// y lo renderiza LOCALMENTE con la lib `qrcode` (ya no sale nada a
+// api.qrserver.com). La semilla puede ser aleatoria (útil para probar el
+// scanner) o provista por el dev (útil para reproducir un caso).
+//
+// Nota: este QR no registra nada en el backend — solo sirve para verificar
+// el flujo de lectura. Para emitir tarjetas reales (con llave pública
+// persistida) usa /admin/login → /admin.
+import FlowLayout from '../../layouts/FlowLayout.astro'
+---
+<FlowLayout title="Dev — QR de prueba" role="patient" steps={[{label:'GENERADOR QR',href:'/dev/qr-card'}]} currentStep={0}>
+<div class="anim-slide" style="display:flex;flex-direction:column;gap:20px;">
+
+  <div style="text-align:center;">
+    <h1 style="font-family:'Press Start 2P',monospace;font-size:13px;color:var(--text-primary);margin-bottom:8px;line-height:1.7;">
+      GENERADOR QR DE PRUEBA
+    </h1>
+    <p style="font-family:'VT323',monospace;font-size:20px;color:var(--text-muted);">
+      Renderiza una tarjeta QR con el formato real del sistema, 100% local.
+    </p>
+  </div>
+
+  <div style="background:var(--surface-card);border:3px solid var(--role-patient);box-shadow:4px 4px 0 var(--role-patient-d);padding:20px;display:flex;flex-direction:column;gap:12px;">
+
+    <label style="font-family:'Press Start 2P',monospace;font-size:8px;color:var(--role-patient);">ROL</label>
+    <select id="rol" class="px-input" style="border-color:var(--role-patient);font-size:18px;">
+      <option value="Paciente">PACIENTE (CURP)</option>
+      <option value="Medico">MÉDICO (CÉDULA)</option>
+      <option value="Farmaceutico">FARMACÉUTICO (LICENCIA)</option>
+    </select>
+
+    <label style="font-family:'Press Start 2P',monospace;font-size:8px;color:var(--role-patient);">IDENTIFICADOR</label>
+    <input id="ident" type="text" value="DEMO850315HDFXXX01"
+           class="px-input" style="border-color:var(--role-patient);font-size:20px;"/>
+
+    <label style="font-family:'Press Start 2P',monospace;font-size:8px;color:var(--role-patient);">SEMILLA (HEX 64 CHARS · DEJAR VACÍO PARA ALEATORIA)</label>
+    <input id="seed" type="text" placeholder="(aleatoria)"
+           class="px-input" style="border-color:var(--role-patient);font-size:16px;font-family:monospace;"/>
+
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <button id="gen-btn" type="button" class="px-btn px-btn-blue" style="flex:1;min-width:180px;">GENERAR QR</button>
+      <button id="random-seed" type="button" class="px-btn" style="flex:1;min-width:150px;background:#1b1f2f;border-color:var(--role-patient);color:var(--role-patient);">NUEVA SEMILLA</button>
+    </div>
+  </div>
+
+  <div id="qr-box" style="display:none;background:#f4f4f4;border:3px solid var(--role-patient);box-shadow:4px 4px 0 var(--role-patient-d);padding:20px;text-align:center;">
+    <canvas id="qr-canvas" style="max-width:100%;image-rendering:pixelated;"></canvas>
+    <p id="qr-caption" style="font-family:'VT323',monospace;font-size:16px;color:#0d0e1a;margin-top:10px;word-break:break-all;"></p>
+    <p id="qr-pub" style="font-family:monospace;font-size:11px;color:#555;margin-top:8px;word-break:break-all;"></p>
+  </div>
+
+  <p style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--text-subtle);background:var(--surface-inset);border:2px solid var(--border-default);padding:10px;line-height:1.8;">
+    ⓘ SOLO DEV · QR GENERADO LOCALMENTE (npm `qrcode`) · NO REGISTRA USUARIOS EN EL BACKEND.
+  </p>
+</div>
+</FlowLayout>
+
+<script>
+  import QRCode from 'qrcode'
+  import { encodeCardQr, type CardRol } from '../../utils/cardQr.ts'
+  import { generateCardSeed, deriveKeysFromSeed } from '../../crypto/seedDerivation.ts'
+
+  const rolEl     = document.getElementById('rol')    as HTMLSelectElement
+  const identEl   = document.getElementById('ident')  as HTMLInputElement
+  const seedEl    = document.getElementById('seed')   as HTMLInputElement
+  const genBtn    = document.getElementById('gen-btn') as HTMLButtonElement
+  const randBtn   = document.getElementById('random-seed') as HTMLButtonElement
+  const box       = document.getElementById('qr-box')  as HTMLDivElement
+  const canvas    = document.getElementById('qr-canvas') as HTMLCanvasElement
+  const caption   = document.getElementById('qr-caption') as HTMLParagraphElement
+  const pubEl     = document.getElementById('qr-pub') as HTMLParagraphElement
+
+  async function render() {
+    let seedHex = seedEl.value.trim().toLowerCase()
+    if (!seedHex) {
+      seedHex = generateCardSeed()
+      seedEl.value = seedHex
+    }
+    if (!/^[0-9a-f]{64}$/.test(seedHex)) {
+      caption.textContent = 'Semilla inválida: deben ser 64 caracteres hex.'
+      box.style.display = 'block'
+      return
+    }
+
+    const rol = rolEl.value as CardRol
+    const identificador = identEl.value.trim().toUpperCase()
+    if (!identificador) {
+      caption.textContent = 'Falta el identificador (CURP / cédula / licencia).'
+      box.style.display = 'block'
+      return
+    }
+
+    const payload = encodeCardQr({ rol, identificador, seedHex })
+    const { publicKeyHex } = deriveKeysFromSeed(seedHex)
+
+    await QRCode.toCanvas(canvas, payload, {
+      width: 320,
+      margin: 2,
+      errorCorrectionLevel: 'M',
+    })
+    caption.textContent = payload
+    pubEl.textContent   = 'pub: ' + publicKeyHex
+    box.style.display = 'block'
+  }
+
+  genBtn.addEventListener('click', () => { render().catch(console.error) })
+  randBtn.addEventListener('click', () => { seedEl.value = generateCardSeed() })
+</script>

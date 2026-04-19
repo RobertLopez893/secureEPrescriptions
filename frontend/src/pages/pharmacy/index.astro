@@ -1,8 +1,8 @@
 ---
 import FlowLayout from '../../layouts/FlowLayout.astro'
-const steps=[{label:'ESCANEAR',href:'/pharmacy'},{label:'VERIFICAR',href:'/pharmacy/verify'},{label:'DISPENSAR',href:'/pharmacy/seal'}]
+const steps=[{label:'ACCESO',href:'/pharmacy/login'},{label:'ESCANEAR',href:'/pharmacy'},{label:'VERIFICAR',href:'/pharmacy/verify'},{label:'DISPENSAR',href:'/pharmacy/seal'}]
 ---
-<FlowLayout title="Farmacia — Escanear" role="pharmacy" steps={steps} currentStep={0}>
+<FlowLayout title="Farmacia — Escanear" role="pharmacy" steps={steps} currentStep={1}>
 <div class="anim-slide" style="display:flex;flex-direction:column;gap:20px;">
 
   <!-- Header -->
@@ -12,38 +12,42 @@ const steps=[{label:'ESCANEAR',href:'/pharmacy'},{label:'VERIFICAR',href:'/pharm
         <use href="#ico-pharmacist"/>
       </svg>
     </div>
-    <h1 style="font-family:'Press Start 2P',monospace;font-size:13px;color:#f4f4f4;margin-bottom:8px;">ESCANEAR RECETA</h1>
-    <p style="font-family:'VT323',monospace;font-size:22px;color:#c0cbdc;">Pide al paciente que muestre su código QR</p>
+    <h1 style="font-family:'Press Start 2P',monospace;font-size:13px;color:var(--text-primary);margin-bottom:8px;">ESCANEAR RECETA</h1>
+    <p style="font-family:'VT323',monospace;font-size:22px;color:var(--text-muted);">Pide al paciente que muestre su código QR</p>
   </div>
 
   <!-- Chip del farmacéutico -->
-  <div style="background:#1a0d0d;border:3px solid #e8003d;box-shadow:4px 4px 0 #8c0025;padding:14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+  <div style="background:#1a0d0d;border:3px solid var(--role-pharmacy);box-shadow:4px 4px 0 var(--role-pharmacy-d);padding:14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
     <div style="display:flex;align-items:center;gap:12px;">
       <svg width="32" height="38" viewBox="0 0 24 28" style="image-rendering:pixelated;">
         <use href="#ico-pharmacist"/>
       </svg>
       <div>
-        <p style="font-family:'Press Start 2P',monospace;font-size:9px;color:#e8003d;">QFB. LAURA SÁNCHEZ</p>
-        <p style="font-family:'VT323',monospace;font-size:19px;color:#c0cbdc;margin-top:3px;">Farmacia Central · Turno matutino</p>
+        <p style="font-family:'Press Start 2P',monospace;font-size:9px;color:var(--role-pharmacy);">QFB. LAURA SÁNCHEZ</p>
+        <p style="font-family:'VT323',monospace;font-size:19px;color:var(--text-muted);margin-top:3px;">Farmacia Central · Turno matutino</p>
       </div>
     </div>
     <div style="display:flex;align-items:center;gap:8px;">
-      <span class="anim-blink" style="display:inline-block;width:8px;height:8px;background:#38b764;"></span>
-      <span style="font-family:'Press Start 2P',monospace;font-size:7px;color:#38b764;">EN LÍNEA</span>
+      <span class="anim-blink" style="display:inline-block;width:8px;height:8px;background:var(--role-doctor);"></span>
+      <span style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--role-doctor);">EN LÍNEA</span>
     </div>
   </div>
 
   <!-- SCANNER QR -->
-  <div style="background:#222639;border:3px solid #e8003d;box-shadow:4px 4px 0 #8c0025;padding:20px;">
+  <div style="background:var(--surface-card);border:3px solid var(--role-pharmacy);box-shadow:4px 4px 0 var(--role-pharmacy-d);padding:20px;">
 
-    <div style="font-family:'Press Start 2P',monospace;font-size:8px;color:#e8003d;margin-bottom:14px;display:flex;align-items:center;gap:8px;">
-      <span class="anim-blink" style="display:inline-block;width:8px;height:8px;background:#e8003d;"></span>
+    <div style="font-family:'Press Start 2P',monospace;font-size:8px;color:var(--role-pharmacy);margin-bottom:14px;display:flex;align-items:center;gap:8px;">
+      <span class="anim-blink" style="display:inline-block;width:8px;height:8px;background:var(--role-pharmacy);"></span>
       LECTOR QR — RECETA DIGITAL
     </div>
 
     <!-- Viewport -->
     <div id="qr-viewport"
-         style="background:#160404;border:3px solid #e8003d;position:relative;overflow:hidden;margin-bottom:18px;height:240px;">
+         style="background:#160404;border:3px solid var(--role-pharmacy);position:relative;overflow:hidden;margin-bottom:18px;height:240px;">
+
+      <!-- Live camera feed -->
+      <video id="qr-video" playsinline muted
+             style="display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:saturate(1.2) contrast(1.05);image-rendering:pixelated;"></video>
 
       <!-- QR grid rojo -->
       <div class="qr-grid" style="background-image:linear-gradient(rgba(232,0,61,.1) 1px,transparent 1px),linear-gradient(90deg,rgba(232,0,61,.1) 1px,transparent 1px);background-size:16px 16px;animation:qrGridPulse 2.8s ease-in-out infinite;"></div>
@@ -51,15 +55,15 @@ const steps=[{label:'ESCANEAR',href:'/pharmacy'},{label:'VERIFICAR',href:'/pharm
       <!-- Scan line rojo -->
       <div id="qr-scan-line"
            style="position:absolute;left:0;right:0;height:3px;
-                  background:linear-gradient(90deg,transparent,#e8003d,transparent);
-                  box-shadow:0 0 14px #e8003d,0 0 4px #e8003d;
+                  background:linear-gradient(90deg,transparent,var(--role-pharmacy),transparent);
+                  box-shadow:0 0 14px var(--role-pharmacy),0 0 4px var(--role-pharmacy);
                   animation:qrScan 2.2s linear infinite;"></div>
 
       <!-- Brackets -->
-      <div style="position:absolute;top:10px;left:10px;width:28px;height:28px;border-top:4px solid #e8003d;border-left:4px solid #e8003d;z-index:2;"></div>
-      <div style="position:absolute;top:10px;right:10px;width:28px;height:28px;border-top:4px solid #e8003d;border-right:4px solid #e8003d;z-index:2;"></div>
-      <div style="position:absolute;bottom:10px;left:10px;width:28px;height:28px;border-bottom:4px solid #e8003d;border-left:4px solid #e8003d;z-index:2;"></div>
-      <div style="position:absolute;bottom:10px;right:10px;width:28px;height:28px;border-bottom:4px solid #e8003d;border-right:4px solid #e8003d;z-index:2;"></div>
+      <div style="position:absolute;top:10px;left:10px;width:28px;height:28px;border-top:4px solid var(--role-pharmacy);border-left:4px solid var(--role-pharmacy);z-index:2;"></div>
+      <div style="position:absolute;top:10px;right:10px;width:28px;height:28px;border-top:4px solid var(--role-pharmacy);border-right:4px solid var(--role-pharmacy);z-index:2;"></div>
+      <div style="position:absolute;bottom:10px;left:10px;width:28px;height:28px;border-bottom:4px solid var(--role-pharmacy);border-left:4px solid var(--role-pharmacy);z-index:2;"></div>
+      <div style="position:absolute;bottom:10px;right:10px;width:28px;height:28px;border-bottom:4px solid var(--role-pharmacy);border-right:4px solid var(--role-pharmacy);z-index:2;"></div>
 
       <!-- Estado idle: paciente mostrando el QR -->
       <div id="card-idle"
@@ -106,7 +110,7 @@ const steps=[{label:'ESCANEAR',href:'/pharmacy'},{label:'VERIFICAR',href:'/pharm
         </div>
 
         <p id="qr-status"
-           style="font-family:'Press Start 2P',monospace;font-size:8px;color:#e8003d;letter-spacing:.08em;"
+           style="font-family:'Press Start 2P',monospace;font-size:8px;color:var(--role-pharmacy);letter-spacing:.08em;"
            class="anim-blink">
           ESPERANDO RECETA QR
         </p>
@@ -116,15 +120,15 @@ const steps=[{label:'ESCANEAR',href:'/pharmacy'},{label:'VERIFICAR',href:'/pharm
       <div id="card-scanning"
            style="display:none;position:absolute;inset:0;align-items:center;justify-content:center;flex-direction:column;gap:16px;">
         <div style="position:relative;width:72px;height:72px;">
-          <div style="position:absolute;inset:0;border:4px solid #2a0808;border-top-color:#e8003d;animation:spinnerRot .6s steps(8,end) infinite;"></div>
+          <div style="position:absolute;inset:0;border:4px solid #2a0808;border-top-color:var(--role-pharmacy);animation:spinnerRot .6s steps(8,end) infinite;"></div>
           <div style="position:absolute;inset:8px;display:flex;align-items:center;justify-content:center;">
-            <svg width="24" height="22" viewBox="0 0 20 16" style="image-rendering:pixelated;color:#e8003d;">
+            <svg width="24" height="22" viewBox="0 0 20 16" style="image-rendering:pixelated;color:var(--role-pharmacy);">
               <use href="#ico-checkmark"/>
             </svg>
           </div>
         </div>
         <p id="derive-status"
-           style="font-family:'Press Start 2P',monospace;font-size:8px;color:#e8003d;letter-spacing:.06em;text-align:center;max-width:220px;line-height:1.8;"
+           style="font-family:'Press Start 2P',monospace;font-size:8px;color:var(--role-pharmacy);letter-spacing:.06em;text-align:center;max-width:220px;line-height:1.8;"
            class="anim-blink">
           LEYENDO RECETA...
         </p>
@@ -133,37 +137,37 @@ const steps=[{label:'ESCANEAR',href:'/pharmacy'},{label:'VERIFICAR',href:'/pharm
       <!-- Estado: éxito -->
       <div id="card-success"
            style="display:none;position:absolute;inset:0;align-items:center;justify-content:center;flex-direction:column;gap:12px;padding:16px;">
-        <svg width="40" height="46" viewBox="0 0 24 28" style="image-rendering:pixelated;color:#38b764;">
+        <svg width="40" height="46" viewBox="0 0 24 28" style="image-rendering:pixelated;color:var(--role-doctor);">
           <use href="#ico-shield"/>
         </svg>
-        <p style="font-family:'Press Start 2P',monospace;font-size:9px;color:#38b764;">FIRMA VÁLIDA</p>
-        <div style="background:#04100a;border:2px solid #38b764;padding:8px 14px;width:100%;text-align:center;">
-          <span style="font-family:'VT323',monospace;font-size:18px;color:#38b764;letter-spacing:.08em;">
+        <p style="font-family:'Press Start 2P',monospace;font-size:9px;color:var(--role-doctor);">FIRMA VÁLIDA</p>
+        <div style="background:#04100a;border:2px solid var(--role-doctor);padding:8px 14px;width:100%;text-align:center;">
+          <span style="font-family:'VT323',monospace;font-size:18px;color:var(--role-doctor);letter-spacing:.08em;">
             ECDSA P-256 ✓ · RECETA AUTÉNTICA
           </span>
         </div>
-        <p style="font-family:'Press Start 2P',monospace;font-size:6px;color:#257a43;line-height:1.8;">ABRIENDO RECETA...</p>
+        <p style="font-family:'Press Start 2P',monospace;font-size:6px;color:var(--role-doctor-d);line-height:1.8;">ABRIENDO RECETA...</p>
       </div>
 
       <!-- Progress bar -->
       <div id="scan-progress-track"
-           style="display:none;position:absolute;bottom:10px;left:16px;right:16px;height:6px;border:2px solid #e8003d;background:#0d0e1a;z-index:3;">
+           style="display:none;position:absolute;bottom:10px;left:16px;right:16px;height:6px;border:2px solid var(--role-pharmacy);background:#0d0e1a;z-index:3;">
         <div id="scan-progress-fill"
-             style="height:100%;width:0%;background:repeating-linear-gradient(90deg,#e8003d 0px,#e8003d 6px,#8c0025 6px,#8c0025 12px);"></div>
+             style="height:100%;width:0%;background:repeating-linear-gradient(90deg,var(--role-pharmacy) 0px,var(--role-pharmacy) 6px,var(--role-pharmacy-d) 6px,var(--role-pharmacy-d) 12px);"></div>
       </div>
     </div>
 
     <!-- Badges -->
     <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
       {['QR RECETA','ECDSA P-256','VERIFICACIÓN AUTO','HMAC-SHA256'].map(t => (
-        <span style="font-family:'Press Start 2P',monospace;font-size:6px;padding:3px 6px;border:2px solid #29366f;color:#e8003d;background:#29366f22;">{t}</span>
+        <span style="font-family:'Press Start 2P',monospace;font-size:6px;padding:3px 6px;border:2px solid var(--border-default);color:var(--role-pharmacy);background:#29366f22;">{t}</span>
       ))}
     </div>
 
     <!-- Botón scan -->
     <button type="button" id="scan-btn"
-            style="width:100%;padding:14px;background:#160404;border:3px solid #e8003d;box-shadow:4px 4px 0 #8c0025;
-                   font-family:'Press Start 2P',monospace;font-size:9px;color:#e8003d;cursor:pointer;
+            style="width:100%;padding:14px;background:#160404;border:3px solid var(--role-pharmacy);box-shadow:4px 4px 0 var(--role-pharmacy-d);
+                   font-family:'Press Start 2P',monospace;font-size:9px;color:var(--role-pharmacy);cursor:pointer;
                    display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:16px;">
       <!-- QR icon rojo -->
       <svg width="20" height="20" viewBox="0 0 20 20" style="image-rendering:pixelated;flex-shrink:0;">
@@ -184,25 +188,28 @@ const steps=[{label:'ESCANEAR',href:'/pharmacy'},{label:'VERIFICAR',href:'/pharm
 
     <!-- Divider -->
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
-      <div style="flex:1;height:2px;background:#29366f;"></div>
-      <span style="font-family:'Press Start 2P',monospace;font-size:7px;color:#29366f;">O FOLIO MANUAL</span>
-      <div style="flex:1;height:2px;background:#29366f;"></div>
+      <div style="flex:1;height:2px;background:var(--border-default);"></div>
+      <span style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--border-default);">O FOLIO MANUAL</span>
+      <div style="flex:1;height:2px;background:var(--border-default);"></div>
     </div>
 
     <!-- Fallback folio -->
     <form action="/pharmacy/verify" method="GET" style="display:flex;gap:10px;">
-      <input type="text" name="folio" placeholder="Folio o CURP del paciente"
-             class="px-input" style="flex:1;border-color:#e8003d;font-size:20px;" required/>
+      <input type="number" name="id" placeholder="ID de la receta (folio)" min="1"
+             class="px-input" style="flex:1;border-color:var(--role-pharmacy);font-size:20px;" required/>
       <button type="submit" class="px-btn px-btn-red" style="white-space:nowrap;">BUSCAR</button>
     </form>
+
+    <!-- Error del escaneo (cámara / QR inválido) -->
+    <p id="scan-error" style="display:none;margin-top:12px;font-family:'Press Start 2P',monospace;font-size:7px;color:#a53030;background:#2a1018;border:2px solid #a53030;padding:10px;line-height:1.8;"></p>
   </div>
 
   <!-- Nota de seguridad -->
   <div style="display:flex;align-items:center;justify-content:center;gap:8px;">
-    <svg width="14" height="18" viewBox="0 0 20 24" style="image-rendering:pixelated;color:#29366f;">
+    <svg width="14" height="18" viewBox="0 0 20 24" style="image-rendering:pixelated;color:var(--border-default);">
       <use href="#ico-lock"/>
     </svg>
-    <p style="font-family:'Press Start 2P',monospace;font-size:7px;color:#29366f;line-height:1.8;">
+    <p style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--border-default);line-height:1.8;">
       FIRMA ECDSA P-256 VERIFICADA AUTOMÁTICAMENTE
     </p>
   </div>
@@ -210,7 +217,14 @@ const steps=[{label:'ESCANEAR',href:'/pharmacy'},{label:'VERIFICAR',href:'/pharm
 </FlowLayout>
 
 <script>
+  import { startQrScanner } from '../../utils/qrScanner.ts'
+  import { requireSession } from '../../utils/sessionGuard.ts'
+
+  // Guardia de sesión: solo farmacéuticos (o admin) pueden escanear recetas.
+  requireSession('Farmaceutico', '/pharmacy/login')
+
   const btn          = document.getElementById('scan-btn')      as HTMLButtonElement
+  const video        = document.getElementById('qr-video')      as HTMLVideoElement
   const viewport     = document.getElementById('qr-viewport')   as HTMLDivElement
   const scanLine     = document.getElementById('qr-scan-line')  as HTMLDivElement
   const cardIdle     = document.getElementById('card-idle')     as HTMLDivElement
@@ -219,60 +233,105 @@ const steps=[{label:'ESCANEAR',href:'/pharmacy'},{label:'VERIFICAR',href:'/pharm
   const deriveStatus = document.getElementById('derive-status') as HTMLParagraphElement
   const progTrack    = document.getElementById('scan-progress-track') as HTMLDivElement
   const progFill     = document.getElementById('scan-progress-fill')  as HTMLDivElement
-
-  // Fases específicas de la farmacia: verifica la receta, no una semilla
-  const phases = [
-    { msg: 'LEYENDO RECETA...',       color: '#e8003d', dur: 700  },
-    { msg: 'DESCIFRANDO CÁPSULA...',  color: '#e8003d', dur: 900  },
-    { msg: 'VERIFICANDO FIRMA...',    color: '#ffcd75', dur: 1000 },
-    { msg: 'VALIDANDO VIGENCIA...',   color: '#ffcd75', dur: 600  },
-    { msg: 'FIRMA VÁLIDA ✓',          color: '#38b764', dur: 500  },
-  ]
-  const totalDur = phases.reduce((s, p) => s + p.dur, 0)
+  const scanError    = document.getElementById('scan-error')    as HTMLParagraphElement | null
 
   function showPanel(panel: 'idle' | 'scanning' | 'success') {
     cardIdle.style.display     = panel === 'idle'     ? 'flex' : 'none'
     cardScanning.style.display = panel === 'scanning' ? 'flex' : 'none'
     cardSuccess.style.display  = panel === 'success'  ? 'flex' : 'none'
   }
+  function setStatus(msg: string, color: string) {
+    deriveStatus.textContent   = msg
+    deriveStatus.style.color   = color
+    scanLine.style.boxShadow   = `0 0 12px ${color}`
+    scanLine.style.background  = `linear-gradient(90deg,transparent,${color},transparent)`
+    viewport.style.borderColor = color
+  }
+  function showError(msg: string) { if (scanError) { scanError.textContent = msg; scanError.style.display = 'block' } }
+  function hideError()             { if (scanError) { scanError.style.display = 'none' } }
 
-  btn.addEventListener('click', () => {
+  /**
+   * QR de receta: puede ser un id numérico crudo, un JSON {"id_receta":N} o
+   * una URL tipo rxpro://receta?id=N. Cualquier otra cosa es inválida.
+   */
+  function parseRecetaQr(raw: string): number | null {
+    const trimmed = raw.trim()
+    if (/^\d+$/.test(trimmed)) return Number(trimmed)
+    try {
+      const obj = JSON.parse(trimmed)
+      const id = Number(obj?.id_receta ?? obj?.id)
+      if (Number.isFinite(id) && id > 0) return id
+    } catch {}
+    if (trimmed.startsWith('rxpro://')) {
+      try {
+        const u = new URL(trimmed)
+        const id = Number(u.searchParams.get('id') || '')
+        if (Number.isFinite(id) && id > 0) return id
+      } catch {}
+    }
+    // Última oportunidad: parámetro ?id= en URL http(s).
+    try {
+      const u = new URL(trimmed)
+      const id = Number(u.searchParams.get('id') || '')
+      if (Number.isFinite(id) && id > 0) return id
+    } catch {}
+    return null
+  }
+
+  btn.addEventListener('click', async () => {
+    hideError()
     btn.disabled = true
-    btn.textContent = 'ESCANEANDO...'
+    btn.textContent = 'INICIANDO CÁMARA...'
     btn.style.color = '#ffcd75'
     btn.style.borderColor = '#ffcd75'
 
     showPanel('scanning')
     progTrack.style.display = 'block'
+    video.style.display     = 'block'
 
-    let elapsed = 0
-    const pti = setInterval(() => {
-      elapsed += 40
-      const pct = Math.min(100, Math.round((elapsed / totalDur) * 100))
-      progFill.style.width = pct + '%'
-      if (pct >= 100) clearInterval(pti)
-    }, 40)
+    let pct = 0
+    const pulse = setInterval(() => { pct = (pct + 6) % 100; progFill.style.width = pct + '%' }, 90)
 
-    let delay = 0
-    phases.forEach((ph, i) => {
-      setTimeout(() => {
-        deriveStatus.textContent   = ph.msg
-        deriveStatus.style.color   = ph.color
-        scanLine.style.boxShadow   = `0 0 12px ${ph.color}`
-        scanLine.style.background  = `linear-gradient(90deg,transparent,${ph.color},transparent)`
-        viewport.style.borderColor = ph.color
+    setStatus('ABRIENDO CÁMARA...', '#e8003d')
+    const scanner = startQrScanner({ video, facingMode: 'environment' })
+    setTimeout(() => setStatus('ESPERANDO QR DE LA RECETA...', '#e8003d'), 800)
 
-        if (i === phases.length - 1) {
-          setTimeout(() => {
-            showPanel('success')
-            viewport.style.borderColor = '#38b764'
-            viewport.style.background  = '#04100a'
-            sessionStorage.setItem('rxpro_scan_method', 'qr')
-            setTimeout(() => { window.location.href = '/pharmacy/verify' }, 900)
-          }, ph.dur * 0.5)
-        }
-      }, delay)
-      delay += ph.dur
-    })
+    let raw = ''
+    try {
+      raw = await scanner.result
+    } catch (err: any) {
+      clearInterval(pulse)
+      progFill.style.width = '0%'
+      video.style.display = 'none'
+      showPanel('idle')
+      showError(err?.message || 'No se pudo leer el QR.')
+      btn.disabled = false
+      btn.textContent = 'ESCANEAR RECETA QR'
+      btn.style.color = '#e8003d'
+      btn.style.borderColor = '#e8003d'
+      return
+    }
+
+    clearInterval(pulse)
+    progFill.style.width = '100%'
+    video.style.display = 'none'
+
+    const idReceta = parseRecetaQr(raw)
+    if (!idReceta) {
+      showPanel('idle')
+      showError('El QR leído no contiene un folio de receta válido.')
+      btn.disabled = false
+      btn.textContent = 'ESCANEAR RECETA QR'
+      btn.style.color = '#e8003d'
+      btn.style.borderColor = '#e8003d'
+      return
+    }
+
+    setStatus('FOLIO DETECTADO · ABRIENDO RECETA...', '#38b764')
+    showPanel('success')
+    viewport.style.borderColor = '#38b764'
+    viewport.style.background  = '#04100a'
+    sessionStorage.setItem('rxpro_scan_method', 'qr')
+    setTimeout(() => { window.location.href = `/pharmacy/verify?id=${idReceta}` }, 600)
   })
 </script>

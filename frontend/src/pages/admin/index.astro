@@ -1,0 +1,422 @@
+---
+// Panel de administración. Un Admin autenticado (rol "Administrador")
+// puede dar de alta clínicas y emitir tarjetas QR para médicos,
+// pacientes y farmacéuticos. Al crear un usuario se genera una semilla
+// aleatoria de 32 bytes, se deriva su llave pública P-256 y se envía al
+// backend junto con el registro. La semilla solo se muestra UNA vez en
+// forma de tarjeta QR para imprimir o descargar — no se guarda en BD.
+import '../../styles/global.css'
+---
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>RxPro — Panel de Administración</title>
+  <script is:inline>
+    (function () {
+      try {
+        var t = localStorage.getItem('rxpro_theme') || 'dark';
+        if (t !== 'light' && t !== 'dark') t = 'dark';
+        document.documentElement.setAttribute('data-theme', t);
+      } catch (_) {
+        document.documentElement.setAttribute('data-theme', 'dark');
+      }
+    })();
+  </script>
+  <style>
+    .admin-tab {
+      font-family:'Press Start 2P',monospace;font-size:8px;
+      padding:10px 14px;border:3px solid var(--border-default);
+      background:transparent;color:var(--text-subtle);cursor:pointer;
+      transition:all .05s;letter-spacing:.05em;
+    }
+    .admin-tab.active {
+      background:var(--role-doctor);color:#1a1c2c;border-color:var(--role-doctor);
+      box-shadow:3px 3px 0 var(--role-doctor-d);
+    }
+    .admin-input {
+      font-family:'VT323',monospace;font-size:18px;padding:8px 10px;
+      background:var(--surface-inset);border:2px solid var(--border-default);
+      color:var(--text-primary);width:100%;
+    }
+    .admin-label {
+      font-family:'Press Start 2P',monospace;font-size:7px;
+      color:var(--text-subtle);margin-bottom:4px;display:block;
+    }
+    @media print {
+      body > *:not(#print-card) { display:none !important; }
+      #print-card { position:static !important; background:white !important; }
+      #print-card .card-overlay { display:none !important; }
+    }
+  </style>
+</head>
+<body style="min-height:100vh;background:var(--surface-base);color:var(--text-primary);padding:0;">
+
+<!-- TOPBAR -->
+<header class="topbar" style="padding:14px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid var(--border-default);">
+  <div style="display:flex;align-items:center;gap:12px;">
+    <svg width="28" height="14" viewBox="0 0 32 16" style="image-rendering:pixelated;">
+      <rect x="1" y="3" width="14" height="10" rx="5" fill="#e8003d"/>
+      <rect x="17" y="3" width="14" height="10" rx="5" fill="#f4f4f4"/>
+      <rect x="15" y="3" width="2" height="10" fill="#1a1c2c"/>
+    </svg>
+    <span class="rxpro-wordmark" style="font-family:'Press Start 2P',monospace;font-size:12px;letter-spacing:.1em;">RXPRO</span>
+    <span style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--role-doctor);padding:4px 8px;border:2px solid var(--role-doctor);margin-left:8px;">ADMIN</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px;">
+    <span id="admin-name" style="font-family:'VT323',monospace;font-size:18px;color:var(--text-muted);"></span>
+    <button id="logout-btn" class="px-btn px-btn-ghost" style="font-size:7px;padding:6px 10px;">CERRAR SESIÓN</button>
+  </div>
+</header>
+
+<main style="max-width:1100px;margin:24px auto;padding:0 20px;display:flex;flex-direction:column;gap:20px;">
+
+  <!-- Tabs -->
+  <nav id="tabs" style="display:flex;gap:8px;flex-wrap:wrap;">
+    <button class="admin-tab active" data-tab="medico">👨‍⚕️ MÉDICO</button>
+    <button class="admin-tab" data-tab="paciente">🧑‍💼 PACIENTE</button>
+    <button class="admin-tab" data-tab="farmaceutico">💊 FARMACÉUTICO</button>
+    <button class="admin-tab" data-tab="clinica">🏥 CLÍNICA</button>
+  </nav>
+
+  <!-- ------------- FORM: MÉDICO ------------- -->
+  <section id="panel-medico" class="admin-panel" style="background:var(--surface-card);border:3px solid var(--border-default);padding:20px;">
+    <h2 style="font-family:'Press Start 2P',monospace;font-size:10px;color:var(--role-doctor);margin-bottom:12px;">DAR DE ALTA — MÉDICO</h2>
+    <form id="form-medico" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <label><span class="admin-label">NOMBRE</span><input class="admin-input" name="nombre" required/></label>
+      <label><span class="admin-label">APELLIDO PATERNO</span><input class="admin-input" name="paterno" required/></label>
+      <label><span class="admin-label">APELLIDO MATERNO</span><input class="admin-input" name="materno"/></label>
+      <label><span class="admin-label">CORREO</span><input class="admin-input" type="email" name="correo" required/></label>
+      <label><span class="admin-label">CONTRASEÑA INICIAL</span><input class="admin-input" type="text" name="contrasena" required minlength="6"/></label>
+      <label><span class="admin-label">CÉDULA PROFESIONAL</span><input class="admin-input" name="cedula" required/></label>
+      <label><span class="admin-label">ESPECIALIDAD</span><input class="admin-input" name="especialidad" required/></label>
+      <label><span class="admin-label">UNIVERSIDAD</span><input class="admin-input" name="universidad" required/></label>
+      <label style="grid-column:1/-1;">
+        <span class="admin-label">CLÍNICA</span>
+        <select class="admin-input" name="id_clinica" required>
+          <option value="">— Selecciona —</option>
+        </select>
+      </label>
+      <button type="submit" class="px-btn px-btn-green px-btn-lg" style="grid-column:1/-1;justify-content:center;">
+        GENERAR TARJETA + REGISTRAR
+      </button>
+    </form>
+  </section>
+
+  <!-- ------------- FORM: PACIENTE ------------- -->
+  <section id="panel-paciente" class="admin-panel" style="display:none;background:var(--surface-card);border:3px solid var(--border-default);padding:20px;">
+    <h2 style="font-family:'Press Start 2P',monospace;font-size:10px;color:var(--role-patient);margin-bottom:12px;">DAR DE ALTA — PACIENTE</h2>
+    <form id="form-paciente" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <label><span class="admin-label">NOMBRE</span><input class="admin-input" name="nombre" required/></label>
+      <label><span class="admin-label">APELLIDO PATERNO</span><input class="admin-input" name="paterno" required/></label>
+      <label><span class="admin-label">APELLIDO MATERNO</span><input class="admin-input" name="materno"/></label>
+      <label><span class="admin-label">CORREO</span><input class="admin-input" type="email" name="correo" required/></label>
+      <label><span class="admin-label">CONTRASEÑA INICIAL</span><input class="admin-input" type="text" name="contrasena" required minlength="6"/></label>
+      <label><span class="admin-label">CURP</span><input class="admin-input" name="curp" required minlength="18" maxlength="18" style="text-transform:uppercase;"/></label>
+      <label><span class="admin-label">FECHA NACIMIENTO</span><input class="admin-input" type="date" name="nacimiento" required/></label>
+      <label><span class="admin-label">SEXO</span>
+        <select class="admin-input" name="sexo" required>
+          <option value="">—</option><option value="M">M</option><option value="F">F</option><option value="O">O</option>
+        </select>
+      </label>
+      <label><span class="admin-label">TELÉFONO DE EMERGENCIA</span><input class="admin-input" name="tel_emergencia" required/></label>
+      <label><span class="admin-label">CLÍNICA (OPCIONAL)</span>
+        <select class="admin-input" name="id_clinica">
+          <option value="">— Ninguna —</option>
+        </select>
+      </label>
+      <button type="submit" class="px-btn px-btn-red px-btn-lg" style="grid-column:1/-1;justify-content:center;background:var(--role-patient);border-color:var(--role-patient);box-shadow:4px 4px 0 var(--role-patient-d);">
+        GENERAR TARJETA + REGISTRAR
+      </button>
+    </form>
+  </section>
+
+  <!-- ------------- FORM: FARMACEUTICO ------------- -->
+  <section id="panel-farmaceutico" class="admin-panel" style="display:none;background:var(--surface-card);border:3px solid var(--border-default);padding:20px;">
+    <h2 style="font-family:'Press Start 2P',monospace;font-size:10px;color:var(--role-pharmacy);margin-bottom:12px;">DAR DE ALTA — FARMACÉUTICO</h2>
+    <form id="form-farmaceutico" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <label><span class="admin-label">NOMBRE</span><input class="admin-input" name="nombre" required/></label>
+      <label><span class="admin-label">APELLIDO PATERNO</span><input class="admin-input" name="paterno" required/></label>
+      <label><span class="admin-label">APELLIDO MATERNO</span><input class="admin-input" name="materno"/></label>
+      <label><span class="admin-label">CORREO</span><input class="admin-input" type="email" name="correo" required/></label>
+      <label><span class="admin-label">CONTRASEÑA INICIAL</span><input class="admin-input" type="text" name="contrasena" required minlength="6"/></label>
+      <label><span class="admin-label">LICENCIA</span><input class="admin-input" name="licencia" required/></label>
+      <label><span class="admin-label">TURNO</span>
+        <select class="admin-input" name="turno" required>
+          <option value="">—</option>
+          <option value="Matutino">Matutino</option>
+          <option value="Vespertino">Vespertino</option>
+          <option value="Nocturno">Nocturno</option>
+        </select>
+      </label>
+      <label><span class="admin-label">CLÍNICA (OPCIONAL)</span>
+        <select class="admin-input" name="id_clinica">
+          <option value="">— Ninguna —</option>
+        </select>
+      </label>
+      <button type="submit" class="px-btn px-btn-red px-btn-lg" style="grid-column:1/-1;justify-content:center;">
+        GENERAR TARJETA + REGISTRAR
+      </button>
+    </form>
+  </section>
+
+  <!-- ------------- FORM: CLINICA ------------- -->
+  <section id="panel-clinica" class="admin-panel" style="display:none;background:var(--surface-card);border:3px solid var(--border-default);padding:20px;">
+    <h2 style="font-family:'Press Start 2P',monospace;font-size:10px;color:var(--text-primary);margin-bottom:12px;">DAR DE ALTA — CLÍNICA</h2>
+    <form id="form-clinica" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <label><span class="admin-label">NOMBRE</span><input class="admin-input" name="nombre" required/></label>
+      <label><span class="admin-label">CLUES</span><input class="admin-input" name="clues" required/></label>
+      <label><span class="admin-label">CALLE</span><input class="admin-input" name="calle" required/></label>
+      <label><span class="admin-label">COLONIA</span><input class="admin-input" name="colonia" required/></label>
+      <label><span class="admin-label">MUNICIPIO</span><input class="admin-input" name="municipio" required/></label>
+      <label><span class="admin-label">ESTADO</span><input class="admin-input" name="estado" required/></label>
+      <label><span class="admin-label">CP</span><input class="admin-input" name="cp" required/></label>
+      <label><span class="admin-label">TIPO</span>
+        <select class="admin-input" name="tipo" required>
+          <option value="">—</option>
+          <option value="Centro Medico">Centro Médico</option>
+          <option value="Hospital">Hospital</option>
+        </select>
+      </label>
+      <button type="submit" class="px-btn px-btn-green px-btn-lg" style="grid-column:1/-1;justify-content:center;">
+        REGISTRAR CLÍNICA
+      </button>
+    </form>
+  </section>
+
+  <!-- ------------- RESULTADOS ------------- -->
+  <div id="result-box" style="display:none;background:var(--surface-card);border:3px solid var(--role-doctor);padding:16px;">
+    <p id="result-msg" style="font-family:'VT323',monospace;font-size:20px;color:var(--role-doctor);line-height:1.4;"></p>
+  </div>
+
+</main>
+
+<!-- ------------- TARJETA IMPRIMIBLE (modal) ------------- -->
+<div id="print-card" style="display:none;position:fixed;inset:0;background:rgba(6,7,16,.85);z-index:9999;align-items:center;justify-content:center;padding:20px;">
+  <div class="card-overlay" style="background:white;color:#1a1c2c;max-width:500px;width:100%;padding:28px;border:6px solid #1a1c2c;box-shadow:8px 8px 0 #333;display:flex;flex-direction:column;gap:14px;">
+    <div id="card-header" style="text-align:center;padding:10px;background:#38b764;color:white;border:3px solid #1a1c2c;">
+      <p style="font-family:'Press Start 2P',monospace;font-size:14px;" id="card-role-label">MÉDICO</p>
+      <p style="font-family:'VT323',monospace;font-size:18px;margin-top:4px;">RXPRO — TARJETA DE IDENTIDAD</p>
+    </div>
+    <div style="text-align:center;">
+      <p style="font-family:'Press Start 2P',monospace;font-size:9px;color:#333;" id="card-name">NOMBRE COMPLETO</p>
+      <p style="font-family:'VT323',monospace;font-size:20px;margin-top:4px;" id="card-identifier">IDENTIFICADOR</p>
+    </div>
+    <div id="card-qr-container" style="display:flex;justify-content:center;padding:12px;background:white;border:3px solid #1a1c2c;">
+      <canvas id="card-qr" style="image-rendering:pixelated;"></canvas>
+    </div>
+    <p style="font-family:'VT323',monospace;font-size:14px;color:#b13e53;text-align:center;line-height:1.4;">
+      ⚠ ESTA TARJETA ES LA ÚNICA COPIA.<br/>
+      SI SE PIERDE, HAY QUE RE-EMITIRLA.
+    </p>
+    <div class="card-overlay" style="display:flex;gap:8px;">
+      <button id="btn-print" class="px-btn px-btn-green" style="flex:1;justify-content:center;">IMPRIMIR</button>
+      <button id="btn-download" class="px-btn px-btn-ghost" style="flex:1;justify-content:center;">DESCARGAR PNG</button>
+      <button id="btn-close-card" class="px-btn px-btn-ghost" style="flex:1;justify-content:center;">CERRAR</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  import { Api, ApiError, getSession, clearSession } from '../../utils/api.ts'
+  import type {
+    ClinicaPublicDTO, MedicoCreateDTO, PacienteCreateDTO, FarmaceuticoCreateDTO,
+  } from '../../utils/api.ts'
+  import { generateCardSeed, deriveKeysFromSeed } from '../../crypto/seedDerivation.ts'
+  import { encodeCardQr, type CardRol } from '../../utils/cardQr.ts'
+  import QRCode from 'qrcode'
+
+  // Guard: solo admin pasa.
+  const session = getSession()
+  if (!session || session.role !== 'Administrador') {
+    window.location.replace('/admin/login')
+  } else {
+    const adminName = document.getElementById('admin-name') as HTMLSpanElement
+    if (adminName) adminName.textContent = session.correo
+  }
+
+  // ── Tabs ──
+  const tabs = Array.from(document.querySelectorAll<HTMLButtonElement>('.admin-tab'))
+  const panels = Array.from(document.querySelectorAll<HTMLElement>('.admin-panel'))
+  tabs.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.tab || ''
+      tabs.forEach(b => b.classList.toggle('active', b === btn))
+      panels.forEach(p => {
+        p.style.display = p.id === 'panel-' + id ? 'block' : 'none'
+      })
+    })
+  })
+
+  // ── Logout ──
+  ;(document.getElementById('logout-btn') as HTMLButtonElement).addEventListener('click', () => {
+    clearSession()
+    window.location.replace('/admin/login')
+  })
+
+  // ── Cargar clínicas en los selects ──
+  async function cargarClinicas() {
+    try {
+      const list: ClinicaPublicDTO[] = await Api.listarClinicas()
+      const selects = document.querySelectorAll<HTMLSelectElement>('select[name="id_clinica"]')
+      selects.forEach(sel => {
+        const required = sel.required
+        const placeholder = required ? '— Selecciona —' : '— Ninguna —'
+        sel.innerHTML = `<option value="">${placeholder}</option>`
+        for (const c of list) {
+          const opt = document.createElement('option')
+          opt.value = String(c.id_clinica)
+          opt.textContent = `${c.nombre} (${c.clues})`
+          sel.appendChild(opt)
+        }
+      })
+    } catch (err) {
+      console.warn('No se pudieron cargar las clínicas:', err)
+    }
+  }
+  cargarClinicas()
+
+  // ── Helpers de UI ──
+  const resultBox = document.getElementById('result-box') as HTMLDivElement
+  const resultMsg = document.getElementById('result-msg') as HTMLParagraphElement
+
+  function showResult(msg: string, isError = false) {
+    resultMsg.textContent = msg
+    resultBox.style.borderColor = isError ? 'var(--role-pharmacy)' : 'var(--role-doctor)'
+    resultMsg.style.color         = isError ? 'var(--role-pharmacy)' : 'var(--role-doctor)'
+    resultBox.style.display = 'block'
+  }
+
+  function errMsg(err: unknown): string {
+    if (err instanceof ApiError) return `Error ${err.status}: ${err.detail}`
+    return (err as any)?.message || 'Error desconocido.'
+  }
+
+  function formToObject(form: HTMLFormElement): Record<string, any> {
+    const fd = new FormData(form)
+    const out: Record<string, any> = {}
+    fd.forEach((v, k) => { out[k] = typeof v === 'string' ? v.trim() : v })
+    // id_clinica: pasar a number | null
+    if ('id_clinica' in out) {
+      out.id_clinica = out.id_clinica ? Number(out.id_clinica) : null
+    }
+    return out
+  }
+
+  // ── Modal de tarjeta ──
+  const cardModal = document.getElementById('print-card') as HTMLDivElement
+  const cardCanvas = document.getElementById('card-qr') as HTMLCanvasElement
+  const cardRoleLabel = document.getElementById('card-role-label') as HTMLParagraphElement
+  const cardName = document.getElementById('card-name') as HTMLParagraphElement
+  const cardId = document.getElementById('card-identifier') as HTMLParagraphElement
+  const cardHeader = document.getElementById('card-header') as HTMLDivElement
+
+  const roleColor: Record<CardRol, string> = {
+    Medico: '#38b764',
+    Paciente: '#41a6f6',
+    Farmaceutico: '#e8003d',
+  }
+  const roleLabelES: Record<CardRol, string> = {
+    Medico: 'MÉDICO', Paciente: 'PACIENTE', Farmaceutico: 'FARMACÉUTICO',
+  }
+
+  async function showCard(rol: CardRol, nombre: string, identificador: string, seedHex: string) {
+    const payload = encodeCardQr({ rol, identificador, seedHex })
+    cardHeader.style.background = roleColor[rol]
+    cardRoleLabel.textContent = roleLabelES[rol]
+    cardName.textContent = nombre
+    cardId.textContent = identificador
+    await QRCode.toCanvas(cardCanvas, payload, {
+      errorCorrectionLevel: 'M',
+      margin: 1,
+      width: 320,
+      color: { dark: '#1a1c2c', light: '#ffffff' },
+    })
+    cardModal.style.display = 'flex'
+  }
+
+  ;(document.getElementById('btn-close-card') as HTMLButtonElement).addEventListener('click', () => {
+    cardModal.style.display = 'none'
+  })
+  ;(document.getElementById('btn-print') as HTMLButtonElement).addEventListener('click', () => {
+    window.print()
+  })
+  ;(document.getElementById('btn-download') as HTMLButtonElement).addEventListener('click', () => {
+    const link = document.createElement('a')
+    link.download = `tarjeta-rxpro-${cardId.textContent}.png`
+    link.href = cardCanvas.toDataURL('image/png')
+    link.click()
+  })
+
+  // ── Submits ──
+  async function handleCreateUser(
+    form: HTMLFormElement,
+    rol: CardRol,
+    identifierField: 'cedula' | 'curp' | 'licencia',
+    createFn: (body: any) => Promise<any>,
+  ) {
+    const btn = form.querySelector('button[type="submit"]') as HTMLButtonElement
+    const original = btn.textContent || ''
+    btn.disabled = true
+    btn.textContent = 'GENERANDO...'
+    try {
+      const data = formToObject(form)
+      // 1) Generar semilla y derivar llave pública
+      const seedHex = generateCardSeed()
+      const { publicKeyHex } = deriveKeysFromSeed(seedHex)
+      // 2) Registrar en backend con la pública ya derivada
+      const body = { ...data, llave_publica: publicKeyHex }
+      const user = await createFn(body)
+      // 3) Mostrar tarjeta imprimible con la semilla recién creada
+      const identificador = (data[identifierField] || '').toString().toUpperCase()
+      const nombre = `${data.nombre} ${data.paterno}${data.materno ? ' ' + data.materno : ''}`.toUpperCase()
+      await showCard(rol, nombre, identificador, seedHex)
+      showResult(`✓ ${roleLabelES[rol]} creado (id=${user.id_usuario}, ${identificador}). Tarjeta lista para imprimir.`)
+      form.reset()
+    } catch (err) {
+      showResult('✗ ' + errMsg(err), true)
+    } finally {
+      btn.disabled = false
+      btn.textContent = original
+    }
+  }
+
+  ;(document.getElementById('form-medico') as HTMLFormElement).addEventListener('submit', (e) => {
+    e.preventDefault()
+    handleCreateUser(e.currentTarget as HTMLFormElement, 'Medico', 'cedula', (body) => Api.registerMedico(body as MedicoCreateDTO))
+  })
+  ;(document.getElementById('form-paciente') as HTMLFormElement).addEventListener('submit', (e) => {
+    e.preventDefault()
+    handleCreateUser(e.currentTarget as HTMLFormElement, 'Paciente', 'curp', (body) => Api.registerPaciente(body as PacienteCreateDTO))
+  })
+  ;(document.getElementById('form-farmaceutico') as HTMLFormElement).addEventListener('submit', (e) => {
+    e.preventDefault()
+    handleCreateUser(e.currentTarget as HTMLFormElement, 'Farmaceutico', 'licencia', (body) => Api.registerFarmaceutico(body as FarmaceuticoCreateDTO))
+  })
+
+  ;(document.getElementById('form-clinica') as HTMLFormElement).addEventListener('submit', async (e) => {
+    e.preventDefault()
+    const form = e.currentTarget as HTMLFormElement
+    const btn = form.querySelector('button[type="submit"]') as HTMLButtonElement
+    const original = btn.textContent || ''
+    btn.disabled = true
+    btn.textContent = 'REGISTRANDO...'
+    try {
+      const data = formToObject(form)
+      // id_clinica no aplica aquí
+      delete data.id_clinica
+      const c = await Api.crearClinica(data as any)
+      showResult(`✓ Clínica creada (id=${c.id_clinica}, ${c.nombre}).`)
+      form.reset()
+      cargarClinicas()
+    } catch (err) {
+      showResult('✗ ' + errMsg(err), true)
+    } finally {
+      btn.disabled = false
+      btn.textContent = original
+    }
+  })
+</script>
+</body>
+</html>

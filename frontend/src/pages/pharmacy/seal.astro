@@ -6,57 +6,163 @@ const checklist=['MEDICAMENTO CORRECTO (AMOXICILINA 500MG)','CANTIDAD CORRECTA (
 <FlowLayout title="Farmacia — Dispensar" role="pharmacy" steps={steps} currentStep={2} back="/pharmacy/verify">
 <div class="anim-slide" style="display:flex;flex-direction:column;gap:20px;">
   <div>
-    <h1 style="font-family:'Press Start 2P',monospace;font-size:13px;color:#f4f4f4;margin-bottom:6px;">CONFIRMAR DESPACHO</h1>
-    <p style="font-family:'VT323',monospace;font-size:22px;color:#c0cbdc;">Marca cada punto y sella la receta</p>
+    <h1 style="font-family:'Press Start 2P',monospace;font-size:13px;color:var(--text-primary);margin-bottom:6px;">CONFIRMAR DESPACHO</h1>
+    <p style="font-family:'VT323',monospace;font-size:22px;color:var(--text-muted);">Marca cada punto y sella la receta</p>
   </div>
 
   <!-- Big medication display -->
-  <div style="background:#1a0d0d;border:4px solid #e8003d;box-shadow:6px 6px 0 #8c0025;padding:24px;">
-    <p style="font-family:'Press Start 2P',monospace;font-size:8px;color:#e8003d;margin-bottom:16px;">ENTREGAR AL PACIENTE</p>
-    <div style="display:flex;align-items:center;gap:16px;background:#2a0d0d;border:3px solid #e8003d;padding:16px;margin-bottom:20px;">
+  <div style="background:#1a0d0d;border:4px solid var(--role-pharmacy);box-shadow:6px 6px 0 var(--role-pharmacy-d);padding:24px;">
+    <p style="font-family:'Press Start 2P',monospace;font-size:8px;color:var(--role-pharmacy);margin-bottom:16px;">ENTREGAR AL PACIENTE</p>
+    <div style="display:flex;align-items:center;gap:16px;background:#2a0d0d;border:3px solid var(--role-pharmacy);padding:16px;margin-bottom:20px;">
       <div class="anim-bounce" style="font-size:48px;flex-shrink:0;">💊</div>
       <div>
-        <p style="font-family:'Press Start 2P',monospace;font-size:14px;color:#f4f4f4;margin-bottom:6px;">AMOXICILINA</p>
-        <p style="font-family:'VT323',monospace;font-size:22px;color:#e8003d;">500 mg · 21 CÁPSULAS</p>
-        <p style="font-family:'VT323',monospace;font-size:20px;color:#c0cbdc;margin-top:4px;">GARCÍA MENDOZA, LUIS</p>
+        <p style="font-family:'Press Start 2P',monospace;font-size:14px;color:var(--text-primary);margin-bottom:6px;">AMOXICILINA</p>
+        <p style="font-family:'VT323',monospace;font-size:22px;color:var(--role-pharmacy);">500 mg · 21 CÁPSULAS</p>
+        <p style="font-family:'VT323',monospace;font-size:20px;color:var(--text-muted);margin-top:4px;">GARCÍA MENDOZA, LUIS</p>
       </div>
     </div>
 
     <!-- Pixel art checklist -->
     <div style="display:flex;flex-direction:column;gap:4px;" id="checklist">
       {checklist.map((item,idx)=>(
-        <label style="display:flex;align-items:flex-start;gap:12px;padding:12px;background:#222639;border:2px solid #29366f;cursor:pointer;transition:all .1s;" id={`lbl-${idx}`}>
-          <input type="checkbox" style="width:18px;height:18px;accent-color:#e8003d;flex-shrink:0;margin-top:2px;cursor:pointer;" onchange={`toggleCheck(${idx})`}/>
-          <span style="font-family:'Press Start 2P',monospace;font-size:7px;color:#c0cbdc;line-height:1.8;" id={`txt-${idx}`}>{item}</span>
+        <label style="display:flex;align-items:flex-start;gap:12px;padding:12px;background:var(--surface-card);border:2px solid var(--border-default);cursor:pointer;transition:all .1s;" id={`lbl-${idx}`}>
+          <input type="checkbox" style="width:18px;height:18px;accent-color:var(--role-pharmacy);flex-shrink:0;margin-top:2px;cursor:pointer;" onchange={`toggleCheck(${idx})`}/>
+          <span style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--text-muted);line-height:1.8;" id={`txt-${idx}`}>{item}</span>
         </label>
       ))}
     </div>
   </div>
 
   <!-- Notes -->
-  <div style="background:#222639;border:3px solid #29366f;padding:16px;">
-    <label class="px-label" style="color:#e8003d;">NOTAS (OPCIONAL)</label>
-    <textarea class="px-input red" style="border-color:#e8003d;resize:none;margin-top:4px;" rows="2" placeholder="Ej. Se indicó tomar con alimentos..."></textarea>
+  <div style="background:var(--surface-card);border:3px solid var(--border-default);padding:16px;">
+    <label class="px-label" style="color:var(--role-pharmacy);">NOTAS (OPCIONAL)</label>
+    <textarea class="px-input red" style="border-color:var(--role-pharmacy);resize:none;margin-top:4px;" rows="2" placeholder="Ej. Se indicó tomar con alimentos..."></textarea>
   </div>
 
-  <form action="/pharmacy/done" method="GET">
-    <button type="submit" class="px-btn px-btn-red px-btn-lg" style="width:100%;justify-content:center;font-size:11px;">
-      ✅ CONFIRMAR Y SELLAR RECETA
-    </button>
-  </form>
+  <!-- Error de backend -->
+  <div id="seal-error" style="display:none;background:#2a0d0d;border:3px solid var(--role-pharmacy);padding:14px;">
+    <p style="font-family:'Press Start 2P',monospace;font-size:8px;color:var(--role-pharmacy);margin-bottom:8px;">⛔ ERROR AL SELLAR</p>
+    <p id="seal-error-msg" style="font-family:'VT323',monospace;font-size:19px;color:var(--text-muted);line-height:1.5;"></p>
+  </div>
 
-  <p style="text-align:center;font-family:'Press Start 2P',monospace;font-size:7px;color:#29366f;line-height:1.8;">
+  <button type="button" id="seal-btn" class="px-btn px-btn-red px-btn-lg" style="width:100%;justify-content:center;font-size:11px;">
+    ✅ CONFIRMAR Y SELLAR RECETA
+  </button>
+
+  <p style="text-align:center;font-family:'Press Start 2P',monospace;font-size:7px;color:var(--border-default);line-height:1.8;">
     EL SELLO QUEDA REGISTRADO DE FORMA PERMANENTE
   </p>
 </div>
 </FlowLayout>
 
 <script>
-  function toggleCheck(i) {
-    const lbl=document.getElementById('lbl-'+i)
-    const txt=document.getElementById('txt-'+i)
-    const cb=lbl.querySelector('input')
-    if(cb.checked){lbl.style.background='#1a2e1a';lbl.style.borderColor='#38b764';txt.style.textDecoration='line-through';txt.style.color='#5b6ee1';}
-    else{lbl.style.background='#222639';lbl.style.borderColor='#29366f';txt.style.textDecoration='';txt.style.color='#c0cbdc';}
+  import { Api, ApiError, getSession } from '../../utils/api.ts'
+  import { CryptoEngine } from '../../crypto/index.ts'
+  import { getUserPrivKeyHex } from '../../utils/userKeys.ts'
+  import { requireSession } from '../../utils/sessionGuard.ts'
+  requireSession('Farmaceutico', '/pharmacy/login')
+
+  function toggleCheck(i: number) {
+    const lbl = document.getElementById('lbl-'+i) as HTMLLabelElement
+    const txt = document.getElementById('txt-'+i) as HTMLSpanElement
+    const cb  = lbl.querySelector('input') as HTMLInputElement
+    if (cb.checked) {
+      lbl.style.background='#1a2e1a'; lbl.style.borderColor='#38b764'
+      txt.style.textDecoration='line-through'; txt.style.color='#5b6ee1'
+    } else {
+      lbl.style.background='#222639'; lbl.style.borderColor='#29366f'
+      txt.style.textDecoration=''; txt.style.color='#c0cbdc'
+    }
   }
+  ;(window as any).toggleCheck = toggleCheck
+
+  const sealBtn  = document.getElementById('seal-btn')       as HTMLButtonElement
+  const errorBox = document.getElementById('seal-error')     as HTMLDivElement
+  const errorMsg = document.getElementById('seal-error-msg') as HTMLParagraphElement
+
+  function showError(msg: string) {
+    errorMsg.textContent = msg
+    errorBox.style.display = 'block'
+  }
+
+  sealBtn.addEventListener('click', async () => {
+    errorBox.style.display = 'none'
+
+    const params = new URLSearchParams(window.location.search)
+    const idReceta = Number(params.get('id') || 0)
+
+    // Checklist
+    const allChecked = Array.from(document.querySelectorAll('#checklist input[type="checkbox"]'))
+      .every(el => (el as HTMLInputElement).checked)
+    if (!allChecked) {
+      showError('Marca todos los puntos del checklist antes de sellar.')
+      return
+    }
+
+    // Si no hay id o payload backend, cae al comportamiento demo (redirige)
+    const payloadRaw = sessionStorage.getItem('rxpro_pharmacy_payload')
+    if (!idReceta || !payloadRaw) {
+      window.location.href = '/pharmacy/done'
+      return
+    }
+
+    sealBtn.disabled = true
+    const orig = sealBtn.textContent
+    sealBtn.textContent = '⏳ SELLANDO CON HMAC-SHA256...'
+
+    try {
+      const payload = JSON.parse(payloadRaw)
+
+      // La llave privada del farmacéutico viene de la seed del QR con la
+      // que inició sesión (no usamos llaves hardcoded).
+      const farmaceuticoPriv = getUserPrivKeyHex()
+      if (!farmaceuticoPriv) {
+        throw new Error('No hay llave derivada en esta sesión. Vuelve a iniciar con tu tarjeta QR.')
+      }
+
+      const { EncryptionModule } = await import('../../crypto/encryption.ts')
+      const { HmacModule }       = await import('../../crypto/hmac.ts')
+      const { KeyWrapModule }    = await import('../../crypto/keyWrap.ts')
+      const { hexToBytes }       = await import('@noble/hashes/utils.js')
+
+      const dek = hexToBytes(payload.dek_hex)
+      const fecha = new Date().toISOString()
+      const hmacSello = HmacModule.generateSeal(
+        `${payload.contenedor.datos.id_receta}-${fecha}`,
+        farmaceuticoPriv,
+      )
+      const contenedorActualizado = {
+        ...payload.contenedor,
+        sellos: {
+          id_clinica: 'FARM_ID_001',
+          fecha_surtido: fecha,
+          hmac_sello: hmacSello,
+        },
+      }
+      const nuevoCifrado = EncryptionModule.encrypt(contenedorActualizado as any, dek)
+      const wrapPaciente = KeyWrapModule.wrap(dek, farmaceuticoPriv, payload.pacientePubHex)
+      const wrapDoctor   = KeyWrapModule.wrap(dek, farmaceuticoPriv, payload.doctorPubHex)
+
+      const session = getSession()
+      const idFarmaceutico = session && session.role === 'Farmaceutico' ? session.id : 1
+
+      const res = await Api.sellarReceta(idReceta, {
+        id_farmaceutico: idFarmaceutico,
+        capsula_cifrada: nuevoCifrado.capsula_cifrada,
+        iv_aes_gcm:      nuevoCifrado.iv_aes_gcm,
+        accesos: [
+          { rol: 'paciente', wrappedKey: wrapPaciente.wrappedKey, nonce: wrapPaciente.nonce },
+          { rol: 'doctor',   wrappedKey: wrapDoctor.wrappedKey,   nonce: wrapDoctor.nonce   },
+        ],
+      })
+
+      sessionStorage.setItem('rxpro_last_sealed', JSON.stringify(res))
+      window.location.href = '/pharmacy/done'
+    } catch (e) {
+      const msg = e instanceof ApiError ? `Backend ${e.status}: ${e.detail}` : (e as any)?.message || 'Error'
+      showError(msg)
+      sealBtn.disabled = false
+      sealBtn.textContent = orig
+    }
+  })
 </script>
