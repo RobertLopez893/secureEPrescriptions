@@ -4,6 +4,7 @@ export interface DatosMedicos {
     id_receta: string;         // Identificador único (UUID v4)
     id_medico: string;         // ID del médico emisor
     id_paciente: string;       // ID del paciente receptor
+    id_farmaceutico: string;   // ID de la farmacia que surtirá 
     fecha_emision: string;     // Timestamp en formato estandarizado ISO 8601
     fecha_vencimiento: string; // Timestamp en formato estandarizado ISO 8601
     medicamentos: Array<{
@@ -32,7 +33,7 @@ export interface RecetaContainer {
 export interface KeyWrapResult {
     rol: 'paciente' | 'farmaceutico' | 'doctor';
     wrappedKey: string;
-    nonce: string;
+    ephemeralPubHex: string;
 }
 
 export interface RecetaCifrada {

@@ -3,7 +3,7 @@
  * Módulo de Sellado mediante HMAC-SHA256
  */
 import { hmac } from '@noble/hashes/hmac.js';
-import { sha256 } from '@noble/hashes/sha2.js';
+import { appHash } from './config.ts';
 import { utf8ToBytes, bytesToHex, hexToBytes } from '@noble/hashes/utils.js';
 
 export class HmacModule {
@@ -15,7 +15,7 @@ export class HmacModule {
   static generateSeal(dataToSeal: string, secretKeyHex: string): string {
     const key = hexToBytes(secretKeyHex);
     const message = utf8ToBytes(dataToSeal);
-    const mac = hmac(sha256, key, message);
+    const mac = hmac(appHash, key, message);
     return bytesToHex(mac);
   }
 
@@ -23,7 +23,17 @@ export class HmacModule {
    * Verifica que el sello de la farmacia sea auténtico.
    */
   static verifySeal(dataToSeal: string, sealToVerify: string, secretKeyHex: string): boolean {
-    const expectedSeal = this.generateSeal(dataToSeal, secretKeyHex);
-    return expectedSeal === sealToVerify;
+    const expectedMac = hexToBytes(this.generateSeal(dataToSeal, secretKeyHex));
+    const receivedMac = hexToBytes(sealToVerify);
+    
+    // Prevenir ataque si el tamaño es diferente
+    if (expectedMac.length !== receivedMac.length) return false;
+    
+    // Comparación de tiempo constante (Constant-time comparison)
+    let diff = 0;
+    for (let i = 0; i < expectedMac.length; i++) {
+        diff |= expectedMac[i] ^ receivedMac[i];
+    }
+    return diff === 0;
   }
 }
