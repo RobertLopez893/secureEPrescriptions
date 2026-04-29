@@ -12,18 +12,20 @@ export class CryptoEngine {
     keyPrivFirma: string,
     pacientePub: string, 
     farmaceuticoPub: string,
-    doctorPub: string
+    doctorPub: string,
+    contextInfo: string,
+    AAD: string
   ) : RecetaCifrada {
     const dek = randomBytes(32);
     const firma = SignatureModule.sign(datos, keyPrivFirma);
     const contenedor: RecetaContainer = { datos, firma_medico: firma };
     
-    const cifrado = EncryptionModule.encrypt(contenedor, dek);
+    const cifrado = EncryptionModule.encrypt(contenedor, dek,AAD);
 
     // Generamos un KeyWrap independiente para cada uno
-    const kwPaciente = KeyWrapModule.wrap( dek, pacientePub,datos.id_receta+datos.id_paciente);
-    const kwFarmacia = KeyWrapModule.wrap( dek, farmaceuticoPub,datos.id_receta+datos.id_farmaceutico);
-    const kwDoctor = KeyWrapModule.wrap( dek, doctorPub,datos.id_receta+datos.id_medico);
+    const kwPaciente = KeyWrapModule.wrap( dek, pacientePub,contextInfo);
+    const kwFarmacia = KeyWrapModule.wrap( dek, farmaceuticoPub,contextInfo);
+    const kwDoctor = KeyWrapModule.wrap( dek, doctorPub,contextInfo);
 
     return {
       ...cifrado,
@@ -45,7 +47,7 @@ export class CryptoEngine {
   ): { valido: boolean; contenido: RecetaContainer } {
     // 1. Desenvolvemos usando la llave de quien nos mandó la cápsula
     const dek = KeyWrapModule.unwrap(wrappedKeyHex, miPriv, ephemeralPubHex,ContextInfo);
-    const contenedor = EncryptionModule.decrypt(capsulaHex, nonceHex, dek);
+    const contenedor = EncryptionModule.decrypt(capsulaHex, nonceHex, dek,ContextInfo);
     
     const valido = SignatureModule.verify(contenedor.datos, contenedor.firma_medico, signaturePub);
     return { valido, contenido: contenedor };
@@ -61,10 +63,11 @@ export class CryptoEngine {
     pacientePub: string,
     pharmacistPub: string,
     doctorPub: string,
+    AAD: string,
     contextInfo: string
   ) : RecetaCifrada {
     const dekDecipher = KeyWrapModule.unwrap(wrappedKeyHex, myPriv, ehpimeralPub, contextInfo);
-    const contenedor = EncryptionModule.decrypt(capsulaHex, nonceHex, dekDecipher);
+    const contenedor = EncryptionModule.decrypt(capsulaHex, nonceHex, dekDecipher, AAD);
 
     const fecha = new Date().toISOString();
     const hmacSello = HmacModule.generateSeal(
@@ -85,11 +88,11 @@ export class CryptoEngine {
       }
     };
     const dekCipher = randomBytes(32);
-    const nuevoCifrado = EncryptionModule.encrypt(contenedorActualizado, dekCipher);
+    const nuevoCifrado = EncryptionModule.encrypt(contenedorActualizado, dekCipher,AAD);
     
-    const accesoPaciente = KeyWrapModule.wrap(dekCipher, pacientePub, contenedor.datos.id_receta+contenedor.datos.id_paciente);
-    const accesoDoctor = KeyWrapModule.wrap(dekCipher, doctorPub, contenedor.datos.id_receta+contenedor.datos.id_medico);
-    const accesoFarmaceutico = KeyWrapModule.wrap(dekCipher, pharmacistPub, contenedor.datos.id_receta+contenedor.datos.id_farmaceutico);
+    const accesoPaciente = KeyWrapModule.wrap(dekCipher, pacientePub, contextInfo);
+    const accesoDoctor = KeyWrapModule.wrap(dekCipher, doctorPub, contextInfo);
+    const accesoFarmaceutico = KeyWrapModule.wrap(dekCipher, pharmacistPub, contextInfo);
 
     return {
       ...nuevoCifrado,
