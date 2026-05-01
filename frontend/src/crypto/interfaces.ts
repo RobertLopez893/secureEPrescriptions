@@ -21,6 +21,7 @@ export interface DatosMedicos {
 export interface SelloDispensacion {
     id_clinica: string;       // ID de la farmacia que surtió el medicamento
     fecha_surtido: string;     // Timestamp exacto del surtido (ISO 8601)
+    estado: string;          // Estado de la receta en el momento del surtido (e.g., "surtida", "rechazada")
     hmac_sello: string;        // Sello matemático HMAC-SHA256 (en formato Hexadecimal)
 }
 
