@@ -45,7 +45,7 @@ def _assert_hex_exact(value: str, *, field: str, length: int) -> str:
 class AccesoCreate(BaseModel):
     rol: str           # "paciente" | "farmaceutico" | "doctor"
     wrappedKey: str    # DEK envuelta en hex
-    nonce: str         # Nonce del KeyWrap en hex
+    ephemeral_pub_hex: str         # Llave pública ephemeral en hex
 
     @field_validator("rol")
     @classmethod
@@ -64,10 +64,10 @@ class AccesoCreate(BaseModel):
         # payload interno), pero debe ser hex par y caber bajo el tope.
         return _assert_hex(v, field="wrappedKey", min_len=2, max_len=_MAX_HEX_LEN_GENERIC)
 
-    @field_validator("nonce")
+    @field_validator("ephemeral_pub_hex")
     @classmethod
-    def _v_nonce(cls, v: str) -> str:
-        return _assert_hex_exact(v, field="nonce", length=_KEYWRAP_NONCE_HEX)
+    def _v_ephemeral(cls, v: str) -> str:
+        return _assert_hex_exact(v, field="ephemeral_pub_hex", length=_P256_PUBKEY_LEN_HEX)
 
 class RecetaCreate(BaseModel):
     # id_medico es ignorado salvo para rol Administrador: el backend toma
@@ -77,11 +77,11 @@ class RecetaCreate(BaseModel):
     id_paciente: int
     expira_en: datetime
     capsula_cifrada: str   # Ciphertext hex
-    iv_aes_gcm: str        # Nonce AES-GCM hex
+    nonce: str        # Nonce AES-GCM hex
     accesos: List[AccesoCreate]
     # Firma ECDSA P-256 del "envelope" (los metadatos + cápsula opaca)
     # calculada sobre SHA-256(canonical_json({id_medico,id_paciente,
-    # capsula_cifrada,iv_aes_gcm,expira_en})). Esto permite al backend
+    # capsula_cifrada,nonce,expira_en})). Esto permite al backend
     # verificar autoría sin conocer el contenido de la receta.
     # Formato: 64 bytes r||s en hex (128 chars).
     firma_envelope: str
@@ -105,7 +105,7 @@ class RecetaCreate(BaseModel):
 class AccesoPublic(BaseModel):
     rol: str
     wrappedKey: str
-    nonce: str
+    ephemeral_pub_hex: str
 
 class RecetaPublic(BaseModel):
     id_receta: int
@@ -138,7 +138,7 @@ class RecetaCriptoPublic(BaseModel):
     id_medico: int
     id_paciente: int
     capsula_cifrada: str
-    iv_aes_gcm: str
+    nonce: str
     accesos: List[AccesoPublic]
     estado: str
 
@@ -147,7 +147,7 @@ class RecetaSellarRequest(BaseModel):
     # Opcional aquí solo para el camino de Administrador.
     id_farmaceutico: Optional[int] = None
     capsula_cifrada: str
-    iv_aes_gcm: str
+    nonce: str
     accesos: List[AccesoCreate]
 
     @field_validator("capsula_cifrada")

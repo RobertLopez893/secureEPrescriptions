@@ -39,6 +39,6 @@ export interface KeyWrapResult {
 
 export interface RecetaCifrada {
     capsula_cifrada: string;
-    iv_aes_gcm: string;
+    nonce: string;
     accesos: KeyWrapResult[];
 }

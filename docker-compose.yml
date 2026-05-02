@@ -31,6 +31,9 @@ services:
     environment:
       - ENVIRONMENT=${APP_ENV:-development}
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      - DEMO_SEED_MEDICO=${DEMO_SEED_MEDICO:-9db9d1d61b50478427b5445406099d04c79cbdbf722d6e3cc97165058ef523c9}
+      - DEMO_SEED_FARMACEUTICO=${DEMO_SEED_FARMACEUTICO:-4e97b3668f15e819fc25c7a449041144684b47238663cdefdc81844c4b51ac50}
+      - DEMO_SEED_PACIENTE=${DEMO_SEED_PACIENTE:-338467a8a8700b0c5c26ba38e82a9d366bf9fc7fed71ffe3aa0730ec5a9a96e3}
       # Lista separada por comas de orígenes autorizados por CORS.
       - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:4321,http://127.0.0.1:4321}
     volumes:

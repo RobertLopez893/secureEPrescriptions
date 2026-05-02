@@ -219,11 +219,11 @@ export interface RecetaCreateDTO {
   id_paciente: number;
   expira_en: string;          // ISO 8601
   capsula_cifrada: string;    // hex
-  iv_aes_gcm: string;         // hex
+  nonce: string;         // hex
   accesos: AccesoDTO[];
   /**
    * Firma ECDSA P-256 (compacta r||s, 128 chars hex) del "envelope":
-   *   sha256(`${id_medico}\n${id_paciente}\n${capsula_cifrada}\n${iv_aes_gcm}\n${expira_unix}`)
+   *   sha256(`${id_medico}\n${id_paciente}\n${capsula_cifrada}\n${nonce}\n${expira_unix}`)
    * El backend la verifica contra la llave pública activa del médico.
    */
   firma_envelope: string;

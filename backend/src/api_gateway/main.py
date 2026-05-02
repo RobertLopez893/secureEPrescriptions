@@ -204,6 +204,10 @@ def _seed_demo_data(session: Session) -> None:
     seed_paciente  = _resolve_demo_seed("DEMO_SEED_PACIENTE",    "paciente")
     seed_farma     = _resolve_demo_seed("DEMO_SEED_FARMACEUTICO","farmacéutico")
 
+    print(f"QR demo para Médico: rxpro://card/v1/medico/{medico_u.medico.cedula}/{seed_medico}")
+    print(f"QR demo para Paciente: rxpro://card/v1/paciente/{paciente_u.paciente.curp}/{seed_paciente}")
+    print(f"QR demo para Farmacéutico: rxpro://card/v1/farmaceutico/{farma_u.farmaceutico.licencia}/{seed_farma}")
+
     session.add(models.Llave(
         id_usuario=medico_u.id_usuario,
         llave_publica=_pub_hex_from_seed_hex(seed_medico),
