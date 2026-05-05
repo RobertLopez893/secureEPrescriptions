@@ -1,5 +1,5 @@
 from typing import Any, List, Optional
-from datetime import datetime, date
+from datetime import datetime, timezone, date
 from sqlmodel import Field, SQLModel, Relationship, Column
 from sqlalchemy import JSON
 
@@ -49,7 +49,7 @@ class Usuario(SQLModel, table=True):
     contrasena: str
     
     activo: bool = Field(default=True)
-    creado_en: datetime = Field(default_factory=datetime.utcnow)
+    creado_en: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     # Relaciones
     rol: Rol = Relationship(back_populates="usuarios")
@@ -112,7 +112,7 @@ class Administrador(SQLModel, table=True):
     contrasena: str
     
     activo: bool = Field(default=True)
-    creado_en: datetime = Field(default_factory=datetime.utcnow)
+    creado_en: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 # ==========================================
@@ -126,23 +126,25 @@ class Llave(SQLModel, table=True):
     
     llave_publica: str 
     activo: bool = Field(default=True)
-    creado_en: datetime = Field(default_factory=datetime.utcnow)
-
+    creado_en: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    responsabilidad: str = Field(default="general")
+    
     usuario: Usuario = Relationship(back_populates="llaves")
 
 
 class Receta(SQLModel, table=True):
     __tablename__ = "recetas"
-    
     id_receta: Optional[int] = Field(default=None, primary_key=True)
+    folio: str = Field(unique=True, index=True) 
+    
     id_medico: int = Field(foreign_key="usuarios.id_usuario", index=True)
     id_paciente: int = Field(foreign_key="usuarios.id_usuario", index=True)
-    id_farmaceutico: Optional[int] = Field(default=None, foreign_key="usuarios.id_usuario", index=True)
+    id_farmaceutico: int = Field( foreign_key="usuarios.id_usuario", index=True)
 
     capsula_cifrada: str   # Ciphertext hex del contenedor cifrado
     nonce: str        # Nonce AES-GCM hex
     accesos: Any = Field(default=[], sa_column=Column(JSON))  # [{rol, wrappedKey, nonce}]
-
+    
     estado: str = Field(default="activa")
-    creada_en: datetime = Field(default_factory=datetime.utcnow)
+    creada_en: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     expira_en: datetime
