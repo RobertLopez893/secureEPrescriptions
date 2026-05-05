@@ -1,6 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlmodel import Session, select
-
+from typing import Optional
 from src.database.database import get_session
 from src.database.models import Usuario, Paciente, Medico, Farmaceutico, Rol, Llave
 from src.core import security
@@ -24,39 +24,20 @@ def get_rol_by_name(session: Session, nombre_rol: str) -> Rol:
     return rol
 
 
-def _validate_p256_pub_hex(llave: str) -> str:
-    """
-    Valida que la llave pública sea P-256 uncompressed en hex:
-      - 130 chars hex (65 bytes)
-      - empieza por '04'
-    Devuelve el hex en minúsculas si es válido; lanza HTTP 400 si no.
-    """
-    l = (llave or "").strip().lower()
-    if len(l) != 130 or not l.startswith("04"):
-        raise HTTPException(
-            status_code=400,
-            detail="Formato de llave pública inválido (se espera P-256 uncompressed hex, 130 chars, empezando por 04).",
-        )
-    try:
-        bytes.fromhex(l)
-    except ValueError:
-        raise HTTPException(status_code=400, detail="La llave pública no es hex válido.")
-    return l
-
-
-def _set_active_key(session: Session, id_usuario: int, llave_publica: str) -> Llave:
-    """
-    Desactiva las llaves anteriores del usuario y registra una nueva como activa.
-    No hace commit (el caller decide cuándo flushear).
-    """
-    llave_hex = _validate_p256_pub_hex(llave_publica)
-    previas = session.exec(
-        select(Llave).where(Llave.id_usuario == id_usuario, Llave.activo == True)
+def _set_active_key(session: Session, id_usuario: int, llave_publica: str, responsabilidad: str = "general") -> Llave:
+    """Desactiva las llaves anteriores y registra la nueva como activa."""
+    llaves_viejas = session.exec(
+        select(Llave).where(Llave.id_usuario == id_usuario, Llave.responsabilidad == responsabilidad, Llave.activo == True)
     ).all()
-    for k in previas:
-        k.activo = False
-        session.add(k)
-    nueva = Llave(id_usuario=id_usuario, llave_publica=llave_hex, activo=True)
+    for obj in llaves_viejas:
+        obj.activo = False
+        session.add(obj)
+
+    nueva = Llave(
+        id_usuario=id_usuario, 
+        llave_publica=llave_publica,
+        responsabilidad=responsabilidad 
+    )
     session.add(nueva)
     return nueva
 
@@ -203,32 +184,30 @@ def registrar_farmaceutico(
 # ---------------------------------------------------------------------------
 # Llaves públicas por usuario
 # ---------------------------------------------------------------------------
-@router.put("/usuarios/me/llave", response_model=schemas.LlavePublicaOut)
-def registrar_mi_llave_publica(
+@router.post("/usuarios/{id_usuario}/llave", response_model=schemas.LlavePublicaOut)
+def registrar_llave_publica(
     *,
+    id_usuario: int,
+    body: schemas.LlavePublicaIn,
     session: Session = Depends(get_session),
     current_user: CurrentUser = Depends(get_current_user),
-    body: schemas.LlavePublicaIn,
 ):
     """Registra o rota la llave pública del usuario autenticado.
 
     Administrador no gestiona llaves propias (usa los flujos médicos/paciente/
     farmacéutico desde sus respectivos perfiles)."""
-    if current_user.role not in ("Medico", "Paciente", "Farmaceutico"):
-        raise HTTPException(
-            status_code=403,
-            detail=f"El rol '{current_user.role}' no gestiona llaves públicas propias.",
-        )
+
+    _require_admin(current_user)
     # Aseguramos que el usuario aún existe en BD.
-    u = session.get(Usuario, current_user.id)
+    u = session.get(Usuario, id_usuario)
     if not u:
         raise HTTPException(status_code=404, detail="Usuario no encontrado.")
 
-    nueva = _set_active_key(session, current_user.id, body.llave_publica)
+    nueva = _set_active_key(session, id_usuario, body.llave_publica,body.responsabilidad)
     session.commit()
     session.refresh(nueva)
     return schemas.LlavePublicaOut(
-        id_usuario=current_user.id, llave_publica=nueva.llave_publica
+        id_usuario=id_usuario, llave_publica=nueva.llave_publica, responsabilidad=nueva.responsabilidad
     )
 
 
@@ -245,6 +224,7 @@ def obtener_llave_publica(
     (las llaves públicas son, por definición, públicas dentro del directorio
     del sistema). Lanza 404 si el usuario no tiene llave registrada."""
     # Forzamos que esté autenticado (get_current_user ya lo hace).
+  
     llave = session.exec(
         select(Llave)
         .where(Llave.id_usuario == id_usuario, Llave.activo == True)
@@ -256,5 +236,5 @@ def obtener_llave_publica(
             detail=f"El usuario {id_usuario} no tiene llave pública registrada.",
         )
     return schemas.LlavePublicaOut(
-        id_usuario=id_usuario, llave_publica=llave.llave_publica
+        id_usuario=id_usuario, llave_publica=llave.llave_publica, responsabilidad=llave.responsabilidad
     )

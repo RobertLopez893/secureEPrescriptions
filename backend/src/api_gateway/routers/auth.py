@@ -264,7 +264,7 @@ def auth_challenge(
 
     llave = session.exec(
         select(Llave)
-        .where(Llave.id_usuario == usuario.id_usuario, Llave.activo == True)
+        .where(Llave.id_usuario == usuario.id_usuario, Llave.activo == True, Llave.responsabilidad == "firmas")
         .order_by(Llave.creado_en.desc())
     ).first()
     if not llave:
@@ -321,7 +321,7 @@ def auth_verify(
     usuario = _resolve_usuario_por_identificador(session, rol, identificador)
     llave = session.exec(
         select(Llave)
-        .where(Llave.id_usuario == usuario.id_usuario, Llave.activo == True)
+        .where(Llave.id_usuario == usuario.id_usuario, Llave.activo == True, Llave.responsabilidad == "firmas")
         .order_by(Llave.creado_en.desc())
     ).first()
     if not llave:

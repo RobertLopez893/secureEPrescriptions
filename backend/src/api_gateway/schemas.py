@@ -16,7 +16,6 @@ _MAX_HEX_LEN_GENERIC = 8192        # tope defensivo para capsulas cifradas
 _P256_PUBKEY_LEN_HEX = 130         # 04 + X(32B) + Y(32B) en hex
 _P256_SIG_LEN_HEX    = 128         # r(32B) || s(32B) en hex
 _AES_GCM_NONCE_HEX   = 24          # 12 bytes recomendados por NIST
-_KEYWRAP_NONCE_HEX   = 24          # mismo formato AES-GCM en el keyWrap
 
 
 def _assert_hex(value: str, *, field: str, min_len: int = 2, max_len: int = _MAX_HEX_LEN_GENERIC) -> str:
@@ -27,7 +26,6 @@ def _assert_hex(value: str, *, field: str, min_len: int = 2, max_len: int = _MAX
         raise ValueError(f"{field}: longitud fuera de rango ({len(v)} chars)")
     if len(v) % 2 != 0:
         raise ValueError(f"{field}: longitud hex debe ser par")
-    # int(…, 16) valida cada caracter sin asignar un buffer grande
     try:
         int(v, 16)
     except ValueError:
@@ -70,36 +68,28 @@ class AccesoCreate(BaseModel):
         return _assert_hex_exact(v, field="ephemeral_pub_hex", length=_P256_PUBKEY_LEN_HEX)
 
 class RecetaCreate(BaseModel):
-    # id_medico es ignorado salvo para rol Administrador: el backend toma
-    # el id_medico del JWT del emisor. Queda opcional para permitir que
-    # tooling administrativo emita recetas a nombre de otros.
-    id_medico: Optional[int] = None
+    folio: str
+    id_medico: int
     id_paciente: int
-    expira_en: datetime
+    id_farmaceutico: int
+
     capsula_cifrada: str   # Ciphertext hex
     nonce: str        # Nonce AES-GCM hex
     accesos: List[AccesoCreate]
-    # Firma ECDSA P-256 del "envelope" (los metadatos + cápsula opaca)
-    # calculada sobre SHA-256(canonical_json({id_medico,id_paciente,
-    # capsula_cifrada,nonce,expira_en})). Esto permite al backend
-    # verificar autoría sin conocer el contenido de la receta.
-    # Formato: 64 bytes r||s en hex (128 chars).
-    firma_envelope: str
-
+    
+    creada_en: datetime 
+    expira_en: datetime
+    
     @field_validator("capsula_cifrada")
     @classmethod
     def _v_capsula(cls, v: str) -> str:
         return _assert_hex(v, field="capsula_cifrada", min_len=2, max_len=_MAX_HEX_LEN_GENERIC)
 
-    @field_validator("iv_aes_gcm")
+    @field_validator("nonce")
     @classmethod
-    def _v_iv(cls, v: str) -> str:
-        return _assert_hex_exact(v, field="iv_aes_gcm", length=_AES_GCM_NONCE_HEX)
+    def _v_nonce(cls, v: str) -> str:
+        return _assert_hex_exact(v, field="nonce", length=_AES_GCM_NONCE_HEX)
 
-    @field_validator("firma_envelope")
-    @classmethod
-    def _v_firma(cls, v: str) -> str:
-        return _assert_hex_exact(v, field="firma_envelope", length=_P256_SIG_LEN_HEX)
 
 
 class AccesoPublic(BaseModel):
@@ -109,34 +99,38 @@ class AccesoPublic(BaseModel):
 
 class RecetaPublic(BaseModel):
     id_receta: int
+    folio: str
     estado: str
     creada_en: datetime
+    expira_en: datetime
 
 
 class UserInfo(BaseModel):
     nombre_completo: str
 
 class RecetaDetailPublic(RecetaPublic):
-    expira_en: datetime
     # Ids para que los clientes puedan resolver llaves públicas o enlazar
     # con las vistas del emisor/paciente sin llamar al endpoint de cripto.
+    folio: str
     id_medico: int
     id_paciente: int
+    id_farmaceutico: int
     medico: UserInfo
     paciente: UserInfo
-    # Bandera derivada: True si expira_en < now() (no persiste en BD, la
-    # calcula el router al responder). Permite al frontend mostrar el
-    # badge "VENCIDA" sin duplicar la lógica de tiempo.
+    farmaceutico: UserInfo
     vencida: bool = False
+    
 
 
 class RecetaCriptoPublic(BaseModel):
     id_receta: int
+    folio: str
     # Ids de las partes para que el cliente pueda consultar sus llaves
     # públicas activas vía GET /usuarios/{id}/llave sin una segunda llamada
     # al detalle de la receta.
     id_medico: int
     id_paciente: int
+    id_farmaceutico: int
     capsula_cifrada: str
     nonce: str
     accesos: List[AccesoPublic]
@@ -145,7 +139,7 @@ class RecetaCriptoPublic(BaseModel):
 class RecetaSellarRequest(BaseModel):
     # id_farmaceutico viene del JWT del farmacéutico que sella.
     # Opcional aquí solo para el camino de Administrador.
-    id_farmaceutico: Optional[int] = None
+    id_farmaceutico: int
     capsula_cifrada: str
     nonce: str
     accesos: List[AccesoCreate]
@@ -155,10 +149,10 @@ class RecetaSellarRequest(BaseModel):
     def _v_capsula_sellar(cls, v: str) -> str:
         return _assert_hex(v, field="capsula_cifrada", min_len=2, max_len=_MAX_HEX_LEN_GENERIC)
 
-    @field_validator("iv_aes_gcm")
+    @field_validator("nonce")
     @classmethod
-    def _v_iv_sellar(cls, v: str) -> str:
-        return _assert_hex_exact(v, field="iv_aes_gcm", length=_AES_GCM_NONCE_HEX)
+    def _v_nonce_sellar(cls, v: str) -> str:
+        return _assert_hex_exact(v, field="nonce", length=_AES_GCM_NONCE_HEX)
 
 
 class LoginRequest(BaseModel):
@@ -302,7 +296,8 @@ class FarmaceuticoCreate(BaseModel):
 
 class LlavePublicaIn(BaseModel):
     """Payload para registrar/rotar la llave pública del usuario autenticado."""
-    llave_publica: str  # P-256 uncompressed hex (130 chars, empieza con 04)
+    llave_publica: str 
+    responsabilidad: str # 'recetas', 'acceso', etc.
 
     @field_validator("llave_publica")
     @classmethod
@@ -316,6 +311,7 @@ class LlavePublicaIn(BaseModel):
 class LlavePublicaOut(BaseModel):
     id_usuario: int
     llave_publica: str
+    responsabilidad: str # 'recetas', 'acceso', etc.
 
 
 # --- Schemas de Clinica ---
