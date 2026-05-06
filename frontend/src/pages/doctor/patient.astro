@@ -68,11 +68,20 @@ const steps=[{label:'LOGIN',href:'/doctor'},{label:'PACIENTE',href:'/doctor/pati
 
 <script>
   import { requireSession } from '../../utils/sessionGuard.ts'
+  import { decodificarCURP } from '../../utils/curpUtils.ts' // Tu utilidad
+
   requireSession('Medico', '/doctor')
 
   const form = document.getElementById('patient-form') as HTMLFormElement
 
-  // Rehidratar si ya hay datos guardados
+  // Referencias a los inputs
+  const curpInput = form.querySelector('[name="curp"]') as HTMLInputElement
+  const idInput = form.querySelector('[name="id_paciente"]') as HTMLInputElement
+  const nameInput = form.querySelector('[name="name"]') as HTMLInputElement
+  const dobInput = form.querySelector('[name="dob"]') as HTMLInputElement
+  const sexSelect = form.querySelector('[name="sex"]') as HTMLSelectElement
+
+  // Rehidratar si ya hay datos guardados (tu lógica original)
   const existing = sessionStorage.getItem('rxpro_paciente')
   if (existing) {
     try {
@@ -84,6 +93,55 @@ const steps=[{label:'LOGIN',href:'/doctor'},{label:'PACIENTE',href:'/doctor/pati
     } catch { /* noop */ }
   }
 
+  // Lógica de Autocompletado + Fetch
+  if (curpInput) {
+    curpInput.addEventListener('input', async () => {
+      let curpVal = curpInput.value.toUpperCase()
+      curpInput.value = curpVal
+
+      if (curpVal.length === 18) {
+        // 1. Autocompletado local instantáneo (Fecha y Género)
+        const datosLocales = decodificarCURP(curpVal)
+        if (datosLocales) {
+          if (dobInput) dobInput.value = datosLocales.fechaNacimiento
+          if (sexSelect) {
+            sexSelect.value = datosLocales.genero === 'Hombre' ? 'MASCULINO' : 'FEMENINO'
+          }
+        }
+
+        // 2. Fetch al backend para traer el ID y Nombre Completo
+        try {
+          // Asumiendo que guardas tu JWT en sessionStorage con alguna llave
+          // (Ajusta 'rxpro_jwt' a como lo estés guardando en tu authFlow.ts)
+          const token = sessionStorage.getItem('rxpro_jwt') || localStorage.getItem('rxpro_jwt')
+          
+          // Usa tu URL base de la API
+          const res = await fetch(`http://localhost:8000/api/v1/usuarios/pacientes/buscar/${curpVal}`, {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          })
+
+          if (res.ok) {
+            const pacienteDB = await res.json()
+            if (idInput) idInput.value = pacienteDB.id_paciente
+            if (nameInput) nameInput.value = pacienteDB.nombre_completo
+            
+            window.showToast?.('Paciente encontrado en la base de datos', '#38b764')
+          } else if (res.status === 404) {
+            window.showToast?.('Paciente no registrado. Completa los datos manualmente.', '#ffcd75')
+            // Limpiamos ID y Nombre si es un paciente nuevo
+            if (idInput) idInput.value = ''
+            if (nameInput) nameInput.value = ''
+          }
+        } catch (error) {
+          console.error("Error buscando paciente:", error)
+        }
+      }
+    })
+  }
+
+  // Manejo del Submit original
   form.addEventListener('submit', (e) => {
     e.preventDefault()
     const fd = new FormData(form)

@@ -258,3 +258,31 @@ def obtener_llave_publica(
     return schemas.LlavePublicaOut(
         id_usuario=id_usuario, llave_publica=llave.llave_publica
     )
+
+@router.get("/usuarios/pacientes/buscar/{curp}")
+def buscar_paciente_por_curp(
+    curp: str,
+    session: Session = Depends(get_session),
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    """Busca un paciente por su CURP para autocompletar la receta."""
+    # Solo permitimos que el Médico o Admin busquen pacientes
+    if current_user.role not in ("Medico", "Administrador"):
+        raise HTTPException(
+            status_code=403, 
+            detail="No tienes permiso para buscar pacientes."
+        )
+
+    # Buscar usuario haciendo join con la tabla Paciente
+    statement = select(Usuario).join(Paciente).where(Paciente.curp == curp.strip().upper())
+    usuario = session.exec(statement).first()
+
+    if not usuario or not usuario.paciente:
+        raise HTTPException(status_code=404, detail="Paciente no encontrado en el sistema.")
+
+    return {
+        "id_paciente": usuario.id_usuario,
+        "nombre_completo": f"{usuario.nombre} {usuario.paterno}",
+        "nacimiento": usuario.paciente.nacimiento.isoformat(),
+        "sexo": usuario.paciente.sexo
+    }
