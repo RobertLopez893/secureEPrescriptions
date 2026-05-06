@@ -349,6 +349,37 @@ import '../../styles/global.css'
     link.click()
   })
 
+  // ── Autocompletado de CURP en Formulario Paciente ──
+  import { decodificarCURP } from '../../utils/curpUtils.ts'
+
+  const formPaciente = document.getElementById('form-paciente') as HTMLFormElement
+  if (formPaciente) {
+    const curpInput = formPaciente.querySelector('[name="curp"]') as HTMLInputElement
+    const nacimientoInput = formPaciente.querySelector('[name="nacimiento"]') as HTMLInputElement
+    const sexoSelect = formPaciente.querySelector('[name="sexo"]') as HTMLSelectElement
+
+    curpInput?.addEventListener('input', () => {
+      let curpVal = curpInput.value.toUpperCase()
+      curpInput.value = curpVal // Fuerza a mayúsculas mientras el admin teclea
+
+      if (curpVal.length === 18) {
+        // Extrae los datos usando tu utilidad local
+        const datos = decodificarCURP(curpVal)
+        
+        if (datos) {
+          // Llena la fecha
+          if (nacimientoInput) nacimientoInput.value = datos.fechaNacimiento
+          
+          // Mapea el género a los values exactos de tu select ('M' o 'F')
+          if (sexoSelect) {
+            if (datos.genero === 'Hombre') sexoSelect.value = 'M'
+            else if (datos.genero === 'Mujer') sexoSelect.value = 'F'
+          }
+        }
+      }
+    })
+  }
+
   // ── Submits ──
   async function handleCreateUser(
     form: HTMLFormElement,
