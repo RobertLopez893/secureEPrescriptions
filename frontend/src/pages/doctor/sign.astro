@@ -6,19 +6,9 @@ const steps = [
   { label: 'MEDICAMENTO', href: '/doctor/medication' },
   { label: 'FIRMA',       href: '/doctor/sign' },
 ]
-const rows = [
-  { l: 'PACIENTE',      v: 'García Mendoza, Luis' },
-  { l: 'CURP',          v: 'GARM850315HDFNDS07' },
-  { l: 'MEDICAMENTO',   v: 'Amoxicilina', big: true },
-  { l: 'DOSIS',         v: '500 mg · Cápsula' },
-  { l: 'CANTIDAD',      v: '21 cápsulas' },
-  { l: 'INSTRUCCIONES', v: '1 cápsula c/8h con alimentos, 7 días.' },
-  { l: 'VIGENCIA',      v: '30 días desde hoy' },
-]
 ---
 <FlowLayout title="Médico — Firma" role="doctor" steps={steps} currentStep={3} back="/doctor/medication">
 <div class="anim-slide" style="display:flex;flex-direction:column;gap:20px;">
-
   <div>
     <h1 style="font-family:'Press Start 2P',monospace;font-size:13px;color:var(--text-primary);margin-bottom:6px;">REVISAR Y FIRMAR</h1>
     <p style="font-family:'VT323',monospace;font-size:22px;color:var(--accent-warn);">Una vez firmada, la receta no puede modificarse.</p>
@@ -29,121 +19,11 @@ const rows = [
     <div style="background:var(--role-doctor);padding:10px 16px;">
       <span style="font-family:'Press Start 2P',monospace;font-size:8px;color:#1a1c2c;">📋 RESUMEN DE RECETA</span>
     </div>
-    <div style="padding:20px;">
-      {rows.map(f => (
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:10px 0;border-bottom:2px solid var(--border-default);gap:12px;">
-          <span style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--text-dim);flex-shrink:0;width:100px;">{f.l}</span>
-          <span style={'text-align:right;font-family:'+(f.big?'"Press Start 2P"':'"VT323"')+',monospace;font-size:'+(f.big?'11px':'21px')+';color:'+(f.big?'var(--role-doctor)':'var(--text-primary)')+';'}>{f.v}</span>
-        </div>
-      ))}
+    <div id="resumen-dinamico" style="padding:20px;">
+      <p style="font-family:'VT323',monospace;font-size:18px;color:var(--text-muted);">Cargando datos...</p>
     </div>
   </div>
 
-  <!-- ① JSON Canonicalizado -->
-  <div style="background:var(--surface-inset);border:3px solid #5b6ee1;box-shadow:4px 4px 0 var(--border-default);overflow:hidden;">
-    <div style="background:var(--border-default);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;">
-      <span style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--text-primary);">① JSON CANONICALIZADO — RFC 8785 / JCS</span>
-      <span style="font-family:'VT323',monospace;font-size:16px;color:var(--text-muted);">canonicalizeJSON() · @noble</span>
-    </div>
-    <div style="padding:14px;">
-      <pre id="jcs-output" style="font-family:'VT323',monospace;font-size:17px;color:var(--role-patient);white-space:pre-wrap;word-break:break-all;margin:0;line-height:1.5;"></pre>
-    </div>
-  </div>
-
-  <!-- ② SHA-256 del payload -->
-  <div style="background:var(--surface-inset);border:3px solid #5b6ee1;box-shadow:4px 4px 0 var(--border-default);overflow:hidden;">
-    <div style="background:var(--border-default);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;">
-      <span style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--text-primary);">② SHA-256 DEL PAYLOAD — FIPS 180-4</span>
-      <span style="font-family:'VT323',monospace;font-size:16px;color:var(--text-muted);">sha256() · @noble/hashes</span>
-    </div>
-    <div style="padding:14px;display:flex;align-items:center;gap:12px;">
-      <div style="flex:1;">
-        <p style="font-family:'Press Start 2P',monospace;font-size:6px;color:var(--text-dim);margin-bottom:6px;">DIGEST HEX (256 bits = 64 chars)</p>
-        <p id="sha256-output" style="font-family:'VT323',monospace;font-size:17px;color:var(--accent-warn);word-break:break-all;line-height:1.5;"></p>
-      </div>
-      <div id="sha256-badge" style="display:none;flex-shrink:0;background:#1a2e1a;border:2px solid var(--role-doctor);padding:6px 10px;">
-        <span style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--role-doctor);">256 bits ✓</span>
-      </div>
-    </div>
-  </div>
-
-  <!-- ③ Carga de llave privada -->
-  <div style="background:#1a1a0d;border:3px solid var(--accent-warn);box-shadow:4px 4px 0 var(--accent-warn-d);padding:20px;display:flex;flex-direction:column;gap:14px;">
-    <div style="font-family:'Press Start 2P',monospace;font-size:8px;color:var(--accent-warn);">
-      ③ CARGAR LLAVE PRIVADA — ECDSA P-256
-    </div>
-
-    <!-- Botón usar llave de demo -->
-    <div style="background:#12110a;border:2px solid var(--border-default);padding:12px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
-      <div>
-        <p style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--text-dim);margin-bottom:4px;">LLAVE DE SESIÓN — @noble/curves P-256</p>
-        <p style="font-family:'VT323',monospace;font-size:18px;color:var(--text-muted);">Usa la llave derivada de tu tarjeta QR (no sale del navegador)</p>
-      </div>
-      <button type="button" id="use-demo-btn" onclick="useDemoKey()"
-              style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--role-patient);background:#0a1525;border:3px solid var(--role-patient);padding:8px 12px;cursor:pointer;white-space:nowrap;">
-        ⚙ USAR LLAVE DE SESIÓN
-      </button>
-    </div>
-
-    <div style="display:flex;align-items:center;gap:12px;">
-      <div style="flex:1;height:2px;background:#29366f;"></div>
-      <span style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--text-subtle);">O CARGAR ARCHIVO</span>
-      <div style="flex:1;height:2px;background:#29366f;"></div>
-    </div>
-
-    <!-- Drop zone -->
-    <div id="drop-zone"
-         style="border:3px dashed var(--accent-warn);background:#12110a;padding:24px 16px;text-align:center;cursor:pointer;transition:border-color .1s,background .1s;"
-         ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)"
-         ondrop="handleDrop(event)" onclick="document.getElementById('key-file-input').click()">
-      <p style="font-family:'Press Start 2P',monospace;font-size:8px;color:var(--accent-warn);line-height:2;margin-bottom:4px;">
-        ARRASTRA TU ARCHIVO<br/>O HAZ CLIC AQUÍ
-      </p>
-      <p style="font-family:'VT323',monospace;font-size:18px;color:var(--text-dim);">Formatos: .pem · .key · .p12 · .pfx</p>
-      <input type="file" id="key-file-input" accept=".pem,.key,.p12,.pfx,.der" style="display:none;" onchange="handleFileSelect(event)"/>
-    </div>
-
-    <!-- Archivo cargado -->
-    <div id="file-loaded" style="display:none;background:#1a2e1a;border:3px solid var(--role-doctor);padding:14px;align-items:center;justify-content:space-between;gap:12px;">
-      <div>
-        <p id="file-name" style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--role-doctor);"></p>
-        <p id="file-meta" style="font-family:'VT323',monospace;font-size:17px;color:var(--text-muted);margin-top:3px;"></p>
-      </div>
-      <button type="button" onclick="resetKey()" style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--role-pharmacy);background:none;border:2px solid var(--role-pharmacy);padding:4px 8px;cursor:pointer;flex-shrink:0;">✕</button>
-    </div>
-
-    <!-- Errores -->
-    <div id="err-format" style="display:none;background:#2a0d0d;border:3px solid var(--role-pharmacy);padding:14px;">
-      <p style="font-family:'Press Start 2P',monospace;font-size:8px;color:var(--role-pharmacy);margin-bottom:8px;">⛔ FORMATO INVÁLIDO</p>
-      <p style="font-family:'VT323',monospace;font-size:19px;color:var(--text-muted);line-height:1.5;">Usa un archivo .pem o .key generado con ECDSA P-256.</p>
-      <button type="button" onclick="resetKey()" style="margin-top:10px;font-family:'Press Start 2P',monospace;font-size:7px;color:var(--role-pharmacy);background:none;border:2px solid var(--role-pharmacy);padding:5px 10px;cursor:pointer;">REINTENTAR</button>
-    </div>
-    <div id="err-corrupt" style="display:none;background:#2a0d0d;border:3px solid var(--role-pharmacy);padding:14px;">
-      <p style="font-family:'Press Start 2P',monospace;font-size:8px;color:var(--role-pharmacy);margin-bottom:8px;">⛔ LLAVE CORRUPTA</p>
-      <p style="font-family:'VT323',monospace;font-size:19px;color:var(--text-muted);line-height:1.5;">El archivo está dañado o incompleto.</p>
-      <button type="button" onclick="resetKey()" style="margin-top:10px;font-family:'Press Start 2P',monospace;font-size:7px;color:var(--role-pharmacy);background:none;border:2px solid var(--role-pharmacy);padding:5px 10px;cursor:pointer;">REINTENTAR</button>
-    </div>
-    <div id="err-mismatch" style="display:none;background:#1a0d00;border:3px solid var(--accent-warn);padding:14px;">
-      <p style="font-family:'Press Start 2P',monospace;font-size:8px;color:var(--accent-warn);margin-bottom:8px;">⚠ LLAVE NO COINCIDE</p>
-      <p style="font-family:'VT323',monospace;font-size:19px;color:var(--text-muted);line-height:1.5;">La llave no corresponde a la cédula 4892103.</p>
-      <button type="button" onclick="resetKey()" style="margin-top:10px;font-family:'Press Start 2P',monospace;font-size:7px;color:var(--accent-warn);background:none;border:2px solid var(--accent-warn);padding:5px 10px;cursor:pointer;">CARGAR OTRA LLAVE</button>
-    </div>
-
-    <!-- Llave pública derivada -->
-    <div id="pubkey-panel" style="display:none;background:var(--surface-inset);border:2px solid var(--border-default);padding:12px;">
-      <p style="font-family:'Press Start 2P',monospace;font-size:6px;color:var(--text-dim);margin-bottom:5px;">LLAVE PÚBLICA DERIVADA — getPublicKey()</p>
-      <p id="pubkey-output" style="font-family:'VT323',monospace;font-size:14px;color:var(--role-patient);word-break:break-all;line-height:1.5;"></p>
-    </div>
-
-    <!-- Key OK -->
-    <div id="key-ok" style="display:none;background:#1a2e1a;border:3px solid var(--role-doctor);padding:12px;align-items:center;gap:10px;">
-      <svg width="18" height="14" viewBox="0 0 20 16" style="image-rendering:pixelated;color:var(--role-doctor);flex-shrink:0;"><use href="#ico-checkmark"/></svg>
-      <div>
-        <p style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--role-doctor);">LLAVE VERIFICADA · LISTA PARA FIRMAR</p>
-        <p style="font-family:'VT323',monospace;font-size:17px;color:var(--text-muted);margin-top:3px;">ECDSA P-256 · @noble/curves · La llave nunca abandona este dispositivo.</p>
-      </div>
-    </div>
-  </div>
 
   <!-- ④ Firma generada -->
   <div id="sig-panel" style="display:none;background:var(--surface-inset);border:3px solid var(--role-doctor);box-shadow:4px 4px 0 var(--role-doctor-d);overflow:hidden;">
@@ -178,24 +58,25 @@ const rows = [
 </FlowLayout>
 
 <script>
-  import { canonicalizeJSON, signData, getPublicKey, signEnvelope } from '../../utils/cryptoFlow.ts'
-  import { sha256 } from '@noble/hashes/sha2.js'
-  import { utf8ToBytes, bytesToHex } from '@noble/hashes/utils.js'
   import { CryptoEngine } from '../../crypto/index.ts'
+  import type {DatosMedicos} from '../../crypto/interfaces.ts'
   import { Api, ApiError, getSession } from '../../utils/api.ts'
   import { getUserPrivKeyHex } from '../../utils/userKeys.ts'
   import { requireSession } from '../../utils/sessionGuard.ts'
   requireSession('Medico', '/doctor')
 
-  // Id del farmacéutico demo usado como destinatario de la cápsula.
-  // En un despliegue real, el paciente elige la farmacia en otro paso.
-  const DEMO_FARMA_ID = 3
+  const generarFolio = (idMedico: number): string => {
+    const now = new Date();
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const ts = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+    return `rx-${idMedico}-${ts}`;
+  };
+
+  const DEMO_FARMACEUTICO_ID = 3
 
   /* ══ ESTADO GLOBAL ══ */
   let activePrivKeyHex: string | null = null
-  let canonicalStr = ''
-  let digestHex    = ''
-
+  
   /* ══ HIDRATAR DESDE SESIÓN ══ */
   //  - rxpro_paciente : { curp, id_paciente, name, dob, sex }
   //  - rxpro_receta   : { medicamentos[], fecha_emision, vigencia_dias }
@@ -216,72 +97,90 @@ const rows = [
     ? storedReceta.medicamentos
     : [{ nombre: 'Amoxicilina 500 mg', forma: 'CÁPSULA', dosis: '500 mg', frecuencia: 'c/8h', duracion: '7 días' }]
 
-  /* ══ RECETA BASE (alineada con DatosMedicos de crypto/interfaces) ══ */
-  const RECETA_ID = (globalThis.crypto?.randomUUID?.() || `rx-${Date.now()}`)
   const RECETA = {
     datos: {
-      id_receta:        RECETA_ID,
-      id_medico:        `USR-${ID_MEDICO}`,
-      id_paciente:      `USR-${ID_PACIENTE || '?'}`,
-      fecha_emision:    FECHA_EMI,
+      folio:             generarFolio(ID_MEDICO),
+      id_medico:         `DOC-${ID_MEDICO}`,
+      id_paciente:       `USR-${ID_PACIENTE}`,
+      id_farmaceutico:   `FAR-${DEMO_FARMACEUTICO_ID}`,
+      fecha_emision:     FECHA_EMI,
       fecha_vencimiento: FECHA_VENC,
-      medicamentos:     MEDS,
-      instrucciones_extra: storedPaciente.name ? `Paciente: ${storedPaciente.name}` : undefined,
+      medicamentos:      MEDS,
     },
     dispensacion: null,
   }
 
-  /* ══ INIT — JCS + SHA-256 al cargar ══ */
-  function init() {
-    canonicalStr = canonicalizeJSON(RECETA)
+  function renderizarResumen() {
+    const container = document.getElementById('resumen-dinamico');
+    if (!container) return;
 
-    // Mostrar JCS pretty-printed
-    ;(document.getElementById('jcs-output') as HTMLPreElement).textContent =
-      JSON.stringify(JSON.parse(canonicalStr), null, 2)
+    // 1. Datos Generales del Paciente
+    let html = `
+      <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:2px solid var(--border-default);">
+        <span style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--text-dim);width:100px;">PACIENTE</span>
+        <span style="font-family:'VT323',monospace;font-size:21px;color:var(--text-primary);text-align:right;">${storedPaciente.name || 'Desconocido'}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:2px solid var(--border-default);">
+        <span style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--text-dim);width:100px;">CURP</span>
+        <span style="font-family:'VT323',monospace;font-size:21px;color:var(--text-primary);text-align:right;">${storedPaciente.curp || 'Desconocido'}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:2px solid var(--border-default);">
+        <span style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--text-dim);width:100px;">VIGENCIA</span>
+        <span style="font-family:'VT323',monospace;font-size:21px;color:var(--text-primary);text-align:right;">${VIGENCIA} días</span>
+      </div>
+    `;
 
-    // SHA-256 del canónico con @noble/hashes
-    const digestBytes = sha256(utf8ToBytes(canonicalStr))
-    digestHex = bytesToHex(digestBytes)
-    ;(document.getElementById('sha256-output') as HTMLParagraphElement).textContent = digestHex
-    ;(document.getElementById('sha256-badge') as HTMLDivElement).style.display = 'flex'
+    // 2. Iterar sobre todos los medicamentos (1 o muchos)
+    MEDS.forEach((m: any, index: number) => {
+      html += `
+        <div style="margin-top:20px; padding: 14px; background: rgba(56, 183, 100, 0.05); border-left: 3px solid var(--role-doctor);">
+          <div style="display:flex;justify-content:space-between;padding-bottom:10px;">
+            <span style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--role-doctor);">MEDICAMENTO ${index + 1}</span>
+            <span style="font-family:'Press Start 2P',monospace;font-size:10px;color:var(--role-doctor);text-align:right;">${m.nombre}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:5px 0;">
+            <span style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--text-dim);">DOSIS</span>
+            <span style="font-family:'VT323',monospace;font-size:20px;color:var(--text-primary);text-align:right;">${m.dosis} · ${m.forma}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:5px 0;">
+            <span style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--text-dim);">CANTIDAD</span>
+            <span style="font-family:'VT323',monospace;font-size:20px;color:var(--text-primary);text-align:right;">${m.cantidad} unidades (Recargas: ${m.recargas})</span>
+          </div>
+          <div style="display:flex;flex-direction:column;padding-top:10px;">
+            <span style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--text-dim);margin-bottom:4px;">INSTRUCCIONES</span>
+            <span style="font-family:'VT323',monospace;font-size:19px;color:var(--text-primary);">${m.instrucciones}</span>
+          </div>
+        </div>
+      `;
+    });
+
+    container.innerHTML = html;
   }
+  renderizarResumen()
 
-  init()
-
+  
   /* ══ USAR LLAVE DE SESIÓN (derivada del QR del login) ══ */
-  function useDemoKey() {
-    const btn = document.getElementById('use-demo-btn') as HTMLButtonElement
-    btn.textContent  = '⏳ CARGANDO...'
-    btn.disabled     = true
-
-    const priv = getUserPrivKeyHex()
+  function loadSessionKey() {
+    const priv = getUserPrivKeyHex('medico', 'sign')
+    const btn = document.getElementById('sign-btn') as HTMLButtonElement;
     if (!priv) {
       btn.textContent = '⛔ SIN LLAVE EN SESIÓN'
       btn.style.color = '#e8003d'
       btn.style.borderColor = '#e8003d'
-      showApiError('No hay llave derivada en esta sesión. Vuelve a iniciar con tu tarjeta QR.')
-      return
+      showApiError('No hay llave derivada en esta sesión. Vuelve a iniciar sesión con tu tarjeta QR.');
+      return;
     }
 
     try {
-      activePrivKeyHex = priv
+      activePrivKeyHex = priv;
 
-      const pubHex = getPublicKey(activePrivKeyHex)
-      sessionStorage.setItem('rxflow_pubkey', pubHex)
-      ;(document.getElementById('pubkey-output') as HTMLParagraphElement).textContent = pubHex
-      ;(document.getElementById('pubkey-panel') as HTMLDivElement).style.display = 'block'
+      const pubHex = CryptoEngine.getPublicKey(activePrivKeyHex)
+      console.log('Llave de sesión cargada. PubKey:', pubHex)
 
-      ;(document.getElementById('drop-zone') as HTMLDivElement).style.display = 'none'
-      ;(document.getElementById('key-ok') as HTMLDivElement).style.display    = 'flex'
-      ;(document.getElementById('file-name') as HTMLParagraphElement).textContent = 'Llave de sesión (QR)'
-      ;(document.getElementById('file-meta') as HTMLParagraphElement).textContent = '32 bytes · ECDSA P-256 · derivada de tu tarjeta'
-      ;(document.getElementById('file-loaded') as HTMLDivElement).style.display = 'flex'
-
-      btn.textContent       = '✓ LLAVE CARGADA'
-      btn.style.color       = '#38b764'
-      btn.style.borderColor = '#38b764'
-
-      setSignBtn(true)
+      btn.textContent = '🔑 FIRMAR Y EMITIR RECETA';
+      btn.disabled = false;
+      btn.style.opacity = '1';
+      btn.style.cursor = 'pointer';
     } catch(e) {
       btn.textContent = '⛔ ERROR'
       btn.style.color = '#e8003d'
@@ -289,85 +188,6 @@ const rows = [
     }
   }
 
-  /* ══ DRAG & DROP ══ */
-  const VALID_EXTS  = ['.pem', '.key', '.p12', '.pfx', '.der']
-  const PEM_HEADERS = [
-    '-----BEGIN EC PRIVATE KEY-----',
-    '-----BEGIN PRIVATE KEY-----',
-    '-----BEGIN ENCRYPTED PRIVATE KEY-----',
-  ]
-  const KEY_ATTEMPT = 'rxflow_key_attempt'
-
-  function handleDragOver(e: DragEvent)  { e.preventDefault(); (e.currentTarget as HTMLElement).style.borderColor='#fff'; (e.currentTarget as HTMLElement).style.background='#1e1c00' }
-  function handleDragLeave(e: DragEvent) { (e.currentTarget as HTMLElement).style.borderColor='#ffcd75'; (e.currentTarget as HTMLElement).style.background='#12110a' }
-  function handleDrop(e: DragEvent)      { e.preventDefault(); handleDragLeave(e); const f=e.dataTransfer?.files?.[0]; if(f) processFile(f) }
-  function handleFileSelect(e: Event)    { const f=(e.target as HTMLInputElement).files?.[0]; if(f) processFile(f) }
-
-  function hideErrors() {
-    ;['err-format','err-corrupt','err-mismatch','file-loaded','key-ok','pubkey-panel'].forEach(id => {
-      const el = document.getElementById(id)
-      if (el) el.style.display = 'none'
-    })
-  }
-
-  function resetKey() {
-    hideErrors()
-    ;(document.getElementById('key-file-input') as HTMLInputElement).value = ''
-    ;(document.getElementById('drop-zone') as HTMLDivElement).style.display = 'block'
-    ;(document.getElementById('sig-panel') as HTMLDivElement).style.display = 'none'
-    activePrivKeyHex = null
-    setSignBtn(false)
-  }
-
-  async function processFile(file: File) {
-    const name = file.name.toLowerCase()
-    const ext  = VALID_EXTS.find(e => name.endsWith(e))
-    ;(document.getElementById('drop-zone') as HTMLDivElement).style.display = 'none'
-    hideErrors()
-
-    if (!ext) { (document.getElementById('err-format') as HTMLDivElement).style.display = 'block'; return }
-
-    let text = ''
-    try { text = await file.text() } catch { (document.getElementById('err-corrupt') as HTMLDivElement).style.display = 'block'; return }
-
-    const trimmed   = text.trim()
-    const hasHeader = PEM_HEADERS.some(h => trimmed.startsWith(h))
-
-    if (!hasHeader && !['.p12','.pfx','.der'].includes(ext)) {
-      ;(document.getElementById(trimmed.startsWith('-----') ? 'err-format' : 'err-corrupt') as HTMLDivElement).style.display = 'block'
-      return
-    }
-
-    // En el flujo real la llave privada viene de la seed del QR; el upload
-    // de archivo PEM del prototipo no parseaba contenido real. Mantenemos
-    // la UI pero caemos siempre a la llave de sesión y mostramos el nombre
-    // del archivo como referencia. Si no hay sesión por QR, error claro.
-    const priv = getUserPrivKeyHex()
-    if (!priv) {
-      ;(document.getElementById('err-mismatch') as HTMLDivElement).style.display = 'block'
-      return
-    }
-    activePrivKeyHex = priv
-    const pubHex = getPublicKey(activePrivKeyHex)
-    sessionStorage.setItem('rxflow_pubkey', pubHex)
-    ;(document.getElementById('pubkey-output') as HTMLParagraphElement).textContent = pubHex
-    ;(document.getElementById('pubkey-panel') as HTMLDivElement).style.display = 'block'
-
-    const size = file.size < 1024 ? file.size + ' B' : (file.size/1024).toFixed(1) + ' KB'
-    ;(document.getElementById('file-name') as HTMLParagraphElement).textContent = file.name.length > 30 ? file.name.slice(0,28)+'…' : file.name
-    ;(document.getElementById('file-meta') as HTMLParagraphElement).textContent = size + ' · ECDSA P-256'
-    ;(document.getElementById('file-loaded') as HTMLDivElement).style.display = 'flex'
-    ;(document.getElementById('key-ok') as HTMLDivElement).style.display      = 'flex'
-    setSignBtn(true)
-  }
-
-  /* ══ FIRMAR con @noble/curves ══ */
-  function setSignBtn(enabled: boolean) {
-    const btn = document.getElementById('sign-btn') as HTMLButtonElement
-    btn.disabled      = !enabled
-    btn.style.opacity = enabled ? '1' : '.4'
-    btn.style.cursor  = enabled ? 'pointer' : 'not-allowed'
-  }
 
   function showApiError(msg: string) {
     const box = document.getElementById('api-error') as HTMLDivElement
@@ -387,29 +207,15 @@ const rows = [
     btn.disabled     = true
     btn.textContent  = '⏳ FIRMANDO CON @noble/curves...'
     btn.style.opacity = '.7'
-
     try {
-      // ── 1) Firma clásica (mostrada en UI) ──────────────────────────────
-      const sigHex = signData(canonicalStr, activePrivKeyHex)
-      sessionStorage.setItem('rxflow_signature', sigHex)
-      sessionStorage.setItem('rxflow_canonical',  canonicalStr)
-      sessionStorage.setItem('rxflow_digest',     digestHex)
-      ;(document.getElementById('sig-output') as HTMLParagraphElement).textContent = sigHex
-      ;(document.getElementById('sig-panel') as HTMLDivElement).style.display = 'block'
-
-      // ── 2) Validaciones para POST al backend ────────────────────────────
+      //Generar folio
+      const folio = generarFolio(ID_MEDICO);
       if (!ID_PACIENTE) {
         throw new Error('Falta el ID del paciente (regresa al paso PACIENTE).')
       }
-
-      // ── 3) Obtener llaves públicas reales desde el directorio ──────────
-      // El backend persiste la llave pública de cada usuario en la tabla
-      // Llave. Si no existe, fallamos explícitamente: no usamos fallbacks
-      // con llaves fijas porque invalidaría el cifrado E2E.
-      btn.textContent = '⏳ RESOLVIENDO LLAVES PÚBLICAS...'
-      const doctorPub = getPublicKey(activePrivKeyHex)
-
-      let pacientePub: string
+      const doctorPub = CryptoEngine.getPublicKey(activePrivKeyHex);
+      let pacientePub: string;
+      
       try {
         pacientePub = (await Api.obtenerLlavePublica(ID_PACIENTE)).llave_publica
       } catch (err) {
@@ -418,68 +224,43 @@ const rows = [
           `Pídele que escanee su tarjeta QR al menos una vez para registrarla.`
         )
       }
-
-      let farmaceuticoPub: string
+      let farmaceuticoPub: string;
       try {
-        farmaceuticoPub = (await Api.obtenerLlavePublica(DEMO_FARMA_ID)).llave_publica
+        farmaceuticoPub = (await Api.obtenerLlavePublica(DEMO_FARMACEUTICO_ID)).llave_publica
       } catch (err) {
         throw new Error(
-          `La farmacia destino (id=${DEMO_FARMA_ID}) no tiene llave pública registrada.`
+          `La farmacia destino (id=${DEMO_FARMACEUTICO_ID}) no tiene llave pública registrada.`
         )
-      }
-
-      // Registrar la llave pública del propio médico si aún no está en el
-      // directorio (primera emisión). Si ya existe, el backend devuelve la
-      // sobre-escritura como rotación — idempotente para nuestra sesión.
-      try {
-        await Api.registrarMiLlavePublica(doctorPub)
-      } catch (err) {
-        console.warn('[doctor/sign] no se pudo registrar llave pública del médico:', err)
       }
 
       // ── 4) Construir cápsula cifrada E2E con CryptoEngine ──────────────
       btn.textContent = '⏳ CIFRANDO CÁPSULA E2E...'
       const cifrada = CryptoEngine.emitirRecetaGlobal(
-        RECETA.datos as any,
-        activePrivKeyHex,
-        activePrivKeyHex,     // mismo par para firma y cifrado en este prototipo
+        RECETA.datos as DatosMedicos,
+        activePrivKeyHex,   // mismo par para firma y cifrado en este prototipo
         pacientePub,
         farmaceuticoPub,
         doctorPub,
-      )
-
-      // ── 5) Firmar el "envelope" que el backend sí puede ver ────────────
-      // sha256(`${id_medico}\n${id_paciente}\n${capsula}\n${iv}\n${exp_unix}`)
-      // El backend verifica esta firma contra la llave pública del médico
-      // sin conocer el contenido de la receta.
-      btn.textContent = '⏳ FIRMANDO ENVELOPE...'
-      const firmaEnvelope = signEnvelope(
-        {
-          id_medico:       ID_MEDICO,
-          id_paciente:     ID_PACIENTE,
-          capsula_cifrada: cifrada.capsula_cifrada,
-          iv_aes_gcm:      cifrada.iv_aes_gcm,
-          expira_iso:      FECHA_VENC,
-        },
-        activePrivKeyHex,
-      )
+      );
+      console.log('Cápsula cifrada:', cifrada)
+      
 
       // ── 6) POST /api/v1/recetas ────────────────────────────────────────
       btn.textContent = '⏳ ENVIANDO AL BACKEND...'
       const created = await Api.crearReceta({
+        folio:      folio,
         id_medico:       ID_MEDICO,
         id_paciente:     ID_PACIENTE,
         expira_en:       FECHA_VENC,
         capsula_cifrada: cifrada.capsula_cifrada,
-        iv_aes_gcm:      cifrada.iv_aes_gcm,
-        accesos:         cifrada.accesos,
-        firma_envelope:  firmaEnvelope,
+        nonce:      cifrada.nonce,
+        accesos:    cifrada.accesos,
+        id_farmaceutico: DEMO_FARMACEUTICO_ID, 
+        creada_en:       FECHA_EMI,
       })
-
-      // Persistir id real devuelto por el backend para la pantalla "done"
+      console.log('Receta creada en backend:', created)
       sessionStorage.setItem('rxpro_last_receta', JSON.stringify(created))
-
-      btn.textContent  = '✓ RECETA EMITIDA #' + created.id_receta
+      btn.textContent  = '✓ RECETA EMITIDA #' + folio
       btn.style.color  = '#38b764'
       btn.style.borderColor = '#38b764'
       btn.style.opacity = '1'
@@ -497,13 +278,7 @@ const rows = [
       console.error('Emisión fallida:', e)
     }
   }
+  setTimeout(loadSessionKey, 100);
 
-  // Exponer funciones al scope global para los onclick del HTML
-  ;(window as any).useDemoKey      = useDemoKey
-  ;(window as any).handleDragOver  = handleDragOver
-  ;(window as any).handleDragLeave = handleDragLeave
-  ;(window as any).handleDrop      = handleDrop
-  ;(window as any).handleFileSelect= handleFileSelect
-  ;(window as any).resetKey        = resetKey
   ;(window as any).doSign          = doSign
 </script>

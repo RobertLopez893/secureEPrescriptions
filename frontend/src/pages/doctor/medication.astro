@@ -70,16 +70,6 @@ const steps=[{label:'LOGIN',href:'/doctor'},{label:'PACIENTE',href:'/doctor/pati
     </div>
   </div>
 
-  <!-- Preview -->
-  <div style="background:#1a2e1a;border:3px solid var(--role-doctor);padding:16px;">
-    <div style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--role-doctor);margin-bottom:12px;opacity:.7;">
-      PREVISUALIZACIÓN DE RECETA
-    </div>
-    <div id="preview-list" style="display:flex;flex-direction:column;gap:10px;">
-      <p style="font-family:'VT323',monospace;font-size:18px;color:var(--text-subtle);">Agrega medicamentos para verlos aquí...</p>
-    </div>
-  </div>
-
   <!-- Botón FIRMAR -->
   <button type="button" id="submit-btn" class="px-btn px-btn-green px-btn-lg"
           style="width:100%;justify-content:center;">
@@ -114,7 +104,6 @@ const addBtn       = document.getElementById('add-med-btn')   as HTMLButtonEleme
 const submitBtn    = document.getElementById('submit-btn')    as HTMLButtonElement
 const countBadge   = document.getElementById('med-count-badge')!
 const limitWarning = document.getElementById('limit-warning') as HTMLDivElement
-const previewList  = document.getElementById('preview-list')!
 const gDate        = document.getElementById('g-date')        as HTMLInputElement
 const gValidity    = document.getElementById('g-validity')    as HTMLInputElement
 
@@ -194,13 +183,6 @@ function buildCard(id: number): HTMLElement {
     </div>
   `
 
-  // Listeners de inputs para preview en tiempo real
-  const fields = [`m${id}-name`, `m${id}-dose`, `m${id}-form`, `m${id}-qty`, `m${id}-instr`]
-  fields.forEach(fid => {
-    document.getElementById(fid)?.addEventListener('input', syncPreview)
-    document.getElementById(fid)?.addEventListener('change', syncPreview)
-  })
-
   // Listener del botón quitar
   card.querySelector('[data-remove]')?.addEventListener('click', (e) => {
     const btn = e.currentTarget as HTMLElement
@@ -218,7 +200,6 @@ function addMed() {
   medications.push(id)
   container.appendChild(buildCard(id))
   updateUI()
-  syncPreview()
   document.getElementById(`med-card-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
 }
 
@@ -227,7 +208,6 @@ function removeMed(id: number) {
   medications = medications.filter(m => m !== id)
   document.getElementById(`med-card-${id}`)?.remove()
   updateUI()
-  syncPreview()
 }
 
 // ── Actualizar badge y controles ──────────────────────────────────────────
@@ -248,74 +228,15 @@ function updateUI() {
   }
 }
 
-// ── Preview en tiempo real ────────────────────────────────────────────────
-// Se construye con DOM API (no innerHTML) para que los valores que el
-// doctor escribe en los inputs no puedan interpretarse como HTML/JS al
-// pintarlos en el preview.
-function syncPreview() {
-  previewList.replaceChildren()
-
-  if (medications.length === 0) {
-    const empty = document.createElement('p')
-    empty.style.cssText = "font-family:'VT323',monospace;font-size:18px;color:#29366f;"
-    empty.textContent = 'Agrega medicamentos para verlos aquí...'
-    previewList.appendChild(empty)
-    return
-  }
-
-  medications.forEach((id, idx) => {
-    const nameEl  = document.getElementById(`m${id}-name`)  as HTMLInputElement   | null
-    const doseEl  = document.getElementById(`m${id}-dose`)  as HTMLInputElement   | null
-    const formEl  = document.getElementById(`m${id}-form`)  as HTMLSelectElement  | null
-    const qtyEl   = document.getElementById(`m${id}-qty`)   as HTMLInputElement   | null
-    const instrEl = document.getElementById(`m${id}-instr`) as HTMLTextAreaElement| null
-
-    const name  = nameEl?.value.trim()  || '—'
-    const dose  = doseEl?.value.trim()  || '?'
-    const form  = formEl?.value         || '?'
-    const qty   = qtyEl?.value.trim()   || '?'
-    const instr = instrEl?.value.trim() || ''
-
-    const row = document.createElement('div')
-    row.style.cssText = 'display:flex;align-items:flex-start;gap:12px;padding-bottom:10px;border-bottom:2px solid #1a3a1a;'
-
-    const num = document.createElement('span')
-    num.style.cssText = "font-family:'Press Start 2P',monospace;font-size:9px;color:#38b764;flex-shrink:0;margin-top:2px;"
-    num.textContent = String(idx + 1).padStart(2, '0')
-
-    const body = document.createElement('div')
-    body.style.cssText = 'flex:1;'
-
-    const title = document.createElement('div')
-    title.style.cssText = "font-family:'Press Start 2P',monospace;font-size:8px;color:#f4f4f4;margin-bottom:4px;"
-    title.textContent = name
-
-    const meta = document.createElement('div')
-    meta.style.cssText = "font-family:'VT323',monospace;font-size:19px;color:#c0cbdc;"
-    meta.textContent = `${dose} · ${form} · ${qty} unidades`
-
-    body.append(title, meta)
-
-    if (instr) {
-      const instrEl = document.createElement('div')
-      instrEl.style.cssText = "font-family:'VT323',monospace;font-size:17px;color:#637087;margin-top:2px;"
-      instrEl.textContent = instr
-      body.appendChild(instrEl)
-    }
-
-    row.append(num, body)
-    previewList.appendChild(row)
-  })
-}
 
 // ── Validar y pasar a firma ───────────────────────────────────────────────
 submitBtn.addEventListener('click', () => {
   if (medications.length === 0) {
-    window.showToast('Agrega al menos un medicamento', '#e8003d')
+    window.showToast?.('Agrega al menos un medicamento', '#e8003d')
     return
   }
 
-  const meds: Array<{nombre:string;dosis:string;frecuencia:string;duracion:string}> = []
+  const meds: Array<{nombre:string;dosis:string;forma:string;cantidad:string;recargas:string;instrucciones:string}> = []
   let firstInvalid = -1
 
   for (const id of medications) {
@@ -324,7 +245,7 @@ submitBtn.addEventListener('click', () => {
     const form  = (document.getElementById(`m${id}-form`)  as HTMLSelectElement)?.value
     const qty   = (document.getElementById(`m${id}-qty`)   as HTMLInputElement)?.value.trim()
     const instr = (document.getElementById(`m${id}-instr`) as HTMLTextAreaElement)?.value.trim()
-
+    const refills = (document.getElementById(`m${id}-refills`) as HTMLInputElement)?.value.trim()
     if (!name || !dose || !form || !qty || !instr) {
       if (firstInvalid < 0) firstInvalid = id
       const card = document.getElementById(`med-card-${id}`)
@@ -334,10 +255,12 @@ submitBtn.addEventListener('click', () => {
       }
     } else {
       meds.push({
-        nombre:     `${name} ${dose} ${form}`,
-        dosis:      `${dose} · ${form}`,
-        frecuencia: instr,
-        duracion:   `${gValidity.value} días`,
+        nombre: name,
+        dosis: dose,
+        forma: form,
+        cantidad: qty,
+        recargas: refills,
+        instrucciones: instr,
       })
     }
   }
@@ -345,7 +268,7 @@ submitBtn.addEventListener('click', () => {
   if (firstInvalid >= 0) {
     document.getElementById(`med-card-${firstInvalid}`)
       ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    window.showToast('Completa todos los campos marcados con *', '#e8003d')
+    window.showToast?.('Completa todos los campos marcados con *', '#e8003d')
     return
   }
 
@@ -354,7 +277,6 @@ submitBtn.addEventListener('click', () => {
     fecha_emision: gDate.value,
     vigencia_dias: gValidity.value,
   }))
-
   submitBtn.textContent = 'PROCESANDO...'
   submitBtn.setAttribute('disabled', '')
   window.location.href = '/doctor/sign'

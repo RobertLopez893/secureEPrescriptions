@@ -26,7 +26,7 @@ export async function loginWithCard(card: CardPayload): Promise<SessionData> {
   })
 
   // 2) Derivar llaves desde la semilla
-  const { privateKeyHex } = deriveKeysFromSeed(card.seedHex)
+  const { privateKeyHex } = deriveKeysFromSeed(card.seedHex,"sign")
 
   // 3) Firmar el nonce. El backend verifica con ec.ECDSA(hashes.SHA256()),
   //    que aplica SHA-256 al mensaje antes de verificar. En @noble/curves

@@ -1,15 +1,15 @@
 import { aeskw } from '@noble/ciphers/aes.js';
-import { appCurve, appHash, CRYPTO_SIZES, CRYPTO_VERSION } from './config.ts';
+import { appCurve, appHash } from './config.ts';
 import { hexToBytes, bytesToHex, randomBytes} from '@noble/hashes/utils.js';
 import { hkdf } from '@noble/hashes/hkdf.js';
-import { CryptoContextFactory } from './contextFactory';
+import type {KeyWrapResult} from './interfaces.ts';
 
 export class KeyWrapModule {
 
-  static wrap(dek: Uint8Array, recipientPublicKeyHex: string, contextInfo: Uint8Array): { wrappedKey: string; ephemeralPubHex: string } {
+    static wrap(rol: 'paciente' | 'farmaceutico' | 'doctor',dek: Uint8Array, recipientPublicKeyHex: string, contextInfo: Uint8Array): KeyWrapResult {
     // Generamos una llave efímera para este envoltorio
     const ephemeralPriv = randomBytes(32);
-    const ephemeralPubHex = bytesToHex(appCurve.getPublicKey(ephemeralPriv));
+    const ephemeralPubHex = bytesToHex(appCurve.getPublicKey(ephemeralPriv, false));
 
     // Derivamos un KEK usando ECDH + HKDF con la llave efímera y la llave pública del destinatario
     const sharedSecret = appCurve.getSharedSecret(ephemeralPriv, hexToBytes(recipientPublicKeyHex));
@@ -18,8 +18,9 @@ export class KeyWrapModule {
     // Envolvemos el DEK usando AES-KW con el KEK derivado
     const kwInstance = aeskw(kek);
     return {
+      rol: rol,
       wrappedKey: bytesToHex(kwInstance.encrypt(dek)),
-      ephemeralPubHex: ephemeralPubHex
+      ephemeral_pub_hex: ephemeralPubHex
     };
   }
 

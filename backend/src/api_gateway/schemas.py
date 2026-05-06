@@ -243,6 +243,15 @@ class PacienteCreate(BaseModel):
         if not out.lower().startswith("04"):
             raise ValueError("llave_publica: debe ser P-256 uncompressed (prefijo 04)")
         return out
+class PacientePublic(BaseModel):
+    id_usuario: int
+    nombre: str
+    paterno: str
+    materno: Optional[str] = None
+    curp: str
+    nacimiento: date
+    sexo: str
+    tel_emergencia: str
 
 class MedicoCreate(BaseModel):
     # Datos del usuario base

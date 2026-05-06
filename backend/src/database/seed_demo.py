@@ -115,7 +115,7 @@ def _seed_demo_data(session: Session) -> None:
     for u in (medico_u, paciente_u, farma_u):
         session.refresh(u)
 
-    seed_medico    = _resolve_demo_seed("DEMO_SEED_MEDICO",      "médico")
+    seed_medico    = _resolve_demo_seed("DEMO_SEED_MEDICO", "médico")
     seed_paciente  = _resolve_demo_seed("DEMO_SEED_PACIENTE",    "paciente")
     seed_farma     = _resolve_demo_seed("DEMO_SEED_FARMACEUTICO","farmacéutico")
 
@@ -124,12 +124,12 @@ def _seed_demo_data(session: Session) -> None:
     print(f"QR demo para Farmacéutico: rxpro://card/v1/farmaceutico/{farma_u.farmaceutico.licencia}/{seed_farma}")
 
     session.add_all([
-        models.Llave(id_usuario=medico_u.id_usuario, llave_publica=_pub_hex_from_seed_hex(seed_medico, _HKDF_INFO_RECIPES), activo=True, Responsabilidad="recetas"),
-        models.Llave(id_usuario=paciente_u.id_usuario, llave_publica=_pub_hex_from_seed_hex(seed_paciente, _HKDF_INFO_RECIPES), activo=True, Responsabilidad="recetas"),
-        models.Llave(id_usuario=farma_u.id_usuario, llave_publica=_pub_hex_from_seed_hex(seed_farma, _HKDF_INFO_RECIPES), activo=True, Responsabilidad="recetas"),
-        models.Llave(id_usuario=medico_u.id_usuario, llave_publica=_pub_hex_from_seed_hex(seed_medico, _HKDF_INFO_SIGN), activo=True, Responsabilidad="firmas"),
-        models.Llave(id_usuario=paciente_u.id_usuario, llave_publica=_pub_hex_from_seed_hex(seed_paciente, _HKDF_INFO_SIGN), activo=True, Responsabilidad="firmas"),
-        models.Llave(id_usuario=farma_u.id_usuario, llave_publica=_pub_hex_from_seed_hex(seed_farma, _HKDF_INFO_SIGN), activo=True, Responsabilidad="firmas"),
+        models.Llave(id_usuario=medico_u.id_usuario, llave_publica=_pub_hex_from_seed_hex(seed_medico, _HKDF_INFO_RECIPES), activo=True, responsabilidad="recetas"),
+        models.Llave(id_usuario=paciente_u.id_usuario, llave_publica=_pub_hex_from_seed_hex(seed_paciente, _HKDF_INFO_RECIPES), activo=True, responsabilidad="recetas"),
+        models.Llave(id_usuario=farma_u.id_usuario, llave_publica=_pub_hex_from_seed_hex(seed_farma, _HKDF_INFO_RECIPES), activo=True, responsabilidad="recetas"),
+        models.Llave(id_usuario=medico_u.id_usuario, llave_publica=_pub_hex_from_seed_hex(seed_medico, _HKDF_INFO_SIGN), activo=True, responsabilidad="firmas"),
+        models.Llave(id_usuario=paciente_u.id_usuario, llave_publica=_pub_hex_from_seed_hex(seed_paciente, _HKDF_INFO_SIGN), activo=True, responsabilidad="firmas"),
+        models.Llave(id_usuario=farma_u.id_usuario, llave_publica=_pub_hex_from_seed_hex(seed_farma, _HKDF_INFO_SIGN), activo=True, responsabilidad="firmas"),
     ])
     session.commit()
 

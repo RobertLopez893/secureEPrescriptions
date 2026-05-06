@@ -90,9 +90,10 @@ const steps=[{label:'ACCESO',href:'/patient'},{label:'MIS RECETAS',href:'/patien
 
 <script>
   import { Api, ApiError } from '../../utils/api.ts'
-  import { CryptoEngine } from '../../crypto/index.ts'
+  import { CryptoEngine, type RecetaCifrada, type RecetaContainer } from '../../crypto/index.ts'
   import { getUserPrivKeyHex } from '../../utils/userKeys.ts'
   import { requireSession } from '../../utils/sessionGuard.ts'
+
   requireSession('Paciente', '/patient')
 
   const params = new URLSearchParams(window.location.search)
@@ -183,16 +184,20 @@ const steps=[{label:'ACCESO',href:'/patient'},{label:'MIS RECETAS',href:'/patien
       // Llave pública del médico: del directorio público del backend.
       const llaveDoctor = await Api.obtenerLlavePublica(cripto.id_medico)
       const doctorPubHex = llaveDoctor.llave_publica
-
+      const payload : RecetaCifrada = {capsula_cifrada: cripto.capsula_cifrada, nonce: cripto.nonce, accesos: cripto.accesos}
+      console.log('Payload recibido del backend:', payload)
       const { valido, contenido } = CryptoEngine.abrirReceta(
-        cripto.capsula_cifrada,
-        cripto.iv_aes_gcm,
-        accesoPaciente.wrappedKey,
-        accesoPaciente.nonce,
+        payload,
+        "paciente",
         privPaciente,
-        doctorPubHex,   // emisorWrapPub (el doctor hizo el wrap en la demo)
         doctorPubHex,
+        'USR-' + String(info.id_medico),
+        'USR-' + String(info.id_paciente),
+        'USR-' + String(info.id_paciente),
+        info.folio,
       )
+      console.log('Receta descifrada:', contenido)
+      console.log('Firma válida:', valido)
 
       if (!valido) {
         authT.textContent = '⚠ FIRMA NO VERIFICADA — CONSULTAR AL MÉDICO'

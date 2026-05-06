@@ -1,23 +1,25 @@
 
 // El contenido médico puro (Inmutable: Esto es lo que el médico firma)
-export interface DatosMedicos {
-    id_receta: string;         // Identificador único (UUID v4)
-    id_medico: string;         // ID del médico emisor
-    id_paciente: string;       // ID del paciente receptor
-    id_farmaceutico: string;   // ID de la farmacia que surtirá 
-    fecha_emision: string;     // Timestamp en formato estandarizado ISO 8601
-    fecha_vencimiento: string; // Timestamp en formato estandarizado ISO 8601
-    medicamentos: Array<{
-        nombre: string;
-        forma: string;
-        dosis: string;
-        frecuencia: string;
-        duracion: string;
-    }>;
-    instrucciones_extra?: string; // Opcional
+export interface Medicamento{
+    nombre: string;
+    dosis: string;
+    forma: string;
+    cantidad: string;   
+    recargas: string;
+    instrucciones: string;
 }
 
-//  El Sello del Farmacéutico (Prueba de dispensación)
+export interface DatosMedicos {
+    folio: string;             // Folio único de la receta (generado por el médico)
+    id_medico: string;         // ID del médico emisor
+    id_paciente: string;       // ID del paciente receptor
+    id_farmaceutico: string;   // ID de la farmaceutico que surtira
+    fecha_emision: string;     
+    fecha_vencimiento: string; 
+    medicamentos: Array<Medicamento>;
+}
+
+// ! Refactorizar
 export interface SelloDispensacion {
     id_clinica: string;       // ID de la farmacia que surtió el medicamento
     fecha_surtido: string;     // Timestamp exacto del surtido (ISO 8601)
@@ -34,11 +36,11 @@ export interface RecetaContainer {
 export interface KeyWrapResult {
     rol: 'paciente' | 'farmaceutico' | 'doctor';
     wrappedKey: string;
-    ephemeralPubHex: string;
+    ephemeral_pub_hex: string;
 }
 
 export interface RecetaCifrada {
     capsula_cifrada: string;
     nonce: string;
-    accesos: KeyWrapResult[];
+    accesos: Array<KeyWrapResult>;
 }

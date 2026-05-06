@@ -3,6 +3,11 @@ import { utf8ToBytes, bytesToHex, hexToBytes } from '@noble/hashes/utils.js';
 import type { DatosMedicos } from './interfaces';
 
 export class SignatureModule {
+    static getPublicKey(privateKey: string): string {
+        const pubKey= appCurve.getPublicKey(hexToBytes(privateKey), false);   
+        return bytesToHex(pubKey);
+    }   
+
     static canonicalize(obj: any): string {
         if (typeof obj !== 'object' || obj === null) return JSON.stringify(obj);
         if (Array.isArray(obj)) return '[' + obj.map(SignatureModule.canonicalize).join(',') + ']';

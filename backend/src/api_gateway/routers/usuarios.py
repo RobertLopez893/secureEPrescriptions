@@ -94,6 +94,56 @@ def registrar_paciente(
     return schemas.UsuarioPublic(
         **db_usuario.model_dump(), rol_nombre=db_usuario.rol.nombre
     )
+@router.get("/usuarios/pacientes/{id_usuario}", response_model=schemas.PacientePublic)
+def obtener_paciente_por_id(
+    *,
+    id_usuario: int,
+    session: Session = Depends(get_session),
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    """Obtiene el detalle completo de un paciente usando su ID directo."""
+    usuario = session.get(Usuario, id_usuario)
+    
+    if not usuario or not usuario.paciente:
+        raise HTTPException(status_code=404, detail="Paciente no encontrado con este ID")
+    
+    return schemas.PacientePublic(
+        id_usuario=usuario.id_usuario,
+        nombre=usuario.nombre,
+        paterno=usuario.paterno,
+        materno=usuario.materno,
+        curp=usuario.paciente.curp,
+        nacimiento=usuario.paciente.nacimiento,
+        sexo=usuario.paciente.sexo,
+        tel_emergencia=usuario.paciente.tel_emergencia
+    )
+
+@router.get("/usuarios/pacientes", response_model=schemas.PacientePublic)
+def buscar_paciente_por_curp(
+    *,
+    curp: str = Query(..., description="CURP del paciente a buscar"),
+    session: Session = Depends(get_session),
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    """Obtiene un paciente filtrando por su CURP (Estándar REST)."""
+    paciente = session.exec(select(Paciente).where(Paciente.curp == curp)).first()
+    if not paciente:
+        raise HTTPException(status_code=404, detail="Paciente no encontrado con este CURP")
+    
+    usuario = session.get(Usuario, paciente.id_usuario)
+    return schemas.PacientePublic(
+        id_usuario=usuario.id_usuario,
+        nombre=usuario.nombre,
+        paterno=usuario.paterno,
+        materno=usuario.materno,
+        curp=paciente.curp,
+        nacimiento=paciente.nacimiento,
+        sexo=paciente.sexo,
+        tel_emergencia=paciente.tel_emergencia
+    )
+
+
+
 
 @router.post("/usuarios/medicos", response_model=schemas.UsuarioPublic, status_code=status.HTTP_201_CREATED)
 def registrar_medico(

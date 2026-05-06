@@ -280,7 +280,7 @@ const steps=[{label:'ACCESO',href:'/patient'},{label:'MIS RECETAS',href:'/patien
     if (card && card.rol === 'Paciente') {
       try {
         setStatus('FIRMANDO RETO ECDSA...', '#ffcd75')
-        const { publicKeyHex } = deriveKeysFromSeed(card.seedHex)
+        const { publicKeyHex } = deriveKeysFromSeed(card.seedHex,"sign")
         await loginWithCard(card)
         if (keyPreview) keyPreview.textContent = maskKey(publicKeyHex)
         sessionStorage.setItem('rxpro_auth_method', 'qr_card')

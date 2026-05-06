@@ -12,8 +12,8 @@ export class HmacModule {
    * @param dataToSeal Texto que vincula la receta y la fecha.
    * @param secretKeyHex Llave secreta de la farmacia.
    */
-  static generateSeal(dataToSeal: string, secretKeyHex: string): string {
-    const key = hexToBytes(secretKeyHex);
+  static generateSeal(dataToSeal: string, sealKeyHex: string): string {
+    const key = hexToBytes(sealKeyHex);
     const message = utf8ToBytes(dataToSeal);
     const mac = hmac(appHash, key, message);
     return bytesToHex(mac);
@@ -22,8 +22,8 @@ export class HmacModule {
   /**
    * Verifica que el sello de la farmacia sea auténtico.
    */
-  static verifySeal(dataToSeal: string, sealToVerify: string, secretKeyHex: string): boolean {
-    const expectedMac = hexToBytes(this.generateSeal(dataToSeal, secretKeyHex));
+  static verifySeal(dataToSeal: string, sealToVerify: string, sealKeyHex: string): boolean {
+    const expectedMac = hexToBytes(this.generateSeal(dataToSeal, sealKeyHex));
     const receivedMac = hexToBytes(sealToVerify);
     
     // Prevenir ataque si el tamaño es diferente
