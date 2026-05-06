@@ -395,7 +395,7 @@ import '../../styles/global.css'
       const data = formToObject(form)
       // 1) Generar semilla y derivar llave pública
       const seedHex = generateCardSeed()
-      const { publicKeyHex } = deriveKeysFromSeed(seedHex)
+      const { publicKeyHex } = deriveKeysFromSeed(seedHex,"sign")
       // 2) Registrar en backend con la pública ya derivada
       const body = { ...data, llave_publica: publicKeyHex }
       const user = await createFn(body)
