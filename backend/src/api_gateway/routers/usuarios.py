@@ -6,6 +6,7 @@ from src.database.models import Usuario, Paciente, Medico, Farmaceutico, Rol, Ll
 from src.core import security
 from src.core.security import CurrentUser, get_current_user
 from src.api_gateway import schemas
+from typing import List
 
 router = APIRouter()
 
@@ -234,31 +235,69 @@ def registrar_farmaceutico(
 # ---------------------------------------------------------------------------
 # Llaves públicas por usuario
 # ---------------------------------------------------------------------------
-@router.post("/usuarios/{id_usuario}/llave", response_model=schemas.LlavePublicaOut)
-def registrar_llave_publica(
+@router.post("/usuarios/{id_usuario}/llave", response_model=List[schemas.LlavePublicaOut])
+def registrar_llave_publicas(
     *,
     id_usuario: int,
-    body: schemas.LlavePublicaIn,
+    llaves_in: List[schemas.LlavePublicaIn],
     session: Session = Depends(get_session),
     current_user: CurrentUser = Depends(get_current_user),
 ):
-    """Registra o rota la llave pública del usuario autenticado.
+    """Registra o rota una lista de llaves públicas del usuario autenticado,
+    asignando a cada una su respectiva responsabilidad.
 
-    Administrador no gestiona llaves propias (usa los flujos médicos/paciente/
-    farmacéutico desde sus respectivos perfiles)."""
-
+    Verificación de seguridad: Si al menos una de las llaves públicas en la 
+    lista ya se encuentra registrada previamente en la base de datos, se rechaza
+    la petición completa para evitar colisiones o reutilización de material criptográfico."""
     _require_admin(current_user)
+    
     # Aseguramos que el usuario aún existe en BD.
     u = session.get(Usuario, id_usuario)
     if not u:
         raise HTTPException(status_code=404, detail="Usuario no encontrado.")
 
-    nueva = _set_active_key(session, id_usuario, body.llave_publica,body.responsabilidad)
+    if not llaves_in:
+        raise HTTPException(status_code=400, detail="La lista de llaves no puede estar vacía.")
+
+    # 1. Extraer todas las secuencias hex de las llaves que se desean registrar
+    cadenas_llaves = [item.llave_publica for item in llaves_in]
+
+    # 2. Verificar si alguna ya existe previamente en toda la tabla Llave
+    llaves_duplicadas = session.exec(
+        select(Llave).where(Llave.llave_publica.in_(cadenas_llaves))
+    ).all()
+
+    if llaves_duplicadas:
+        raise HTTPException(
+            status_code=400,
+            detail="Operación rechazada: Al menos una de las llaves públicas proporcionadas ya está registrada previamente en el sistema."
+        )
+
+    # 3. Proceder con el registro asignando la responsabilidad correspondiente
+    llaves_creadas = []
+    for item in llaves_in:
+        nueva = _set_active_key(
+            session=session, 
+            id_usuario=id_usuario, 
+            llave_publica=item.llave_publica, 
+            responsabilidad=item.responsabilidad
+        )
+        llaves_creadas.append(nueva)
+
     session.commit()
-    session.refresh(nueva)
-    return schemas.LlavePublicaOut(
-        id_usuario=id_usuario, llave_publica=nueva.llave_publica, responsabilidad=nueva.responsabilidad
-    )
+
+    # 4. Refrescar y construir la respuesta de salida
+    for llave in llaves_creadas:
+        session.refresh(llave)
+
+    return [
+        schemas.LlavePublicaOut(
+            id_usuario=id_usuario,
+            llave_publica=llave.llave_publica,
+            responsabilidad=llave.responsabilidad
+        )
+        for llave in llaves_creadas
+    ]
 
 
 @router.get("/usuarios/{id_usuario}/llave", response_model=schemas.LlavePublicaOut)

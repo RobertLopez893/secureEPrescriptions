@@ -276,8 +276,8 @@ def sellar_receta(
     sello_in: schemas.RecetaSellarRequest,
 ):
     """Actualiza la receta después del sellado por la farmacia.
-    Solo farmacéuticos (o admin) pueden ejecutar esta operación y el
-    `id_farmaceutico` grabado en la receta proviene del token, no del body."""
+    Solo farmacéuticos (o admin) pueden ejecutar esta operación.
+    Modifica estrictamente los campos: cápsula cifrada, nonce y estado."""
     if current_user.role not in ("Farmaceutico", "Administrador"):
         raise HTTPException(
             status_code=403,
@@ -298,12 +298,9 @@ def sellar_receta(
             detail="La receta está vencida y no puede dispensarse.",
         )
 
-    id_farma = current_user.id if current_user.role == "Farmaceutico" else sello_in.id_farmaceutico
-
+    # Actualización exclusiva de los tres campos solicitados
     receta.capsula_cifrada = sello_in.capsula_cifrada
     receta.nonce = sello_in.nonce   
-    receta.accesos = [a.model_dump() for a in sello_in.accesos]
-    receta.id_farmaceutico = id_farma
     receta.estado = "surtida"
 
     session.add(receta)
