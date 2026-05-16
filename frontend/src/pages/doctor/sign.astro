@@ -208,16 +208,22 @@ const steps = [
     btn.textContent  = '⏳ FIRMANDO CON @noble/curves...'
     btn.style.opacity = '.7'
     try {
-      //Generar folio
-      const folio = generarFolio(ID_MEDICO);
       if (!ID_PACIENTE) {
         throw new Error('Falta el ID del paciente (regresa al paso PACIENTE).')
       }
-      const doctorPub = CryptoEngine.getPublicKey(activePrivKeyHex);
+      let doctorPub :string;
+      try {
+        doctorPub = (await Api.obtenerLlavePublica(ID_MEDICO,"recetas")).llave_publica
+      } catch (err) {
+        throw new Error(
+          `El paciente (id=${ID_MEDICO}) no tiene llave pública registrada. ` +
+          `Pídele que escanee su tarjeta QR al menos una vez para registrarla.`
+        )
+      }
       let pacientePub: string;
       
       try {
-        pacientePub = (await Api.obtenerLlavePublica(ID_PACIENTE)).llave_publica
+        pacientePub = (await Api.obtenerLlavePublica(ID_PACIENTE,"recetas")).llave_publica
       } catch (err) {
         throw new Error(
           `El paciente (id=${ID_PACIENTE}) no tiene llave pública registrada. ` +
@@ -226,7 +232,7 @@ const steps = [
       }
       let farmaceuticoPub: string;
       try {
-        farmaceuticoPub = (await Api.obtenerLlavePublica(DEMO_FARMACEUTICO_ID)).llave_publica
+        farmaceuticoPub = (await Api.obtenerLlavePublica(DEMO_FARMACEUTICO_ID,"recetas")).llave_publica
       } catch (err) {
         throw new Error(
           `La farmacia destino (id=${DEMO_FARMACEUTICO_ID}) no tiene llave pública registrada.`
@@ -248,7 +254,7 @@ const steps = [
       // ── 6) POST /api/v1/recetas ────────────────────────────────────────
       btn.textContent = '⏳ ENVIANDO AL BACKEND...'
       const created = await Api.crearReceta({
-        folio:      folio,
+        folio:      RECETA.datos.folio,
         id_medico:       ID_MEDICO,
         id_paciente:     ID_PACIENTE,
         expira_en:       FECHA_VENC,
@@ -260,7 +266,7 @@ const steps = [
       })
       console.log('Receta creada en backend:', created)
       sessionStorage.setItem('rxpro_last_receta', JSON.stringify(created))
-      btn.textContent  = '✓ RECETA EMITIDA #' + folio
+      btn.textContent  = '✓ RECETA EMITIDA #' + RECETA.datos.folio
       btn.style.color  = '#38b764'
       btn.style.borderColor = '#38b764'
       btn.style.opacity = '1'
