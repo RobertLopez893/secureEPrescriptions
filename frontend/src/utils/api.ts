@@ -231,19 +231,21 @@ export interface RecetaCreateDTO {
 
 export interface RecetaPublicDTO {
   id_receta: number;
+  folio: string;
   estado: string;
   creada_en: string;
+  expira_en: string;
 }
 
 export interface UserInfoDTO { nombre_completo: string; }
 
 export interface RecetaDetailDTO extends RecetaPublicDTO {
-  folio: string;
-  expira_en: string;
   id_medico: number;
   id_paciente: number;
+  id_farmaceutico: number;
   medico: UserInfoDTO;
   paciente: UserInfoDTO;
+  farmaceutico: UserInfoDTO;
   /** Derivado en el backend: expira_en < now() y no está surtida. */
   vencida: boolean;
 }
@@ -324,6 +326,7 @@ export interface PacientePublicDTO {
 export interface LlavePublicaDTO {
   id_usuario: number;
   llave_publica: string;
+  responsabilidad: string
 }
 
 export interface ClinicaCreateDTO {
@@ -463,13 +466,16 @@ export const Api = {
     id_paciente?: number;
     id_medico?: number;
     estado?: 'activa' | 'surtida' | 'expirada';
+    folio?: string;
     limit?: number;
   }): Promise<RecetaDetailDTO[]> {
     const params = new URLSearchParams();
     if (filters.id_paciente != null) params.set('id_paciente', String(filters.id_paciente));
     if (filters.id_medico   != null) params.set('id_medico',   String(filters.id_medico));
     if (filters.estado)               params.set('estado',      filters.estado);
+    if (filters.folio)                params.set('folio',       filters.folio.toLowerCase());
     if (filters.limit != null)        params.set('limit',       String(filters.limit));
+    console.log(filters)
     return request<RecetaDetailDTO[]>(`/api/v1/recetas?${params.toString()}`);
   },
 
@@ -486,8 +492,10 @@ export const Api = {
 
   // ---- Llaves públicas ----
   /** Devuelve la llave pública activa del usuario o lanza ApiError si no existe. */
-  async obtenerLlavePublica(idUsuario: number): Promise<LlavePublicaDTO> {
-    return request<LlavePublicaDTO>(`/api/v1/usuarios/${idUsuario}/llave`);
+  async obtenerLlavePublica(idUsuario: number, responsabilidad: string): Promise<LlavePublicaDTO> {
+    const params = new URLSearchParams();
+    if(responsabilidad)params.set('responsabilidad', responsabilidad)
+    return request<LlavePublicaDTO>(`/api/v1/usuarios/${idUsuario}/llave?${params.toString()}`);
   },
 
   /** Registra/rota la llave pública del usuario autenticado. */

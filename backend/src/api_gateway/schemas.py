@@ -111,7 +111,6 @@ class UserInfo(BaseModel):
 class RecetaDetailPublic(RecetaPublic):
     # Ids para que los clientes puedan resolver llaves públicas o enlazar
     # con las vistas del emisor/paciente sin llamar al endpoint de cripto.
-    folio: str
     id_medico: int
     id_paciente: int
     id_farmaceutico: int

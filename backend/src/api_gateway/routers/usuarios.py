@@ -267,6 +267,7 @@ def obtener_llave_publica(
     session: Session = Depends(get_session),
     current_user: CurrentUser = Depends(get_current_user),
     id_usuario: int,
+    responsabilidad: Optional[str] = Query(default=None, description="Obtener la llave de con responsabilidad sign, recipe"),
 ):
     """Devuelve la llave pública activa de un usuario.
 
@@ -274,10 +275,15 @@ def obtener_llave_publica(
     (las llaves públicas son, por definición, públicas dentro del directorio
     del sistema). Lanza 404 si el usuario no tiene llave registrada."""
     # Forzamos que esté autenticado (get_current_user ya lo hace).
-  
+    if not responsabilidad:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Falta campo responsabilidad"
+        )
+
     llave = session.exec(
         select(Llave)
-        .where(Llave.id_usuario == id_usuario, Llave.activo == True)
+        .where(Llave.id_usuario == id_usuario, Llave.activo == True, Llave.responsabilidad==responsabilidad)
         .order_by(Llave.creado_en.desc())
     ).first()
     if not llave:

@@ -46,13 +46,19 @@ def listar_recetas(
     id_medico: Optional[int] = Query(
         default=None,
         description="Filtra recetas emitidas por un médico (id_usuario).",
-    ),
+    ),    
     estado: Optional[str] = Query(
         default=None,
         description=(
             "Filtra por estado: 'activa', 'surtida' o 'expirada'. "
             "'expirada' es derivado (expira_en < now()) y excluye surtidas."
         ),
+    ),
+    folio: Optional[str]= Query(
+        default=None,
+        description=(
+            "Filtra recetas por su Folio.",
+        )
     ),
     limit: int = Query(default=50, ge=1, le=200),
 ):
@@ -63,11 +69,11 @@ def listar_recetas(
     Autorización: el filtro debe coincidir con el usuario autenticado,
     salvo que sea Administrador o Farmaceutico (que debe dispensar y ver
     recetas asignadas a pacientes)."""
-    if id_paciente is None and id_medico is None:
-        raise HTTPException(
-            status_code=400,
-            detail="Proporciona id_paciente o id_medico para filtrar.",
-        )
+    #if id_paciente is None and id_medico is None :
+    #    raise HTTPException(
+    #        status_code=400,
+    #        detail="Proporciona id_paciente o id_medico para filtrar.",
+    #    )
 
     # Reglas mínimas de autorización por rol:
     # - Paciente: solo su propio id_paciente.
@@ -100,12 +106,16 @@ def listar_recetas(
             )
         else:
             stmt = stmt.where(Receta.estado == estado)
-    stmt = stmt.order_by(Receta.creada_en.desc()).limit(limit)
+    if folio is not None:
+        stmt = stmt.where(Receta.folio.icontains(folio))
+        print(folio)
+
+    stmt = stmt.order_by(Receta.id_receta.desc()).limit(limit)
 
     recetas = session.exec(stmt).all()
-
+    print(recetas)
     # Precargamos los usuarios que aparecen para evitar N+1 consultas.
-    ids_usuarios = {r.id_medico for r in recetas} | {r.id_paciente for r in recetas}
+    ids_usuarios = {r.id_medico for r in recetas} | {r.id_paciente for r in recetas} | {r.id_farmaceutico for r in recetas}
     usuarios = {}
     if ids_usuarios:
         for u in session.exec(select(Usuario).where(Usuario.id_usuario.in_(ids_usuarios))).all():
@@ -115,7 +125,9 @@ def listar_recetas(
     for r in recetas:
         medico = usuarios.get(r.id_medico)
         paciente = usuarios.get(r.id_paciente)
-        if not medico or not paciente:
+        farmaceutico = usuarios.get(r.id_farmaceutico)
+
+        if not medico or not paciente or not farmaceutico:
             # Omitimos las recetas cuyas referencias de usuario ya no existen
             # para no romper la respuesta completa.
             continue
@@ -128,8 +140,10 @@ def listar_recetas(
                 expira_en=r.expira_en,
                 id_medico=r.id_medico,
                 id_paciente=r.id_paciente,
+                id_farmaceutico=r.id_farmaceutico,
                 medico=schemas.UserInfo(nombre_completo=f"{medico.nombre} {medico.paterno}"),
                 paciente=schemas.UserInfo(nombre_completo=f"{paciente.nombre} {paciente.paterno}"),
+                farmaceutico=schemas.UserInfo(nombre_completo=f"{farmaceutico.nombre} {farmaceutico.paterno}"),
                 vencida=_is_vencida(r.expira_en, now_utc) and r.estado != "surtida",
             )
         )
