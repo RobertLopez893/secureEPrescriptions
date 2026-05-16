@@ -59,24 +59,12 @@ const steps=[{label:'ACCESO',href:'/patient'},{label:'MIS RECETAS',href:'/patien
   </div>
 
   <!-- Details -->
-  <div style="background:var(--surface-card);border:3px solid var(--border-default);box-shadow:var(--shadow-dark);overflow:hidden;">
-    <div style="background:var(--border-default);padding:10px 16px;">
-      <span style="font-family:'Press Start 2P',monospace;font-size:8px;color:var(--text-primary);">📋 DETALLES DE PRESCRIPCIÓN</span>
+  <div style="background:var(--surface-card); border:3px solid var(--role-patient); box-shadow:4px 4px 0 var(--role-patient-d); padding:0; overflow:hidden;">
+    <div style="background:var(--role-patient); padding:10px 16px;">
+      <span style="font-family:'Press Start 2P',monospace; font-size:8px; color:#f4f4f4;">📋 DETALLE DE MI RECETA</span>
     </div>
-    <div id="details-body" style="padding:16px;">
-      {[
-        {l:'MEDICAMENTO',v:'Amoxicilina',big:true},
-        {l:'DOSIS',v:'500 mg · Cápsula',m:true},
-        {l:'CANTIDAD',v:'21 cápsulas',m:true},
-        {l:'INSTRUCCIONES',v:'1 cápsula c/8h con alimentos, 7 días.'},
-        {l:'MÉDICO',v:'Dr. Eduardo Ramírez'},
-        {l:'EMITIDA',v:'20 MAR 2026',m:true},
-      ].map(f=>(
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:10px 0;border-bottom:2px solid var(--border-default);gap:12px;">
-          <span style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--text-dim);flex-shrink:0;width:90px;">{f.l}</span>
-          <span style={'text-align:right;font-family:\'VT323\',monospace;font-size:'+(f.big?'22px':'20px')+';color:'+(f.big?'var(--role-patient)':'var(--text-primary)')+';'+(f.big?'font-weight:bold;':'')}>{f.v}</span>
-        </div>
-      ))}
+    <div id="resumen-contenido-paciente" style="padding:20px;">
+      <p style="font-family:'VT323',monospace; font-size:18px; color:var(--text-muted);" class="anim-blink">Descifrando contenido seguro...</p>
     </div>
   </div>
 
@@ -91,7 +79,7 @@ const steps=[{label:'ACCESO',href:'/patient'},{label:'MIS RECETAS',href:'/patien
 <script>
   import { Api, ApiError } from '../../utils/api.ts'
   import { CryptoEngine, type RecetaCifrada, type RecetaContainer } from '../../crypto/index.ts'
-  import { getUserPrivKeyHex } from '../../utils/userKeys.ts'
+  import { getUserPrivKeyHex, getUserPublicKeyHex } from '../../utils/userKeys.ts'
   import { requireSession } from '../../utils/sessionGuard.ts'
 
   requireSession('Paciente', '/patient')
@@ -147,7 +135,7 @@ const steps=[{label:'ACCESO',href:'/patient'},{label:'MIS RECETAS',href:'/patien
         Api.obtenerRecetaInfo(idReceta),
         Api.obtenerRecetaCripto(idReceta),
       ])
-
+      //console.log(info,cripto)
       folioEl.textContent = 'RX-' + String(info.id_receta).padStart(5, '0')
       vigEl.textContent   = 'VÁLIDO HASTA ' + new Date(info.expira_en).toLocaleDateString('es-MX',
         { day:'2-digit', month:'short', year:'numeric' }).toUpperCase()
@@ -176,24 +164,26 @@ const steps=[{label:'ACCESO',href:'/patient'},{label:'MIS RECETAS',href:'/patien
       const accesoPaciente = cripto.accesos.find(a => a.rol === 'paciente')
       if (!accesoPaciente) throw new Error('No hay acceso asignado a paciente en esta receta.')
 
-      const privPaciente = getUserPrivKeyHex()
+      const privPaciente = getUserPrivKeyHex("paciente","recipes")
+      console.log(getUserPublicKeyHex("paciente","recipes"))
       if (!privPaciente) {
+
         throw new Error('No hay llave privada en esta sesión. Vuelve a iniciar sesión con tu tarjeta QR.')
       }
 
       // Llave pública del médico: del directorio público del backend.
-      const llaveDoctor = await Api.obtenerLlavePublica(cripto.id_medico)
+      const llaveDoctor = await Api.obtenerLlavePublica(cripto.id_medico,"firmas")
       const doctorPubHex = llaveDoctor.llave_publica
       const payload : RecetaCifrada = {capsula_cifrada: cripto.capsula_cifrada, nonce: cripto.nonce, accesos: cripto.accesos}
-      console.log('Payload recibido del backend:', payload)
+      //console.log('Payload recibido del backend:', payload)
       const { valido, contenido } = CryptoEngine.abrirReceta(
         payload,
         "paciente",
         privPaciente,
         doctorPubHex,
-        'USR-' + String(info.id_medico),
+        'DOC-' + String(info.id_medico),
         'USR-' + String(info.id_paciente),
-        'USR-' + String(info.id_paciente),
+        'FAR-' + String(info.id_farmaceutico),
         info.folio,
       )
       console.log('Receta descifrada:', contenido)
@@ -205,18 +195,49 @@ const steps=[{label:'ACCESO',href:'/patient'},{label:'MIS RECETAS',href:'/patien
         authT.style.color = '#e8003d'
       }
 
+      // ... después de CryptoEngine.abrirReceta ...
+      
       const meds = contenido.datos.medicamentos || []
-      const rows: Array<{l:string; v:string; big?:boolean}> = []
-      meds.forEach((m: any, i: number) => {
-        rows.push({ l: `MED #${i+1}`, v: m.nombre || '—', big: true })
-        if (m.dosis)      rows.push({ l: 'DOSIS', v: m.dosis })
-        if (m.frecuencia) rows.push({ l: 'FRECUENCIA', v: m.frecuencia })
-        if (m.duracion)   rows.push({ l: 'DURACIÓN', v: m.duracion })
-      })
-      rows.push({ l: 'MÉDICO',  v: info.medico.nombre_completo })
-      rows.push({ l: 'EMITIDA', v: new Date(info.creada_en).toLocaleDateString('es-MX',
-        { day:'2-digit', month:'short', year:'numeric' }).toUpperCase() })
-      renderRows(rows)
+      const container = document.getElementById('resumen-contenido-paciente')
+      if (!container) return
+
+      // Construcción del HTML basado en el diseño de sign.astro
+      let html = `
+        <div style="display:flex; justify-content:space-between; padding:10px 0; border-bottom:2px solid var(--border-default);">
+          <span style="font-family:'Press Start 2P',monospace; font-size:7px; color:var(--text-dim); width:100px;">MÉDICO</span>
+          <span style="font-family:'VT323',monospace; font-size:21px; color:var(--role-doctor); text-align:right;">DR. ${info.medico.nombre_completo.toUpperCase()}</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; padding:10px 0; border-bottom:2px solid var(--border-default);">
+          <span style="font-family:'Press Start 2P',monospace; font-size:7px; color:var(--text-dim); width:100px;">EMISIÓN</span>
+          <span style="font-family:'VT323',monospace; font-size:21px; color:var(--text-primary); text-align:right;">${info.creada_en.slice(0, 10)}</span>
+        </div>
+      `;
+
+      // ITERACIÓN DE MEDICAMENTOS (Tarjetas individuales)
+      meds.forEach((m: any, index: number) => {
+        html += `
+          <div style="margin-top:20px; padding: 14px; background: rgba(65, 166, 246, 0.05); border-left: 3px solid var(--role-patient);">
+            <div style="display:flex; justify-content:space-between; padding-bottom:10px;">
+              <span style="font-family:'Press Start 2P',monospace; font-size:7px; color:var(--role-patient);">MEDICAMENTO ${index + 1}</span>
+              <span style="font-family:'Press Start 2P',monospace; font-size:10px; color:var(--text-primary); text-align:right;">${m.nombre}</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; padding:5px 0;">
+              <span style="font-family:'Press Start 2P',monospace; font-size:7px; color:var(--text-dim);">DOSIS</span>
+              <span style="font-family:'VT323',monospace; font-size:20px; color:var(--text-primary); text-align:right;">${m.dosis} · ${m.forma}</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; padding:5px 0;">
+              <span style="font-family:'Press Start 2P',monospace; font-size:7px; color:var(--text-dim);">CANTIDAD</span>
+              <span style="font-family:'VT323',monospace; font-size:20px; color:var(--text-primary); text-align:right;">${m.cantidad} unidades (Recargas: ${m.recargas || 0})</span>
+            </div>
+            <div style="display:flex; flex-direction:column; padding-top:10px;">
+              <span style="font-family:'Press Start 2P',monospace; font-size:7px; color:var(--text-dim); margin-bottom:4px;">INSTRUCCIONES</span>
+              <span style="font-family:'VT323',monospace; font-size:19px; color:var(--text-primary); line-height:1.4;">${m.instrucciones}</span>
+            </div>
+          </div>
+        `;
+      });
+
+      container.innerHTML = html;
     } catch (e) {
       const msg = e instanceof ApiError ? `Backend ${e.status}: ${e.detail}`
         : (e as any)?.message || 'Error inesperado.'
