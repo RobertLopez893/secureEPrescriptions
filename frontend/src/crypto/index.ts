@@ -27,8 +27,7 @@ export class CryptoEngine {
     
     const aadBytes = CryptoContextFactory.buildAAD(datos.folio, datos.id_medico, datos.id_paciente);
     const cifrado = EncryptionModule.encrypt(contenedor, dek,aadBytes);
-
-
+    console.log(datos.folio)
 
     const ctxPaciente = CryptoContextFactory.buildHKDFContext(datos.folio, datos.id_paciente);
     const ctxFarmacia = CryptoContextFactory.buildHKDFContext(datos.folio, datos.id_farmaceutico);
@@ -37,7 +36,7 @@ export class CryptoEngine {
     const kwPaciente = KeyWrapModule.wrap( 'paciente',dek, pacientePubDH,ctxPaciente);
     const kwFarmaceutico = KeyWrapModule.wrap( 'farmaceutico',dek, farmaceuticoPubDH,ctxFarmacia);
     const kwDoctor = KeyWrapModule.wrap( 'doctor',dek, doctorPubDH ,ctxDoctor);
-
+    console.log("aadBytes : ",aadBytes,"aadBytes string",datos.folio,datos.id_medico,datos.id_paciente,"DEK :",dek)
     return {
       ...cifrado,
       accesos: [kwPaciente, kwFarmaceutico, kwDoctor]
@@ -58,36 +57,31 @@ export class CryptoEngine {
     if(!acceso) throw new Error('NO_ACCESS_FOR_ROLE');
     const myId =(rol === 'paciente')? idPaciente : (rol === 'doctor')? idMedico : idFarmaceutico; // El ID de la farmacia no está en la receta, así que se asume que es el mismo que el del médico pero con prefijo diferente. Esto se podría mejorar incluyendo el ID de la farmacia en la receta.
     // 1. Desenvolvemos usando la llave de quien nos mandó la cápsula
+    console.log(folio)
     const hdfkContext = CryptoContextFactory.buildHKDFContext(folio,myId);
     const dek = KeyWrapModule.unwrap(acceso.wrappedKey, myPrivDH, acceso.ephemeral_pub_hex, hdfkContext);
     const aad = CryptoContextFactory.buildAAD(folio, idMedico,idPaciente); // El AAD se construye con los IDs principales, pero para ver la receta no necesitamos el ID del médico ni del paciente, solo el de la receta. Se podría mejorar esto.
+    console.log("aad: ",aad)
     const contenedor = EncryptionModule.decrypt(payload.capsula_cifrada, payload.nonce, dek, aad);
-    
+    console.log(contenedor)
     const valido = SignatureModule.verify(contenedor.datos, contenedor.firma_medico, doctorPubFirma);
     return { valido, contenido: contenedor };
   }
 
-  // ! Refactorizar se ve feo
   static sellar( 
     Contenedor: RecetaContainer,
     keyPrivSello: string,
     sealInfo: { estado: string; id_clinica: string },
-    idReceta: string,
-    idMedico: string,
-    idPaciente: string,
-    pacientePub: string, 
-    farmaceuticoPub: string,
-    doctorPub: string,
-    idFarmaceutico: string
+    pacientePub:string,
+    doctorPub:string,
+    farmaceuticoPub:string
   ) : RecetaCifrada {
     if (Contenedor.sellos) {
       throw new Error("RECIPE_ALREADY_SEALED");
     }
     const fecha = new Date().toISOString();
-
-    const seal=CryptoContextFactory.buildSealMessage(idReceta, sealInfo.estado, sealInfo.id_clinica, fecha);
+    const seal=CryptoContextFactory.buildSealMessage(Contenedor.datos.folio, sealInfo.estado, sealInfo.id_clinica, fecha);
     const hmacSello = HmacModule.generateSeal(seal, keyPrivSello);
-
 
     const contenedorActualizado: RecetaContainer = {
       ...Contenedor,
@@ -100,13 +94,12 @@ export class CryptoEngine {
     };
 
     const dekCipher = randomBytes(32);
-    const aad = CryptoContextFactory.buildAAD(idReceta, idMedico, idPaciente);
+    const aad = CryptoContextFactory.buildAAD(Contenedor.datos.folio, Contenedor.datos.id_medico, Contenedor.datos.id_paciente);
     const nuevoCifrado = EncryptionModule.encrypt(contenedorActualizado, dekCipher, aad);
  
-    
-    const ctxPaciente = CryptoContextFactory.buildHKDFContext(idReceta, idPaciente);
-    const ctxFarmacia = CryptoContextFactory.buildHKDFContext(idReceta, idFarmaceutico);
-    const ctxDoctor   = CryptoContextFactory.buildHKDFContext(idReceta, idMedico);
+    const ctxPaciente = CryptoContextFactory.buildHKDFContext(Contenedor.datos.folio, Contenedor.datos.id_paciente);
+    const ctxFarmacia = CryptoContextFactory.buildHKDFContext(Contenedor.datos.folio, Contenedor.datos.id_farmaceutico);
+    const ctxDoctor   = CryptoContextFactory.buildHKDFContext(Contenedor.datos.folio, Contenedor.datos.id_medico);
 
     const accesoPaciente = KeyWrapModule.wrap('paciente', dekCipher, pacientePub, ctxPaciente);
     const accesoDoctor = KeyWrapModule.wrap('doctor', dekCipher, doctorPub, ctxDoctor);
