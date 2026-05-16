@@ -83,19 +83,14 @@ const steps=[{label:'LOGIN',href:'/doctor'},{label:'PACIENTE',href:'/doctor/pati
     try { return JSON.parse(sessionStorage.getItem('rxpro_last_receta') || 'null') } catch { return null }
   })()
   const folioEl = document.getElementById('folio-display') as HTMLSpanElement
-  if (last && typeof last.id_receta === 'number') {
-    folioEl.textContent = 'FOLIO: RX-' + String(last.id_receta).padStart(5, '0')
-    // Añadir al historial del médico en esta sesión (para listar todas las
-    // recetas emitidas desde este dispositivo si se regresa al dashboard).
-    try {
-      const histRaw = sessionStorage.getItem('rxpro_doctor_history')
-      const hist = histRaw ? JSON.parse(histRaw) as any[] : []
-      if (!hist.find(r => r.id_receta === last.id_receta)) {
-        hist.unshift(last)
-        sessionStorage.setItem('rxpro_doctor_history', JSON.stringify(hist.slice(0, 20)))
-      }
-    } catch { /* noop */ }
+  
+  if (last && (last.folio || last.id_receta)) {
+    // 👉 Usamos el folio real generado. Si por algo falla, usamos el ID como respaldo
+    const folioReal = last.folio ? last.folio.toUpperCase() : 'RX-' + String(last.id_medico)+String(last.creada_en);
+    folioEl.textContent = 'FOLIO: ' + folioReal;
+    
   } else {
+    // Fallback si la persona recarga la página vacía
     folioEl.textContent = 'FOLIO: DOC-' + Math.floor(Math.random()*900+100)
   }
 
@@ -127,6 +122,6 @@ const steps=[{label:'LOGIN',href:'/doctor'},{label:'PACIENTE',href:'/doctor/pati
     el.style.cssText = `position:absolute;width:6px;height:6px;background:${colors[i%5]};
       --tx:${(Math.random()-0.5)*200}px;
       animation:confettiFall ${.8+Math.random()*.8}s ease ${i*.05}s both;`
-    container.appendChild(el)
+    container?.appendChild(el)
   }
 </script>

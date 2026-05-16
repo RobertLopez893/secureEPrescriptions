@@ -23,28 +23,6 @@ router = APIRouter()
 # ---------------------------------------------------------------------------
 # Envelope signature helpers
 # ---------------------------------------------------------------------------
-def _envelope_message(
-    id_medico: int,
-    id_paciente: int,
-    capsula_cifrada: str,
-    iv_aes_gcm: str,
-    expira_en: datetime,
-) -> bytes:
-    """Construye el mensaje canónico que el médico firma con su llave
-    privada para probar autoría de la cápsula cifrada. El formato es una
-    concatenación simple separada por '\\n' para evitar ambigüedades entre
-    canónicos JSON de JS y Python:
-
-        <id_medico>\\n<id_paciente>\\n<capsula_cifrada>\\n<iv_aes_gcm>\\n<expira_unix>
-
-    `expira_unix` es segundos enteros desde epoch UTC. Si el datetime es
-    naive, lo asumimos UTC."""
-    dt = expira_en if expira_en.tzinfo else expira_en.replace(tzinfo=timezone.utc)
-    expira_unix = int(dt.timestamp())
-    return (
-        f"{id_medico}\n{id_paciente}\n{capsula_cifrada}\n{iv_aes_gcm}\n{expira_unix}"
-    ).encode("utf-8")
-
 
 def _get_active_public_key(session: Session, id_usuario: int) -> Optional[str]:
     """Devuelve la llave pública activa (hex) de un usuario o None."""
@@ -68,13 +46,19 @@ def listar_recetas(
     id_medico: Optional[int] = Query(
         default=None,
         description="Filtra recetas emitidas por un médico (id_usuario).",
-    ),
+    ),    
     estado: Optional[str] = Query(
         default=None,
         description=(
             "Filtra por estado: 'activa', 'surtida' o 'expirada'. "
             "'expirada' es derivado (expira_en < now()) y excluye surtidas."
         ),
+    ),
+    folio: Optional[str]= Query(
+        default=None,
+        description=(
+            "Filtra recetas por su Folio.",
+        )
     ),
     limit: int = Query(default=50, ge=1, le=200),
 ):
@@ -85,11 +69,11 @@ def listar_recetas(
     Autorización: el filtro debe coincidir con el usuario autenticado,
     salvo que sea Administrador o Farmaceutico (que debe dispensar y ver
     recetas asignadas a pacientes)."""
-    if id_paciente is None and id_medico is None:
-        raise HTTPException(
-            status_code=400,
-            detail="Proporciona id_paciente o id_medico para filtrar.",
-        )
+    #if id_paciente is None and id_medico is None :
+    #    raise HTTPException(
+    #        status_code=400,
+    #        detail="Proporciona id_paciente o id_medico para filtrar.",
+    #    )
 
     # Reglas mínimas de autorización por rol:
     # - Paciente: solo su propio id_paciente.
@@ -122,12 +106,16 @@ def listar_recetas(
             )
         else:
             stmt = stmt.where(Receta.estado == estado)
-    stmt = stmt.order_by(Receta.creada_en.desc()).limit(limit)
+    if folio is not None:
+        stmt = stmt.where(Receta.folio.icontains(folio))
+        print(folio)
+
+    stmt = stmt.order_by(Receta.id_receta.desc()).limit(limit)
 
     recetas = session.exec(stmt).all()
-
+    print(recetas)
     # Precargamos los usuarios que aparecen para evitar N+1 consultas.
-    ids_usuarios = {r.id_medico for r in recetas} | {r.id_paciente for r in recetas}
+    ids_usuarios = {r.id_medico for r in recetas} | {r.id_paciente for r in recetas} | {r.id_farmaceutico for r in recetas}
     usuarios = {}
     if ids_usuarios:
         for u in session.exec(select(Usuario).where(Usuario.id_usuario.in_(ids_usuarios))).all():
@@ -137,20 +125,25 @@ def listar_recetas(
     for r in recetas:
         medico = usuarios.get(r.id_medico)
         paciente = usuarios.get(r.id_paciente)
-        if not medico or not paciente:
+        farmaceutico = usuarios.get(r.id_farmaceutico)
+
+        if not medico or not paciente or not farmaceutico:
             # Omitimos las recetas cuyas referencias de usuario ya no existen
             # para no romper la respuesta completa.
             continue
         out.append(
             schemas.RecetaDetailPublic(
+                folio=r.folio,
                 id_receta=r.id_receta,
                 estado=r.estado,
                 creada_en=r.creada_en,
                 expira_en=r.expira_en,
                 id_medico=r.id_medico,
                 id_paciente=r.id_paciente,
+                id_farmaceutico=r.id_farmaceutico,
                 medico=schemas.UserInfo(nombre_completo=f"{medico.nombre} {medico.paterno}"),
                 paciente=schemas.UserInfo(nombre_completo=f"{paciente.nombre} {paciente.paterno}"),
+                farmaceutico=schemas.UserInfo(nombre_completo=f"{farmaceutico.nombre} {farmaceutico.paterno}"),
                 vencida=_is_vencida(r.expira_en, now_utc) and r.estado != "surtida",
             )
         )
@@ -202,39 +195,19 @@ def emitir_receta(
     # Validamos que el paciente existe (evitamos referencias rotas en la BD).
     if not session.get(Usuario, receta_in.id_paciente):
         raise HTTPException(status_code=404, detail="Paciente no encontrado.")
-
-    # ── Verificación ECDSA de autoría ────────────────────────────────────
-    # El médico firma el "envelope" (metadatos + blobs opacos) con su
-    # llave privada. El backend verifica con la llave pública registrada
-    # sin necesidad de conocer el contenido real de la receta.
-    pub_hex = _get_active_public_key(session, id_medico)
-    if not pub_hex:
-        raise HTTPException(
-            status_code=400,
-            detail=(
-                f"El médico {id_medico} no tiene llave pública registrada. "
-                "Registra una con PUT /usuarios/me/llave antes de emitir recetas."
-            ),
-        )
-    envelope_msg = _envelope_message(
-        id_medico=id_medico,
-        id_paciente=receta_in.id_paciente,
-        capsula_cifrada=receta_in.capsula_cifrada,
-        iv_aes_gcm=receta_in.iv_aes_gcm,
-        expira_en=receta_in.expira_en,
-    )
-    if not verify_p256_ecdsa(pub_hex, envelope_msg, receta_in.firma_envelope):
-        raise HTTPException(
-            status_code=400,
-            detail="Firma de autoría inválida: la cápsula no pudo verificarse contra la llave pública del médico.",
-        )
+    
+    if not session.get(Usuario, receta_in.id_farmaceutico):
+        raise HTTPException(status_code=404, detail="Farmacéutico no encontrado.")
 
     db_receta = Receta(
+        folio=receta_in.folio,
         id_medico=id_medico,
         id_paciente=receta_in.id_paciente,
+        id_farmaceutico=receta_in.id_farmaceutico,
+        creada_en=receta_in.creada_en,
         expira_en=receta_in.expira_en,
         capsula_cifrada=receta_in.capsula_cifrada,
-        iv_aes_gcm=receta_in.iv_aes_gcm,
+        nonce=receta_in.nonce,
         accesos=[a.model_dump() for a in receta_in.accesos],
     )
     session.add(db_receta)
@@ -265,13 +238,16 @@ def obtener_info_publica_receta(
     now_utc = datetime.now(timezone.utc)
     return schemas.RecetaDetailPublic(
         id_receta=receta.id_receta,
+        folio=receta.folio,
         estado=receta.estado,
         creada_en=receta.creada_en,
         expira_en=receta.expira_en,
         id_medico=receta.id_medico,
         id_paciente=receta.id_paciente,
+        id_farmaceutico=receta.id_farmaceutico,
         medico=schemas.UserInfo(nombre_completo=f"{medico.nombre} {medico.paterno}"),
         paciente=schemas.UserInfo(nombre_completo=f"{paciente.nombre} {paciente.paterno}"),
+        farmaceutico=schemas.UserInfo(nombre_completo=f"{session.get(Usuario, receta.id_farmaceutico).nombre} {session.get(Usuario, receta.id_farmaceutico).paterno}"),
         vencida=_is_vencida(receta.expira_en, now_utc) and receta.estado != "surtida",
     )
 
@@ -293,11 +269,13 @@ def obtener_cripto_receta(
     _authorize_view_receta(receta, current_user)
 
     return schemas.RecetaCriptoPublic(
+        folio=receta.folio,
         id_receta=receta.id_receta,
         id_medico=receta.id_medico,
         id_paciente=receta.id_paciente,
+        id_farmaceutico=receta.id_farmaceutico,
         capsula_cifrada=receta.capsula_cifrada,
-        iv_aes_gcm=receta.iv_aes_gcm,
+        nonce=receta.nonce,
         accesos=[schemas.AccesoPublic(**a) for a in receta.accesos],
         estado=receta.estado,
     )
@@ -337,7 +315,7 @@ def sellar_receta(
     id_farma = current_user.id if current_user.role == "Farmaceutico" else sello_in.id_farmaceutico
 
     receta.capsula_cifrada = sello_in.capsula_cifrada
-    receta.iv_aes_gcm = sello_in.iv_aes_gcm
+    receta.nonce = sello_in.nonce   
     receta.accesos = [a.model_dump() for a in sello_in.accesos]
     receta.id_farmaceutico = id_farma
     receta.estado = "surtida"

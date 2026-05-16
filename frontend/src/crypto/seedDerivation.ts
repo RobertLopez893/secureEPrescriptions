@@ -23,7 +23,9 @@ import { bytesToHex, hexToBytes, utf8ToBytes } from '@noble/hashes/utils.js'
 // Constantes de dominio: no deben cambiar una vez emitidas tarjetas, si
 // no las llaves derivadas dejan de reproducirse. Versionar con 'v1'.
 const HKDF_SALT = utf8ToBytes('rxpro-2026:cardkey-salt:v1')
-const HKDF_INFO = utf8ToBytes('rxpro-v1:p256:identity-key')
+const HKDF_INFO_RECIPES = utf8ToBytes('rxpro-v1:p256:recipes_key')
+const HKDF_INFO_SIGN = utf8ToBytes('rxpro-v1:p256:signing_key')
+const HKDF_INFO_SEAL = utf8ToBytes('rxpro-v1:p256:sealing_key')
 
 // Orden del subgrupo de P-256 (n). Un escalar privado válido está en
 // el intervalo [1, n-1]. Fuente: NIST FIPS 186-4, D.1.2.3.
@@ -55,7 +57,7 @@ function bigIntToHex(n: bigint): string {
  * semilla hex de 32 bytes (64 chars). Throws si la semilla no tiene
  * ese tamaño.
  */
-export function deriveKeysFromSeed(seedHex: string): DerivedKeys {
+export function deriveKeysFromSeed(seedHex: string, typekey: 'recipes' | 'sign' | 'seal'): DerivedKeys {
   const clean = (seedHex || '').trim().toLowerCase()
   if (!/^[0-9a-f]{64}$/.test(clean)) {
     throw new Error('La semilla debe ser exactamente 64 chars hex (32 bytes).')
@@ -67,10 +69,12 @@ export function deriveKeysFromSeed(seedHex: string): DerivedKeys {
   let counter = 0
   // Reservamos 2 slots en el array para permitir reintentos extremos.
   // eslint-disable-next-line no-constant-condition
+
+  const hkdf_info = typekey === 'recipes' ? HKDF_INFO_RECIPES : typekey === 'sign' ? HKDF_INFO_SIGN : HKDF_INFO_SEAL
   while (true) {
-    const info = new Uint8Array(HKDF_INFO.length + 1)
-    info.set(HKDF_INFO, 0)
-    info[HKDF_INFO.length] = counter & 0xff
+    const info = new Uint8Array(hkdf_info.length + 1)
+    info.set(hkdf_info, 0)
+    info[hkdf_info.length] = counter & 0xff
     const raw = hkdf(sha256, seed, HKDF_SALT, info, 32)
     const scalar = scalarFromBytes(raw)
     if (scalar > 0n && scalar < P256_N) {

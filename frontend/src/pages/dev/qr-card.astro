@@ -94,7 +94,7 @@ import FlowLayout from '../../layouts/FlowLayout.astro'
     }
 
     const payload = encodeCardQr({ rol, identificador, seedHex })
-    const { publicKeyHex } = deriveKeysFromSeed(seedHex)
+    const { publicKeyHex } = deriveKeysFromSeed(seedHex,"sign")
 
     await QRCode.toCanvas(canvas, payload, {
       width: 320,

@@ -23,8 +23,8 @@ const steps=[{label:'ACCESO',href:'/pharmacy/login'},{label:'ESCANEAR',href:'/ph
         <use href="#ico-pharmacist"/>
       </svg>
       <div>
-        <p style="font-family:'Press Start 2P',monospace;font-size:9px;color:var(--role-pharmacy);">QFB. LAURA SÁNCHEZ</p>
-        <p style="font-family:'VT323',monospace;font-size:19px;color:var(--text-muted);margin-top:3px;">Farmacia Central · Turno matutino</p>
+        <p id="pharmacy-header-name" style="font-family:'Press Start 2P',monospace;font-size:9px;color:var(--role-pharmacy);">QFB. CARGANDO...</p>
+        <p id="pharmacy-header-sub" style="font-family:'VT323',monospace;font-size:19px;color:var(--text-muted);margin-top:3px;">Verificando credenciales...</p>
       </div>
     </div>
     <div style="display:flex;align-items:center;gap:8px;">
@@ -194,10 +194,10 @@ const steps=[{label:'ACCESO',href:'/pharmacy/login'},{label:'ESCANEAR',href:'/ph
     </div>
 
     <!-- Fallback folio -->
-    <form action="/pharmacy/verify" method="GET" style="display:flex;gap:10px;">
-      <input type="number" name="id" placeholder="ID de la receta (folio)" min="1"
-             class="px-input" style="flex:1;border-color:var(--role-pharmacy);font-size:20px;" required/>
-      <button type="submit" class="px-btn px-btn-red" style="white-space:nowrap;">BUSCAR</button>
+    <form id="manual-folio-form" style="display:flex;gap:10px;">
+      <input type="text" id="manual-folio-input" placeholder="Folio (ej. RX-1-2026...)"
+             class="px-input" style="flex:1;border-color:var(--role-pharmacy);font-size:14px;text-transform:uppercase;" required/>
+      <button type="button" id="manual-folio-btn" class="px-btn px-btn-red" style="white-space:nowrap;">BUSCAR</button>
     </form>
 
     <!-- Error del escaneo (cámara / QR inválido) -->
@@ -219,9 +219,57 @@ const steps=[{label:'ACCESO',href:'/pharmacy/login'},{label:'ESCANEAR',href:'/ph
 <script>
   import { startQrScanner } from '../../utils/qrScanner.ts'
   import { requireSession } from '../../utils/sessionGuard.ts'
-
-  // Guardia de sesión: solo farmacéuticos (o admin) pueden escanear recetas.
+  import { getSession, Api } from '../../utils/api.ts'
   requireSession('Farmaceutico', '/pharmacy/login')
+  const session = getSession()
+
+  if (session) {
+    const nameEl = document.getElementById('pharmacy-header-name')
+    const subEl = document.getElementById('pharmacy-header-sub')
+    if (nameEl) nameEl.textContent = `QFB. ${session.nombre?.toUpperCase() || 'FARMACÉUTICO'}`
+    if (subEl) subEl.textContent = `LICENCIA: ${session.id || 'N/A'} · En línea`
+  }
+
+ const manualForm = document.getElementById('manual-folio-form') as HTMLFormElement
+  const manualInput = document.getElementById('manual-folio-input') as HTMLInputElement
+  const manualBtn = document.getElementById('manual-folio-btn') as HTMLButtonElement
+
+  // Redirigir el 'Enter' al botón para no perder esa funcionalidad
+  manualForm?.addEventListener('submit', (e) => {
+    e.preventDefault()
+    manualBtn.click()
+  })
+
+  // Escuchamos el clic directamente en el botón
+  manualBtn?.addEventListener('click', async () => {
+    const folio = manualInput.value.trim().toUpperCase()
+    if (!folio) return
+    if (folio.length < 19) {
+      showError('Folio incompleto. Debe tener al menos 19 caracteres (ej. RX-1-20260507092941).')
+      return
+    }
+
+    hideError()
+    manualBtn.disabled = true
+    manualBtn.textContent = '...'
+
+    try {
+      const results = await Api.listarRecetas({ folio } as any)
+      
+      if (results && results.length > 0) {
+        const idReceta = results[0].id_receta
+        window.location.href = `/pharmacy/verify?id=${idReceta}`
+      } else {
+        showError('No se encontró ninguna receta con ese folio.')
+      }
+    } catch (err) {
+      console.error(err)
+      showError('Error al consultar el servidor. Intenta de nuevo.')
+    } finally {
+      manualBtn.disabled = false
+      manualBtn.textContent = 'BUSCAR'
+    }
+  })
 
   const btn          = document.getElementById('scan-btn')      as HTMLButtonElement
   const video        = document.getElementById('qr-video')      as HTMLVideoElement

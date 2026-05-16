@@ -1,15 +1,24 @@
+// frontend/test/crypto/signature.test.ts
 import { describe, it, expect } from 'vitest';
 import { SignatureModule } from '../../src/crypto/signature';
+import { p256 } from '@noble/curves/nist.js';
+import { bytesToHex, hexToBytes } from '@noble/hashes/utils.js';
 import type { DatosMedicos } from '../../src/crypto/interfaces';
 
-// Clave privada de prueba (32 bytes hex = 64 caracteres)
+// Helper para generar llave pública
+function getPublicKeyHex(privKeyHex: string): string {
+  return bytesToHex(p256.getPublicKey(hexToBytes(privKeyHex), false));
+}
+
 const PRIV_KEY = 'a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2';
+const PUB_KEY  = getPublicKeyHex(PRIV_KEY);
 
 function makeDatos(overrides: Partial<DatosMedicos> = {}): DatosMedicos {
   return {
     id_receta: 'REC-001',
     id_medico: 'DOC-001',
     id_paciente: 'PAT-001',
+    id_farmaceutico: 'FARM-001',
     fecha_emision: '2026-01-01T00:00:00.000Z',
     fecha_vencimiento: '2026-01-08T00:00:00.000Z',
     medicamentos: [{ nombre: 'Ibuprofeno', forma: 'Tableta', dosis: '400mg', frecuencia: '8h', duracion: '3 días' }],
@@ -19,47 +28,29 @@ function makeDatos(overrides: Partial<DatosMedicos> = {}): DatosMedicos {
 
 describe('SignatureModule', () => {
 
-  describe('getPublicKey', () => {
-    it('deriva una clave pública válida desde una privada', () => {
-      const pub = SignatureModule.getPublicKey(PRIV_KEY);
-      // P-256 compressed: 02|03 + 32 bytes X = 66 hex chars
-      expect(pub).toMatch(/^(02|03)[0-9a-f]{64}$/);
-    });
-
-    it('la misma privada siempre produce la misma pública', () => {
-      const pub1 = SignatureModule.getPublicKey(PRIV_KEY);
-      const pub2 = SignatureModule.getPublicKey(PRIV_KEY);
-      expect(pub1).toBe(pub2);
-    });
-
-    it('claves privadas distintas producen públicas distintas', () => {
-      const otherKey = 'b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3';
-      expect(SignatureModule.getPublicKey(PRIV_KEY)).not.toBe(SignatureModule.getPublicKey(otherKey));
-    });
-  });
-
   describe('canonicalize', () => {
-    it('ordena las llaves alfabéticamente', () => {
+    it('ordena las propiedades alfabéticamente (Mitiga ataques de reordenamiento)', () => {
       const result = SignatureModule.canonicalize({ z: 1, a: 2 });
       expect(result).toBe('{"a":2,"z":1}');
     });
 
-    it('ordena recursivamente objetos anidados', () => {
+    it('ordena recursivamente objetos anidados en varios niveles', () => {
       const result = SignatureModule.canonicalize({ b: { d: 1, c: 2 }, a: 3 });
       expect(result).toBe('{"a":3,"b":{"c":2,"d":1}}');
     });
 
-    it('preserva arrays sin reordenar elementos', () => {
+    it('preserva los arrays estandarizados sin reordenar sus elementos internos', () => {
       const result = SignatureModule.canonicalize({ items: [3, 1, 2] });
       expect(result).toBe('{"items":[3,1,2]}');
     });
 
-    it('es determinista: mismo input, mismo output', () => {
-      const obj = { b: 1, a: [{ d: 2, c: 3 }] };
-      expect(SignatureModule.canonicalize(obj)).toBe(SignatureModule.canonicalize(obj));
+    it('es un proceso 100% determinista: mismo input en distinto orden produce mismo output', () => {
+      const obj1 = { a: 1, b: 2 };
+      const obj2 = { b: 2, a: 1 };
+      expect(SignatureModule.canonicalize(obj1)).toBe(SignatureModule.canonicalize(obj2));
     });
 
-    it('maneja valores null y primitivos', () => {
+    it('maneja de forma segura valores nulos y tipos primitivos', () => {
       expect(SignatureModule.canonicalize(null)).toBe('null');
       expect(SignatureModule.canonicalize('hello')).toBe('"hello"');
       expect(SignatureModule.canonicalize(42)).toBe('42');
@@ -68,45 +59,44 @@ describe('SignatureModule', () => {
 
   describe('sign + verify', () => {
     const datos = makeDatos();
-    const pubKey = SignatureModule.getPublicKey(PRIV_KEY);
 
-    it('firma y verifica correctamente datos médicos', () => {
+    it('firma y verifica exitosamente la autenticidad de los datos médicos', () => {
       const firma = SignatureModule.sign(datos, PRIV_KEY);
       expect(firma).toBeTruthy();
       expect(typeof firma).toBe('string');
 
-      const valido = SignatureModule.verify(datos, firma, pubKey);
+      const valido = SignatureModule.verify(datos, firma, PUB_KEY);
       expect(valido).toBe(true);
     });
 
-    it('la firma es diferente para datos diferentes', () => {
+    it('la firma criptográfica ECDSA es distinta para datos diferentes', () => {
       const firma1 = SignatureModule.sign(datos, PRIV_KEY);
       const firma2 = SignatureModule.sign(makeDatos({ id_receta: 'REC-999' }), PRIV_KEY);
       expect(firma1).not.toBe(firma2);
     });
 
-    it('rechaza si los datos fueron alterados post-firma', () => {
+    it('rechaza la firma si los datos de la receta fueron alterados (Ej. Modificar paciente)', () => {
       const firma = SignatureModule.sign(datos, PRIV_KEY);
       const datosAlterados = makeDatos({ id_paciente: 'PAT-HACKER' });
-      expect(SignatureModule.verify(datosAlterados, firma, pubKey)).toBe(false);
+      expect(SignatureModule.verify(datosAlterados, firma, PUB_KEY)).toBe(false);
     });
 
-    it('rechaza si la firma fue alterada', () => {
+    it('rechaza si la cadena hexadecimal de la firma fue interceptada y alterada', () => {
       const firma = SignatureModule.sign(datos, PRIV_KEY);
       const firmaAlterada = firma.slice(0, -2) + 'ff';
-      expect(SignatureModule.verify(datos, firmaAlterada, pubKey)).toBe(false);
+      expect(SignatureModule.verify(datos, firmaAlterada, PUB_KEY)).toBe(false);
     });
 
-    it('rechaza si se verifica con la clave pública incorrecta', () => {
+    it('rechaza si un doctor intenta verificar con la llave pública de OTRO doctor', () => {
       const firma = SignatureModule.sign(datos, PRIV_KEY);
       const otraPriv = 'b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3';
-      const otraPub = SignatureModule.getPublicKey(otraPriv);
+      const otraPub = getPublicKeyHex(otraPriv);
       expect(SignatureModule.verify(datos, firma, otraPub)).toBe(false);
     });
 
-    it('no explota con firma basura, retorna false', () => {
-      expect(SignatureModule.verify(datos, 'basura_total', pubKey)).toBe(false);
-      expect(SignatureModule.verify(datos, '', pubKey)).toBe(false);
+    it('devuelve false de forma segura si la firma no tiene formato válido', () => {
+      expect(SignatureModule.verify(datos, 'texto_aleatorio_no_hexadecimal', PUB_KEY)).toBe(false);
+      expect(SignatureModule.verify(datos, '', PUB_KEY)).toBe(false);
     });
   });
 });

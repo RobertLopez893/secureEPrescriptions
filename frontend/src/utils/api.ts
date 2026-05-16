@@ -205,9 +205,9 @@ export interface AuthVerifyRequestDTO {
 }
 
 export interface AccesoDTO {
-  rol: string;        // "paciente" | "farmaceutico" | "doctor"
+  rol: 'paciente' | 'farmaceutico' | 'doctor';       // "paciente" | "farmaceutico" | "doctor"
   wrappedKey: string;
-  nonce: string;
+  ephemeral_pub_hex: string;
 }
 
 export interface RecetaCreateDTO {
@@ -215,34 +215,37 @@ export interface RecetaCreateDTO {
    * Ignorado por el backend cuando el emisor es un Médico (se toma del JWT).
    * Sólo se usa cuando un Administrador emite a nombre de otro doctor.
    */
-  id_medico?: number;
+  folio: string;       // Identificador humano legible (no único)
+  
+  id_medico: number;
   id_paciente: number;
-  expira_en: string;          // ISO 8601
+  id_farmaceutico: number
+
   capsula_cifrada: string;    // hex
-  iv_aes_gcm: string;         // hex
+  nonce: string;         // hex
   accesos: AccesoDTO[];
-  /**
-   * Firma ECDSA P-256 (compacta r||s, 128 chars hex) del "envelope":
-   *   sha256(`${id_medico}\n${id_paciente}\n${capsula_cifrada}\n${iv_aes_gcm}\n${expira_unix}`)
-   * El backend la verifica contra la llave pública activa del médico.
-   */
-  firma_envelope: string;
+
+  creada_en: string;
+  expira_en: string;          // ISO 8601
 }
 
 export interface RecetaPublicDTO {
   id_receta: number;
+  folio: string;
   estado: string;
   creada_en: string;
+  expira_en: string;
 }
 
 export interface UserInfoDTO { nombre_completo: string; }
 
 export interface RecetaDetailDTO extends RecetaPublicDTO {
-  expira_en: string;
   id_medico: number;
   id_paciente: number;
+  id_farmaceutico: number;
   medico: UserInfoDTO;
   paciente: UserInfoDTO;
+  farmaceutico: UserInfoDTO;
   /** Derivado en el backend: expira_en < now() y no está surtida. */
   vencida: boolean;
 }
@@ -255,7 +258,7 @@ export interface RecetaCriptoDTO {
   id_medico: number;
   id_paciente: number;
   capsula_cifrada: string;
-  iv_aes_gcm: string;
+  nonce: string;
   accesos: AccesoDTO[];
   estado: string;
 }
@@ -267,7 +270,7 @@ export interface RecetaSellarDTO {
    */
   id_farmaceutico?: number;
   capsula_cifrada: string;
-  iv_aes_gcm: string;
+  nonce: string;
   accesos: AccesoDTO[];
 }
 
@@ -309,10 +312,21 @@ export interface FarmaceuticoCreateDTO {
   turno: string;             // "Matutino" | "Vespertino" | "Nocturno"
   llave_publica?: string;
 }
+export interface PacientePublicDTO {
+  id_usuario: number;
+  nombre: string;
+  paterno: string;
+  materno?: string | null;
+  curp: string;
+  nacimiento: string;
+  sexo: string;
+  tel_emergencia: string;
+}
 
 export interface LlavePublicaDTO {
   id_usuario: number;
   llave_publica: string;
+  responsabilidad: string
 }
 
 export interface ClinicaCreateDTO {
@@ -409,6 +423,17 @@ export const Api = {
     });
   },
 
+  async buscarPaciente(params: { curp?: string; id_usuario?: number }): Promise<PacientePublicDTO> {
+    if (params.id_usuario) {
+      // Búsqueda por ID directo en el path
+      return request<PacientePublicDTO>(`/api/v1/usuarios/pacientes/${params.id_usuario}`);
+    }
+    if (params.curp) {
+      // Búsqueda por query parameter
+      return request<PacientePublicDTO>(`/api/v1/usuarios/pacientes?curp=${encodeURIComponent(params.curp)}`);
+    }
+    throw new Error("Debe proporcionar id_usuario o curp para realizar la búsqueda");
+  },
   // ---- Clínicas ----
   async listarClinicas(): Promise<ClinicaPublicDTO[]> {
     return request<ClinicaPublicDTO[]>('/api/v1/clinicas');
@@ -441,13 +466,16 @@ export const Api = {
     id_paciente?: number;
     id_medico?: number;
     estado?: 'activa' | 'surtida' | 'expirada';
+    folio?: string;
     limit?: number;
   }): Promise<RecetaDetailDTO[]> {
     const params = new URLSearchParams();
     if (filters.id_paciente != null) params.set('id_paciente', String(filters.id_paciente));
     if (filters.id_medico   != null) params.set('id_medico',   String(filters.id_medico));
     if (filters.estado)               params.set('estado',      filters.estado);
+    if (filters.folio)                params.set('folio',       filters.folio.toLowerCase());
     if (filters.limit != null)        params.set('limit',       String(filters.limit));
+    console.log(filters)
     return request<RecetaDetailDTO[]>(`/api/v1/recetas?${params.toString()}`);
   },
 
@@ -464,8 +492,10 @@ export const Api = {
 
   // ---- Llaves públicas ----
   /** Devuelve la llave pública activa del usuario o lanza ApiError si no existe. */
-  async obtenerLlavePublica(idUsuario: number): Promise<LlavePublicaDTO> {
-    return request<LlavePublicaDTO>(`/api/v1/usuarios/${idUsuario}/llave`);
+  async obtenerLlavePublica(idUsuario: number, responsabilidad: string): Promise<LlavePublicaDTO> {
+    const params = new URLSearchParams();
+    if(responsabilidad)params.set('responsabilidad', responsabilidad)
+    return request<LlavePublicaDTO>(`/api/v1/usuarios/${idUsuario}/llave?${params.toString()}`);
   },
 
   /** Registra/rota la llave pública del usuario autenticado. */
@@ -481,3 +511,4 @@ export const Api = {
     return request('/');
   },
 };
+

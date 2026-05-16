@@ -34,14 +34,15 @@ const steps=[{label:'ACCESO',href:'/patient'},{label:'MIS RECETAS',href:'/patien
   </div>
 
   <!-- Búsqueda por folio (API real) -->
-  <div style="background:var(--surface-card);border:3px solid var(--role-patient);box-shadow:4px 4px 0 var(--role-patient-d);padding:14px 16px;">
-    <p style="font-family:'Press Start 2P',monospace;font-size:8px;color:var(--role-patient);margin-bottom:10px;">BUSCAR RECETA POR FOLIO</p>
-    <form id="lookup-form" style="display:flex;gap:10px;align-items:stretch;flex-wrap:wrap;">
-      <input type="number" name="id_receta" placeholder="42" min="1" required
-             style="flex:1;min-width:140px;background:#f8f8f0;color:#1a1c2c;border:3px solid var(--role-patient);padding:10px 12px;font-family:'VT323',monospace;font-size:22px;text-align:center;letter-spacing:.1em;"/>
-      <button type="submit" class="px-btn px-btn-blue" style="padding:10px 16px;">VER RECETA</button>
+  <div style="background:var(--surface-card);border:3px solid var(--role-patient);box-shadow:4px 4px 0 var(--role-patient-d);padding:16px;">
+    <p style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--role-patient);margin-bottom:12px;">BUSCAR POR FOLIO</p>
+    <form id="search-folio-form" style="display:flex;gap:12px;">
+      <input type="text" id="search-folio-input" name="folio" placeholder="rx-1-2026..." class="px-input blue" style="flex:1;text-transform:uppercase;"/>
+      <button type="button" id="btn-clear-folio" class="px-btn px-btn-blue" style="display:none; padding: 0 12px; font-size: 10px;">
+        MOSTRAR TODO
+      </button>
+      <button type="button" id="btn-search-folio" class="px-btn px-btn-blue">BUSCAR</button>
     </form>
-    <p id="lookup-error" style="display:none;font-family:'Press Start 2P',monospace;font-size:7px;color:#a53030;margin-top:10px;"></p>
   </div>
 
   <!-- Stats (se llenan tras fetch) -->
@@ -84,24 +85,6 @@ const steps=[{label:'ACCESO',href:'/patient'},{label:'MIS RECETAS',href:'/patien
   import { requireSession } from '../../utils/sessionGuard.ts'
   requireSession('Paciente', '/patient')
 
-  const form     = document.getElementById('lookup-form')  as HTMLFormElement
-  const errorBox = document.getElementById('lookup-error') as HTMLParagraphElement
-
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault()
-    errorBox.style.display = 'none'
-    const fd = new FormData(form)
-    const id = Number(fd.get('id_receta') || 0)
-    if (!id) return
-    try {
-      await Api.obtenerRecetaInfo(id)
-      window.location.href = `/patient/detail?id=${id}`
-    } catch (err) {
-      errorBox.textContent = err instanceof ApiError ? err.detail : 'No se pudo consultar el folio.'
-      errorBox.style.display = 'block'
-    }
-  })
-
   // --- Cabecera con el correo / nombre real si hay sesión ---
   const session = getSession()
   const headerName = document.getElementById('patient-header-name') as HTMLParagraphElement
@@ -110,6 +93,7 @@ const steps=[{label:'ACCESO',href:'/patient'},{label:'MIS RECETAS',href:'/patien
     headerName.textContent = (session.nombre || session.correo || 'PACIENTE').toUpperCase()
     headerSub.textContent  = `ID USUARIO: ${session.id}`
   }
+
 
   // --- Cargar el listado real desde el backend ---
   const loading  = document.getElementById('rx-loading')  as HTMLDivElement
@@ -120,6 +104,62 @@ const steps=[{label:'ACCESO',href:'/patient'},{label:'MIS RECETAS',href:'/patien
   const statTotal     = document.getElementById('stat-total')     as HTMLSpanElement
   const statSurtida   = document.getElementById('stat-surtida')   as HTMLSpanElement
   const statPendiente = document.getElementById('stat-pendiente') as HTMLSpanElement
+
+  const searchForm = document.getElementById('search-folio-form') as HTMLFormElement
+  const searchInput = document.getElementById('search-folio-input') as HTMLInputElement
+  const searchBtn = document.getElementById('btn-search-folio') as HTMLButtonElement
+  const clearBtn = document.getElementById('btn-clear-folio') as HTMLButtonElement
+
+  // 1. Evitamos que la tecla "Enter" recargue la página y forzamos el clic del botón
+  searchForm?.addEventListener('submit', (e) => {
+    e.preventDefault()
+    searchBtn.click() // Simulamos un clic en el botón para que ejecute la búsqueda
+  })
+
+  // 2. Escuchamos el clic directo en el botón (ya no el submit del form)
+  
+  searchBtn?.addEventListener('click', async () => {
+    const folio = searchInput.value.trim().toUpperCase()
+    const id_paciente = session?.id
+    if (!id_paciente)
+      return
+    if (!folio) {
+      window.showToast?.('Ingresa un folio para buscar', 'var(--accent-warn)')
+      return
+    }
+
+    // Iniciamos estado de carga
+    searchBtn.disabled = true
+    searchBtn.textContent = '...'
+
+    try {
+      // Realizamos la búsqueda
+      const results = await Api.listarRecetas({ folio,id_paciente } as any)
+      console.log("Resultados: ",results)
+      if (results && results.length > 0) {
+        renderList(results)
+        window.showToast?.('Receta encontrada', "var(--role-patient)")
+      } else {
+        renderList([]) 
+        window.showToast?.('No se encontró ninguna receta con ese folio', 'var(--accent-warn)')
+      }
+      clearBtn.style.display = 'block'
+    } catch (error) {
+      console.error('Error en búsqueda por folio:', error)
+      renderList([])
+      window.showToast?.('No se encontró el folio solicitado', 'var(--accent-warn)')
+    } finally {
+      // Restauramos el botón sin importar qué pase
+      searchBtn.disabled = false
+      searchBtn.textContent = 'BUSCAR'
+    }
+  })
+  clearBtn?.addEventListener('click', () => {
+    searchInput.value = ''           // 1. Vaciamos la barra de búsqueda
+    clearBtn.style.display = 'none'  // 2. Volvemos a ocultar el botón de limpiar
+    loadRecetas()                    // 3. Re-ejecutamos tu función original que trae todo el listado
+  })
+
 
   function formatFecha(iso: string): string {
     try {
@@ -148,7 +188,7 @@ const steps=[{label:'ACCESO',href:'/patient'},{label:'MIS RECETAS',href:'/patien
       const rxBorder = isVencida ? '#a53030' : (isNew ? '#ffcd75' : (isPendiente ? '#ffcd75' : '#29366f'))
       const rxShadow = isVencida ? '4px 4px 0 #5a1818' : (isNew ? '4px 4px 0 #c48c00' : (isPendiente ? '4px 4px 0 #c48c00' : '4px 4px 0 #0d0e1a'))
       const bg       = isNew ? '#1a2e1a' : '#222639'
-      const folio    = 'RX-' + String(rx.id_receta).padStart(5,'0')
+      const folio = (rx.folio).toUpperCase()
       const medLabel = `DR. ${String(rx.medico?.nombre_completo || '—').toUpperCase()}`
       const fecha    = formatFecha(rx.creada_en)
       const pacNombre = rx.paciente?.nombre_completo || ''
