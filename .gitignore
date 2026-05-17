@@ -38,3 +38,6 @@ Thumbs.db
 
 # --- Herramientas locales ---
 .claude/
+# Alembic local dev sqlite (env.py fallback)
+backend/alembic_dev.db
+alembic_dev.db
