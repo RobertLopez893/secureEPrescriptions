@@ -138,7 +138,7 @@ const steps=[{label:'ESCANEAR',href:'/pharmacy'},{label:'VERIFICAR',href:'/pharm
   async function executeSeal() {
     const btn = document.getElementById('btn-execute-seal') as HTMLButtonElement
     btn.disabled = true
-    btn.textContent = "⏳ GENERANDO SELLO HMAC..."
+    btn.textContent = "GENERANDO SELLO HMAC..."
 
     try {
       const session = getSession()

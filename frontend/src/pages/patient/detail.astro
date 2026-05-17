@@ -6,8 +6,8 @@ const steps=[{label:'ACCESO',href:'/patient'},{label:'MIS RECETAS',href:'/patien
 <div class="anim-slide" style="display:flex;flex-direction:column;gap:20px;">
 
   <!-- Status alert -->
-  <div id="status-alert" style="background:#1a1500;border:3px solid var(--accent-warn);box-shadow:4px 4px 0 var(--accent-warn-d);padding:14px;display:flex;align-items:center;gap:12px;">
-    <span id="status-icon" style="font-size:24px;" class="anim-bounce">⏳</span>
+  <div id="status-alert" style="background:rgba(255,205,117,.12);border:3px solid var(--accent-warn);box-shadow:4px 4px 0 var(--accent-warn-d);padding:14px;display:flex;align-items:center;gap:12px;">
+    <span id="status-icon" style="display:inline-flex;flex-shrink:0;color:var(--accent-warn);" class="anim-bounce"></span>
     <div>
       <p id="status-title" style="font-family:'Press Start 2P',monospace;font-size:9px;color:var(--accent-warn);">LISTA PARA RECOGER</p>
       <p id="status-sub" style="font-family:'VT323',monospace;font-size:20px;color:var(--text-muted);margin-top:4px;">Muestra el código QR en la farmacia</p>
@@ -15,8 +15,8 @@ const steps=[{label:'ACCESO',href:'/patient'},{label:'MIS RECETAS',href:'/patien
   </div>
 
   <!-- Error inline -->
-  <div id="detail-error" style="display:none;background:#2a0d0d;border:3px solid var(--role-pharmacy);padding:14px;">
-    <p style="font-family:'Press Start 2P',monospace;font-size:8px;color:var(--role-pharmacy);margin-bottom:8px;">⛔ NO SE PUDO CARGAR</p>
+  <div id="detail-error" style="display:none;background:rgba(232,0,61,.12);box-shadow:var(--shadow-red);border:3px solid var(--role-pharmacy);padding:14px;">
+    <p style="font-family:'Press Start 2P',monospace;font-size:8px;color:var(--role-pharmacy);margin-bottom:8px;display:flex;align-items:center;gap:8px;"><svg width="14" height="14" viewBox="0 0 16 16" style="image-rendering:pixelated;color:var(--role-pharmacy);flex-shrink:0;"><use href="#ico-x"/></svg>NO SE PUDO CARGAR</p>
     <p id="detail-error-msg" style="font-family:'VT323',monospace;font-size:19px;color:var(--text-muted);line-height:1.5;"></p>
   </div>
 
@@ -61,7 +61,7 @@ const steps=[{label:'ACCESO',href:'/patient'},{label:'MIS RECETAS',href:'/patien
   <!-- Details -->
   <div style="background:var(--surface-card); border:3px solid var(--role-patient); box-shadow:4px 4px 0 var(--role-patient-d); padding:0; overflow:hidden;">
     <div style="background:var(--role-patient); padding:10px 16px;">
-      <span style="font-family:'Press Start 2P',monospace; font-size:8px; color:#f4f4f4;">📋 DETALLE DE MI RECETA</span>
+      <span style="font-family:'Press Start 2P',monospace; font-size:8px; color:#f4f4f4;display:inline-flex;align-items:center;gap:8px;"><svg width="13" height="17" viewBox="0 0 22 28" style="image-rendering:pixelated;color:#f4f4f4;flex-shrink:0;"><use href="#ico-clipboard"/></svg>DETALLE DE MI RECETA</span>
     </div>
     <div id="resumen-contenido-paciente" style="padding:20px;">
       <p style="font-family:'VT323',monospace; font-size:18px; color:var(--text-muted);" class="anim-blink">Descifrando contenido seguro...</p>
@@ -69,8 +69,8 @@ const steps=[{label:'ACCESO',href:'/patient'},{label:'MIS RECETAS',href:'/patien
   </div>
 
   <!-- Authentic note -->
-  <div id="authentic-note" style="background:#1a2e1a;border:3px solid var(--role-doctor);padding:12px;display:flex;align-items:center;gap:10px;">
-    <span style="font-size:18px;flex-shrink:0;">✅</span>
+  <div id="authentic-note" style="background:rgba(56,183,100,.12);box-shadow:var(--shadow-green);border:3px solid var(--role-doctor);padding:12px;display:flex;align-items:center;gap:10px;">
+    <span style="flex-shrink:0;display:inline-flex;color:var(--role-doctor);"><svg width="18" height="14" viewBox="0 0 20 16" style="image-rendering:pixelated;"><use href="#ico-checkmark"/></svg></span>
     <p id="authentic-text" style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--role-doctor);line-height:1.8;">RECETA AUTÉNTICA · FIRMA DEL MÉDICO VERIFICADA</p>
   </div>
 </div>
@@ -144,19 +144,21 @@ const steps=[{label:'ACCESO',href:'/patient'},{label:'MIS RECETAS',href:'/patien
       if (info.estado === 'surtida') {
         statusT.textContent = 'RECETA SURTIDA'
         statusS.textContent = 'Dispensada por la farmacia.'
-        statusI.textContent = '✅'
+        statusI.innerHTML = '<svg width="20" height="16" viewBox="0 0 20 16" style="image-rendering:pixelated;"><use href="#ico-checkmark"/></svg>'
         const alert = document.getElementById('status-alert')!
-        alert.style.background = '#0a1a0a'
+        alert.style.background = 'rgba(56,183,100,.12)'
         alert.style.borderColor = '#38b764'
         statusT.style.color = '#38b764'
+        statusI.style.color = '#38b764'
       } else if (info.vencida) {
         statusT.textContent = 'RECETA VENCIDA'
         statusS.textContent = 'Esta receta pasó su fecha de expiración y no puede dispensarse.'
-        statusI.textContent = '⚠'
+        statusI.innerHTML = '<svg width="20" height="16" viewBox="0 0 16 16" style="image-rendering:pixelated;"><use href="#ico-x"/></svg>'
         const alert = document.getElementById('status-alert')!
-        alert.style.background = '#2a1018'
+        alert.style.background = 'rgba(232,0,61,.12)'
         alert.style.borderColor = '#a53030'
         statusT.style.color = '#a53030'
+        statusI.style.color = '#a53030'
       }
 
       // Descifrado E2E con la llave privada del paciente (derivada de la
@@ -190,7 +192,7 @@ const steps=[{label:'ACCESO',href:'/patient'},{label:'MIS RECETAS',href:'/patien
       console.log('Firma válida:', valido)
 
       if (!valido) {
-        authT.textContent = '⚠ FIRMA NO VERIFICADA — CONSULTAR AL MÉDICO'
+        authT.textContent = 'FIRMA NO VERIFICADA — CONSULTAR AL MÉDICO'
         ;(document.getElementById('authentic-note') as HTMLDivElement).style.borderColor = '#e8003d'
         authT.style.color = '#e8003d'
       }

@@ -287,7 +287,7 @@ const steps=[{label:'ACCESO',href:'/patient'},{label:'MIS RECETAS',href:'/patien
         sessionStorage.setItem('rxpro_seed_loaded', '1')
         showPanel('success')
         viewport.style.borderColor = '#38b764'
-        viewport.style.background  = '#04100a'
+        viewport.style.background  = 'var(--surface-inset)'
         setTimeout(() => { window.location.href = '/patient/dashboard' }, 800)
         return
       } catch (err) {

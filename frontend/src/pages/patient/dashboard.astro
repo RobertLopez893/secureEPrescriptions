@@ -6,9 +6,9 @@ const steps=[{label:'ACCESO',href:'/patient'},{label:'MIS RECETAS',href:'/patien
 <div class="anim-slide" style="display:flex;flex-direction:column;gap:20px;">
 
   <!-- Patient ID card (se hidrata con la sesión real si existe) -->
-  <div style="background:#0d1a2e;border:3px solid var(--role-patient);box-shadow:4px 4px 0 var(--role-patient-d);padding:16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+  <div style="background:var(--surface-card);border:3px solid var(--role-patient);box-shadow:var(--shadow-blue);padding:16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
     <div style="display:flex;align-items:center;gap:14px;">
-      <span style="font-size:40px;">🧑‍💼</span>
+      <svg width="36" height="42" viewBox="0 0 24 28" style="image-rendering:pixelated;flex-shrink:0;"><use href="#ico-patient"/></svg>
       <div>
         <p id="patient-header-name" style="font-family:'Press Start 2P',monospace;font-size:11px;color:var(--role-patient);">PACIENTE</p>
         <p id="patient-header-sub"  style="font-family:'VT323',monospace;font-size:20px;color:var(--text-muted);margin-top:4px;">—</p>
@@ -53,15 +53,16 @@ const steps=[{label:'ACCESO',href:'/patient'},{label:'MIS RECETAS',href:'/patien
   </div>
 
   <!-- Loader -->
-  <div id="rx-loading" style="background:#0d1a2e;border:3px solid var(--role-patient);padding:18px;text-align:center;">
+  <div id="rx-loading" style="background:var(--surface-card);border:3px solid var(--role-patient);padding:18px;display:flex;flex-direction:column;align-items:center;gap:12px;">
+    <div class="px-spinner" style="border-top-color:var(--role-patient);"></div>
     <p style="font-family:'Press Start 2P',monospace;font-size:8px;color:var(--role-patient);" class="anim-blink">
-      ⏳ CONSULTANDO RECETAS...
+      CONSULTANDO RECETAS...
     </p>
   </div>
 
   <!-- Error del listado -->
-  <div id="rx-error" style="display:none;background:#2a0d0d;border:3px solid var(--role-pharmacy);padding:14px;">
-    <p style="font-family:'Press Start 2P',monospace;font-size:8px;color:var(--role-pharmacy);margin-bottom:8px;">⛔ NO FUE POSIBLE CARGAR TUS RECETAS</p>
+  <div id="rx-error" style="display:none;background:rgba(232,0,61,.12);box-shadow:var(--shadow-red);border:3px solid var(--role-pharmacy);padding:14px;">
+    <p style="font-family:'Press Start 2P',monospace;font-size:8px;color:var(--role-pharmacy);margin-bottom:8px;display:flex;align-items:center;gap:8px;"><svg width="14" height="14" viewBox="0 0 16 16" style="image-rendering:pixelated;color:var(--role-pharmacy);flex-shrink:0;"><use href="#ico-x"/></svg>NO FUE POSIBLE CARGAR TUS RECETAS</p>
     <p id="rx-error-msg" style="font-family:'VT323',monospace;font-size:19px;color:var(--text-muted);line-height:1.5;"></p>
   </div>
 
@@ -75,7 +76,7 @@ const steps=[{label:'ACCESO',href:'/patient'},{label:'MIS RECETAS',href:'/patien
   <div id="rx-list" style="display:flex;flex-direction:column;gap:4px;"></div>
 
   <p style="text-align:center;font-family:'Press Start 2P',monospace;font-size:7px;color:var(--text-subtle);line-height:1.8;">
-    🔒 SOLO TÚ, TU MÉDICO Y EL FARMACÉUTICO PUEDEN VER ESTAS RECETAS
+    <svg width="10" height="12" viewBox="0 0 20 24" style="image-rendering:pixelated;color:var(--text-subtle);vertical-align:middle;"><use href="#ico-lock"/></svg> SOLO TÚ, TU MÉDICO Y EL FARMACÉUTICO PUEDEN VER ESTAS RECETAS
   </p>
 </div>
 </FlowLayout>
@@ -186,8 +187,8 @@ const steps=[{label:'ACCESO',href:'/patient'},{label:'MIS RECETAS',href:'/patien
       const isVencida   = !!rx.vencida && rx.estado !== 'surtida'
       const isPendiente = rx.estado === 'activa' && !isVencida
       const rxBorder = isVencida ? '#a53030' : (isNew ? '#ffcd75' : (isPendiente ? '#ffcd75' : '#29366f'))
-      const rxShadow = isVencida ? '4px 4px 0 #5a1818' : (isNew ? '4px 4px 0 #c48c00' : (isPendiente ? '4px 4px 0 #c48c00' : '4px 4px 0 #0d0e1a'))
-      const bg       = isNew ? '#1a2e1a' : '#222639'
+      const rxShadow = isVencida ? 'var(--shadow-red)' : (isNew ? '4px 4px 0 var(--accent-warn-d)' : (isPendiente ? '4px 4px 0 var(--accent-warn-d)' : 'var(--shadow-base)'))
+      const bg       = isNew ? 'rgba(56,183,100,.12)' : 'var(--surface-card)'
       const folio = (rx.folio).toUpperCase()
       const medLabel = `DR. ${String(rx.medico?.nombre_completo || '—').toUpperCase()}`
       const fecha    = formatFecha(rx.creada_en)
@@ -210,14 +211,14 @@ const steps=[{label:'ACCESO',href:'/patient'},{label:'MIS RECETAS',href:'/patien
       }
 
       const icon = document.createElement('span')
-      icon.style.cssText = 'font-size:28px;flex-shrink:0;'
-      icon.textContent = '💊'
+      icon.style.cssText = 'flex-shrink:0;display:inline-flex;'
+      icon.innerHTML = '<svg width="34" height="17" viewBox="0 0 32 16" style="image-rendering:pixelated;"><use href="#ico-pill"/></svg>'
       a.appendChild(icon)
 
       const main = document.createElement('div')
       main.style.cssText = 'flex:1;min-width:0;'
       const pFolio = document.createElement('p')
-      pFolio.style.cssText = "font-family:'Press Start 2P',monospace;font-size:9px;color:#f4f4f4;margin-bottom:6px;"
+      pFolio.style.cssText = "font-family:'Press Start 2P',monospace;font-size:9px;color:var(--text-primary);margin-bottom:6px;"
       pFolio.textContent = folio
       const pMed = document.createElement('p')
       pMed.style.cssText = "font-family:'VT323',monospace;font-size:19px;color:#c0cbdc;"
@@ -231,8 +232,8 @@ const steps=[{label:'ACCESO',href:'/patient'},{label:'MIS RECETAS',href:'/patien
       const right = document.createElement('div')
       right.style.cssText = 'display:flex;flex-direction:column;align-items:flex-end;gap:6px;'
       const badge = isVencida
-        ? makeBadge('red', '⚠ VENCIDA')
-        : (isPendiente ? makeBadge('yellow', '⏳ ACTIVA') : makeBadge('green', '✓ SURTIDA'))
+        ? makeBadge('red', 'VENCIDA')
+        : (isPendiente ? makeBadge('yellow', 'ACTIVA') : makeBadge('green', 'SURTIDA'))
       const arrow = document.createElement('span')
       arrow.style.cssText = "font-family:'Press Start 2P',monospace;font-size:9px;color:#5b6ee1;"
       arrow.textContent = '►'
