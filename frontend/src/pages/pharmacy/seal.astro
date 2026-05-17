@@ -9,11 +9,12 @@ const steps=[{label:'ESCANEAR',href:'/pharmacy'},{label:'VERIFICAR',href:'/pharm
     <p style="font-family:'VT323',monospace;font-size:22px;color:var(--text-muted);">Valida los ítems y aplica el sello digital</p>
   </div>
 
-  <div id="seal-loading" style="background:var(--surface-card);border:3px solid var(--border-default);padding:30px;text-align:center;">
-    <p class="anim-blink" style="font-family:'Press Start 2P',monospace;font-size:9px;color:var(--role-pharmacy);">⏳ CARGANDO DETALLES PARA DISPENSACIÓN...</p>
+  <div id="seal-loading" class="px-card-dark" style="padding:30px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:14px;">
+    <div class="px-spinner" style="border-top-color:var(--role-pharmacy);"></div>
+    <p class="anim-blink" style="font-family:'Press Start 2P',monospace;font-size:9px;color:var(--text-subtle);">CARGANDO DETALLES PARA DISPENSACIÓN...</p>
   </div>
 
-  <div id="med-display" style="display:none; background:#1a0d0d; border:4px solid var(--role-pharmacy); box-shadow:6px 6px 0 var(--role-pharmacy-d); padding:24px;">
+  <div id="med-display" style="display:none; background:var(--surface-card); border:3px solid var(--role-pharmacy); box-shadow:var(--shadow-red); padding:24px;">
     <p style="font-family:'Press Start 2P',monospace;font-size:8px;color:var(--role-pharmacy);margin-bottom:16px;">ÍTEMS A ENTREGAR:</p>
     <div id="med-list-container" style="display:flex; flex-direction:column; gap:12px;">
        </div>
@@ -166,7 +167,7 @@ const steps=[{label:'ESCANEAR',href:'/pharmacy'},{label:'VERIFICAR',href:'/pharm
       window.location.href = '/pharmacy/done'
     } catch (err) {
       console.error("Falla al sellar:", err)
-      alert("Error crítico al generar el sello digital.")
+      ;(window as any).showToast?.("Error crítico al generar el sello digital.", "#e8003d")
       btn.disabled = false
       btn.textContent = "APLICAR SELLO Y SURTIR"
     }

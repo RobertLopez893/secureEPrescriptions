@@ -15,40 +15,37 @@ const steps = [
     </p>
   </div>
 
-  <div id="api-error" style="display:none;background:#2a0d0d;border:3px solid var(--role-pharmacy);padding:14px;margin-bottom:20px;">
-    <p style="font-family:'Press Start 2P',monospace;font-size:8px;color:var(--role-pharmacy);margin-bottom:8px;">⛔ ERROR DEL SISTEMA</p>
-    <p id="api-error-msg" style="font-family:'VT323',monospace;font-size:19px;color:var(--text-muted);"></p>
+  <div id="state-loading" class="px-card-dark" style="padding:28px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:14px;">
+    <div class="px-spinner" style="border-top-color:var(--role-pharmacy);"></div>
+    <p style="font-family:'Press Start 2P',monospace;font-size:9px;color:var(--text-subtle);" class="anim-blink">VERIFICANDO FIRMA Y DESCIFRANDO...</p>
+    <p style="font-family:'VT323',monospace;font-size:19px;color:var(--text-muted);">Ejecutando p256.verify() y AES-GCM-256</p>
   </div>
 
-  <div id="state-loading" style="background:var(--surface-card);border:3px solid var(--border-default);padding:28px;text-align:center;">
-    <p style="font-family:'Press Start 2P',monospace;font-size:9px;color:var(--text-subtle);" class="anim-blink">⏳ VERIFICANDO FIRMA Y DESCIFRANDO...</p>
-    <p style="font-family:'VT323',monospace;font-size:19px;color:var(--text-muted);margin-top:8px;">Ejecutando p256.verify() y AES-GCM-256</p>
-  </div>
-
-  <div id="patient-card" style="display:none; background:#0d1a2e; border:3px solid var(--role-patient); box-shadow:4px 4px 0 var(--role-patient-d); padding:16px; margin-bottom:20px;">
+  <div id="patient-card" style="display:none; background:var(--surface-card); border:3px solid var(--role-patient); box-shadow:var(--shadow-blue); padding:16px; margin-bottom:20px;">
     <div style="display:flex; align-items:center; gap:14px;">
-      <span style="font-size:32px;">🧑‍💼</span>
+      <svg width="30" height="35" viewBox="0 0 24 28" style="image-rendering:pixelated;color:var(--role-patient);flex-shrink:0;"><use href="#ico-patient"/></svg>
       <div>
         <p style="font-family:'Press Start 2P',monospace; font-size:9px; color:var(--role-patient);">DATOS DEL PACIENTE</p>
-        <p id="p-name" style="font-family:'VT323',monospace; font-size:22px; color:#f4f4f4; margin-top:4px;">—</p>
+        <p id="p-name" style="font-family:'VT323',monospace; font-size:22px; color:var(--text-primary); margin-top:4px;">—</p>
         <p id="p-curp" style="font-family:'VT323',monospace; font-size:18px; color:var(--text-muted);">CURP: —</p>
       </div>
     </div>
   </div>
 
-  <div id="result-valid" style="display:none; background:#04100a; border:3px solid var(--role-doctor); box-shadow:4px 4px 0 var(--role-doctor-d); padding:14px; align-items:center; gap:12px; margin-bottom:20px;">
-    <svg width="24" height="24" viewBox="0 0 24 24" style="color:var(--role-doctor);"><use href="#ico-shield"/></svg>
-    <p style="font-family:'Press Start 2P',monospace; font-size:8px; color:var(--role-doctor);">FIRMA DIGITAL VÁLIDA · DOCUMENTO AUTÉNTICO</p>
+  <div id="result-valid" style="display:none; background:rgba(56,183,100,.12); border:3px solid var(--role-doctor); box-shadow:var(--shadow-green); padding:14px; align-items:center; gap:12px; margin-bottom:20px;">
+    <svg width="24" height="28" viewBox="0 0 24 28" style="image-rendering:pixelated;color:var(--role-doctor);flex-shrink:0;"><use href="#ico-shield"/></svg>
+    <p style="font-family:'Press Start 2P',monospace; font-size:8px; color:var(--role-doctor); line-height:1.5;">FIRMA DIGITAL VÁLIDA · DOCUMENTO AUTÉNTICO</p>
   </div>
 
-  <div id="result-error" style="display:none; background:#1a0404; border:3px solid var(--role-pharmacy); box-shadow:4px 4px 0 var(--role-pharmacy-d); padding:14px; align-items:center; gap:12px; margin-bottom:20px;">
-    <span style="font-size:24px;">⚠️</span>
+  <div id="result-error" style="display:none; background:rgba(232,0,61,.12); border:3px solid var(--role-pharmacy); box-shadow:var(--shadow-red); padding:14px; align-items:center; gap:12px; margin-bottom:20px;">
+    <svg width="22" height="22" viewBox="0 0 16 16" style="image-rendering:pixelated;color:var(--role-pharmacy);flex-shrink:0;"><use href="#ico-x"/></svg>
     <p id="result-error-msg" style="font-family:'Press Start 2P',monospace; font-size:8px; color:var(--role-pharmacy); line-height:1.5;">ERROR: LA FIRMA NO COINCIDE O LOS DATOS FUERON ALTERADOS</p>
   </div>
 
-  <div id="prescription-container" style="display:none; background:var(--surface-card); border:3px solid var(--role-pharmacy); box-shadow:4px 4px 0 var(--role-pharmacy-d); padding:0; overflow:hidden;">
-    <div style="background:var(--role-pharmacy); padding:10px 16px;">
-      <span style="font-family:'Press Start 2P',monospace; font-size:8px; color:#f4f4f4;">💊 DETALLE DE PRESCRIPCIÓN</span>
+  <div id="prescription-container" style="display:none; background:var(--surface-card); border:3px solid var(--role-pharmacy); box-shadow:var(--shadow-red); padding:0; overflow:hidden;">
+    <div style="background:var(--role-pharmacy); padding:10px 16px;display:flex;align-items:center;gap:8px;">
+      <svg width="22" height="11" viewBox="0 0 32 16" style="image-rendering:pixelated;"><use href="#ico-pill"/></svg>
+      <span style="font-family:'Press Start 2P',monospace; font-size:8px; color:#f4f4f4;">DETALLE DE PRESCRIPCIÓN</span>
     </div>
     <div id="prescription-body" style="padding:20px;">
         </div>
