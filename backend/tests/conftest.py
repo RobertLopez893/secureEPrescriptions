@@ -75,10 +75,33 @@ def base_users(client, admin_headers):
     # Registrar llaves válidas para que puedan operar criptografía (130 chars hex)
     llave_base = "04" + ("a" * 128)
     for user_id in (p["id_usuario"], m["id_usuario"], f["id_usuario"]):
-        client.post(f"/api/v1/usuarios/{user_id}/llave", headers=admin_headers, 
+        client.post(f"/api/v1/usuarios/{user_id}/llave", headers=admin_headers,
                     json={"llave_publica": llave_base, "responsabilidad": "firmas"})
 
-    return {"paciente": p, "medico": m, "farmaceutico": f}
+    # El médico necesita una llave de FIRMAS *real*: tras el PR #8 la
+    # emisión vuelve a verificar la firma ECDSA del envelope. Generamos
+    # un par P-256 de verdad, sobrescribimos su llave pública 'firmas' y
+    # exponemos la privada para que los tests firmen igual que el front.
+    from cryptography.hazmat.primitives.asymmetric import ec
+    from cryptography.hazmat.primitives.serialization import (
+        Encoding, PublicFormat,
+    )
+    medico_priv = ec.generate_private_key(ec.SECP256R1())
+    medico_pub_hex = medico_priv.public_key().public_bytes(
+        Encoding.X962, PublicFormat.UncompressedPoint
+    ).hex()
+    client.post(
+        f"/api/v1/usuarios/{m['id_usuario']}/llave",
+        headers=admin_headers,
+        json={"llave_publica": medico_pub_hex, "responsabilidad": "firmas"},
+    )
+
+    return {
+        "paciente": p,
+        "medico": m,
+        "farmaceutico": f,
+        "medico_priv": medico_priv,
+    }
 
 def _get_headers_for(client, correo):
     token = client.post("/api/v1/auth/login", json={"correo": correo, "contrasena": "pass"}).json()["access_token"]
