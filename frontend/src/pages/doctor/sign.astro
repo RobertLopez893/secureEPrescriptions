@@ -60,6 +60,8 @@ const steps = [
 <script>
   import { CryptoEngine } from '../../crypto/index.ts'
   import type {DatosMedicos} from '../../crypto/interfaces.ts'
+  import { p256 } from '@noble/curves/nist.js'
+  import { utf8ToBytes, bytesToHex, hexToBytes } from '@noble/hashes/utils.js'
   import { Api, ApiError, getSession } from '../../utils/api.ts'
   import { getUserPrivKeyHex } from '../../utils/userKeys.ts'
   import { requireSession } from '../../utils/sessionGuard.ts'
@@ -72,7 +74,32 @@ const steps = [
     return `rx-${idMedico}-${ts}`;
   };
 
-  const DEMO_FARMACEUTICO_ID = 3
+  // Mensaje canónico que firma el médico para probar autoría del
+  // envelope opaco. DEBE ser byte-idéntico al `_envelope_message` del
+  // backend (recetas.py): mismo orden, separador '\n', fechas en
+  // segundos unix. La firma se hace con la llave de FIRMAS y
+  // `{prehash:true}` para que el backend la verifique con
+  // ec.ECDSA(SHA256()) — misma convención que el login por tarjeta.
+  const envelopeMessage = (e: {
+    id_medico: number; id_paciente: number; id_farmaceutico: number;
+    folio: string; capsula_cifrada: string; nonce: string;
+    creada_en: string; expira_en: string;
+  }): string => {
+    const unix = (iso: string) => Math.floor(Date.parse(iso) / 1000)
+    return [
+      e.id_medico, e.id_paciente, e.id_farmaceutico, e.folio,
+      e.capsula_cifrada, e.nonce, unix(e.creada_en), unix(e.expira_en),
+    ].join('\n')
+  }
+
+  const firmarEnvelope = (msg: string, privHex: string): string => {
+    const sig: any = p256.sign(utf8ToBytes(msg), hexToBytes(privHex), { prehash: true })
+    const compact: Uint8Array =
+      typeof sig?.toCompactRawBytes === 'function'
+        ? sig.toCompactRawBytes()
+        : sig instanceof Uint8Array ? sig : new Uint8Array(sig)
+    return bytesToHex(compact)
+  }
 
   /* ══ ESTADO GLOBAL ══ */
   let activePrivKeyHex: string | null = null
@@ -102,7 +129,10 @@ const steps = [
       folio:             generarFolio(ID_MEDICO),
       id_medico:         `DOC-${ID_MEDICO}`,
       id_paciente:       `USR-${ID_PACIENTE}`,
-      id_farmaceutico:   `FAR-${DEMO_FARMACEUTICO_ID}`,
+      // Lo resuelve el servidor (farmacéutico jefe de la clínica del
+      // médico) y se asigna en doSign() antes de cifrar. Ya no se
+      // hardcodea ni lo elige el cliente.
+      id_farmaceutico:   '',
       fecha_emision:     FECHA_EMI,
       fecha_vencimiento: FECHA_VENC,
       medicamentos:      MEDS,
@@ -230,12 +260,28 @@ const steps = [
           `Pídele que escanee su tarjeta QR al menos una vez para registrarla.`
         )
       }
-      let farmaceuticoPub: string;
+      // ── Resolver el farmacéutico jefe en el SERVIDOR (no hardcode) ────
+      btn.textContent = '⏳ RESOLVIENDO FARMACÉUTICO...'
+      let jefeId: number
       try {
-        farmaceuticoPub = (await Api.obtenerLlavePublica(DEMO_FARMACEUTICO_ID,"recetas")).llave_publica
+        jefeId = (await Api.resolverFarmaceuticoJefe()).id_farmaceutico
       } catch (err) {
         throw new Error(
-          `La farmacia destino (id=${DEMO_FARMACEUTICO_ID}) no tiene llave pública registrada.`
+          'No se pudo resolver el farmacéutico jefe de la clínica del ' +
+          'médico. Verifica que la clínica tenga exactamente un ' +
+          'farmacéutico registrado.'
+        )
+      }
+      // El destino real ya lo conocemos: alinea el contexto HKDF del
+      // keywrap con lo que el backend grabará en la receta.
+      RECETA.datos.id_farmaceutico = `FAR-${jefeId}`
+
+      let farmaceuticoPub: string;
+      try {
+        farmaceuticoPub = (await Api.obtenerLlavePublica(jefeId,"recetas")).llave_publica
+      } catch (err) {
+        throw new Error(
+          `El farmacéutico jefe (id=${jefeId}) no tiene llave pública registrada.`
         )
       }
 
@@ -251,6 +297,22 @@ const steps = [
       console.log('Cápsula cifrada:', cifrada)
       
 
+      // ── 5) Firmar el envelope opaco (autoría verificable por backend) ──
+      btn.textContent = '⏳ FIRMANDO ENVELOPE...'
+      const firma_envelope = firmarEnvelope(
+        envelopeMessage({
+          id_medico:       ID_MEDICO,
+          id_paciente:     ID_PACIENTE,
+          id_farmaceutico: jefeId,
+          folio:           RECETA.datos.folio,
+          capsula_cifrada: cifrada.capsula_cifrada,
+          nonce:           cifrada.nonce,
+          creada_en:       FECHA_EMI,
+          expira_en:       FECHA_VENC,
+        }),
+        activePrivKeyHex,
+      )
+
       // ── 6) POST /api/v1/recetas ────────────────────────────────────────
       btn.textContent = '⏳ ENVIANDO AL BACKEND...'
       const created = await Api.crearReceta({
@@ -261,7 +323,8 @@ const steps = [
         capsula_cifrada: cifrada.capsula_cifrada,
         nonce:      cifrada.nonce,
         accesos:    cifrada.accesos,
-        id_farmaceutico: DEMO_FARMACEUTICO_ID, 
+        id_farmaceutico: jefeId,
+        firma_envelope,
         creada_en:       FECHA_EMI,
       })
       console.log('Receta creada en backend:', created)

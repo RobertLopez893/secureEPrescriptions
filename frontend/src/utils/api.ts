@@ -225,8 +225,19 @@ export interface RecetaCreateDTO {
   nonce: string;         // hex
   accesos: AccesoDTO[];
 
+  /** Firma ECDSA P-256 (r||s, 128 hex) del médico sobre el envelope
+   *  opaco. El backend la exige y la verifica contra la llave pública
+   *  de firmas del médico; sin ella la emisión es rechazada. */
+  firma_envelope: string;
+
   creada_en: string;
   expira_en: string;          // ISO 8601
+}
+
+export interface FarmaceuticoJefeDTO {
+  id_farmaceutico: number;
+  id_clinica: number;
+  nombre_completo: string;
 }
 
 export interface RecetaPublicDTO {
@@ -452,6 +463,15 @@ export const Api = {
       method: 'POST',
       body: JSON.stringify(body),
     });
+  },
+
+  /**
+   * Resuelve el farmacéutico jefe de la clínica del médico autenticado.
+   * Reemplaza al id hardcodeado en el frontend: el destino de la receta
+   * lo decide el servidor desde el JWT, no el cliente.
+   */
+  async resolverFarmaceuticoJefe(): Promise<FarmaceuticoJefeDTO> {
+    return request<FarmaceuticoJefeDTO>('/api/v1/recetas/farmaceutico-jefe');
   },
 
   async obtenerRecetaInfo(idReceta: number): Promise<RecetaDetailDTO> {

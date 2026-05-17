@@ -76,10 +76,21 @@ class RecetaCreate(BaseModel):
     capsula_cifrada: str   # Ciphertext hex
     nonce: str        # Nonce AES-GCM hex
     accesos: List[AccesoCreate]
-    
-    creada_en: datetime 
+
+    # Firma ECDSA P-256 (r||s, 128 hex) que el médico calcula sobre el
+    # "envelope" opaco (ids + folio + ciphertext + nonce + fechas). Prueba
+    # autoría sin que el backend vea el contenido en claro. Su ausencia o
+    # invalidez aborta la emisión (regresión reintroducida tras el PR #8).
+    firma_envelope: str
+
+    creada_en: datetime
     expira_en: datetime
-    
+
+    @field_validator("firma_envelope")
+    @classmethod
+    def _v_firma_envelope(cls, v: str) -> str:
+        return _assert_hex_exact(v, field="firma_envelope", length=_P256_SIG_LEN_HEX)
+
     @field_validator("capsula_cifrada")
     @classmethod
     def _v_capsula(cls, v: str) -> str:
@@ -103,6 +114,15 @@ class RecetaPublic(BaseModel):
     estado: str
     creada_en: datetime
     expira_en: datetime
+
+
+class FarmaceuticoJefePublic(BaseModel):
+    # Resuelto por el servidor desde la clínica del médico (reemplaza al
+    # id hardcodeado en el frontend). El cliente lo usa para pedir la
+    # llave pública de cifrado del jefe y armar la cápsula dirigida.
+    id_farmaceutico: int
+    id_clinica: int
+    nombre_completo: str
 
 
 class UserInfo(BaseModel):
