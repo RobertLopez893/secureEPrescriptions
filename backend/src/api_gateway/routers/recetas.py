@@ -7,7 +7,7 @@ from sqlmodel import Session, select
 from src.core.crypto_utils import verify_p256_ecdsa
 from src.core.security import CurrentUser, get_current_user
 from src.database.database import get_session
-from src.database.models import Llave, Receta, Usuario
+from src.database.models import Llave, Receta, Rol, Usuario
 from src.api_gateway import schemas
 
 
@@ -32,6 +32,100 @@ def _get_active_public_key(session: Session, id_usuario: int) -> Optional[str]:
         .order_by(Llave.creado_en.desc())
     ).first()
     return llave.llave_publica if llave else None
+
+
+def _get_signing_public_key(session: Session, id_usuario: int) -> Optional[str]:
+    """Llave pública de FIRMA (responsabilidad='firmas') activa de un
+    usuario. Es la contraparte de la llave 'sign' que deriva el frontend;
+    el directorio de llaves separa cifrado ('recetas') de autoría
+    ('firmas'). Mismo criterio que usa el login por tarjeta en auth.py,
+    para no mantener dos convenciones de verificación distintas."""
+    llave = session.exec(
+        select(Llave)
+        .where(
+            Llave.id_usuario == id_usuario,
+            Llave.activo == True,
+            Llave.responsabilidad == "firmas",
+        )
+        .order_by(Llave.creado_en.desc())
+    ).first()
+    return llave.llave_publica if llave else None
+
+
+def _envelope_message(
+    *,
+    id_medico: int,
+    id_paciente: int,
+    id_farmaceutico: int,
+    folio: str,
+    capsula_cifrada: str,
+    nonce: str,
+    creada_en: datetime,
+    expira_en: datetime,
+) -> bytes:
+    """Mensaje canónico que el médico firma para probar autoría de la
+    cápsula, SIN que el backend vea el contenido en claro.
+
+    Concatenación separada por '\\n' (no JSON, para evitar ambigüedades
+    de canónico entre JS y Python). El frontend construye exactamente la
+    misma cadena y firma con `p256.sign(bytes, priv, {prehash:true})`;
+    el backend verifica con `verify_p256_ecdsa` (ECDSA SHA-256) — la
+    misma convención ya probada en el login por tarjeta.
+
+        <id_medico>\\n<id_paciente>\\n<id_farmaceutico>\\n<folio>
+        \\n<capsula_cifrada>\\n<nonce>\\n<creada_unix>\\n<expira_unix>
+
+    Se incluyen `id_farmaceutico` y `folio` a propósito: así la firma
+    también ata la receta a SU farmacéutico destino y folio; cambiarlos
+    (página manipulada, JWT robado) invalida la firma.
+
+    Los datetime naive se asumen UTC (mismo criterio que `_is_vencida`).
+    """
+    def _unix(dt: datetime) -> int:
+        d = dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
+        return int(d.timestamp())
+
+    return (
+        f"{id_medico}\n{id_paciente}\n{id_farmaceutico}\n{folio}\n"
+        f"{capsula_cifrada}\n{nonce}\n{_unix(creada_en)}\n{_unix(expira_en)}"
+    ).encode("utf-8")
+
+
+def _resolve_jefe_farmaceutico(session: Session, id_clinica: Optional[int]) -> Usuario:
+    """Resuelve el ÚNICO farmacéutico jefe de una clínica.
+
+    El modelo de Andy asume 1 farmacéutico jefe por hospital, pero el
+    esquema permite varios usuarios Farmaceutico por clínica. Tratamos
+    ese "1" como invariante duro: 0 o >1 es un estado de datos inválido y
+    abortamos en vez de adivinar (decidido con el equipo). La
+    auto-asignación cierra el agujero de que el cliente eligiera el
+    id_farmaceutico a mano.
+    """
+    if id_clinica is None:
+        raise HTTPException(
+            status_code=409,
+            detail="El médico emisor no tiene clínica asignada; no se puede "
+                   "resolver el farmacéutico jefe.",
+        )
+    farmaceuticos = session.exec(
+        select(Usuario)
+        .join(Rol, Usuario.id_rol == Rol.id_rol)
+        .where(Rol.nombre == "Farmaceutico", Usuario.id_clinica == id_clinica)
+    ).all()
+    if len(farmaceuticos) == 0:
+        raise HTTPException(
+            status_code=409,
+            detail=f"La clínica {id_clinica} no tiene un farmacéutico jefe "
+                   "registrado.",
+        )
+    if len(farmaceuticos) > 1:
+        raise HTTPException(
+            status_code=409,
+            detail=f"La clínica {id_clinica} tiene {len(farmaceuticos)} "
+                   "farmacéuticos; el modelo exige exactamente 1 jefe. "
+                   "Corrige los datos antes de emitir.",
+        )
+    return farmaceuticos[0]
 
 
 @router.get("/recetas", response_model=List[schemas.RecetaDetailPublic])
@@ -195,9 +289,56 @@ def emitir_receta(
     # Validamos que el paciente existe (evitamos referencias rotas en la BD).
     if not session.get(Usuario, receta_in.id_paciente):
         raise HTTPException(status_code=404, detail="Paciente no encontrado.")
-    
-    if not session.get(Usuario, receta_in.id_farmaceutico):
-        raise HTTPException(status_code=404, detail="Farmacéutico no encontrado.")
+
+    medico = session.get(Usuario, id_medico)
+    if not medico:
+        raise HTTPException(status_code=404, detail="Médico emisor no encontrado.")
+
+    # --- Auto-asignación: el farmacéutico jefe lo decide el SERVIDOR a
+    # partir de la clínica del médico, no el cliente. Aunque la página
+    # esté manipulada y mande otro id_farmaceutico, aquí se rechaza si no
+    # coincide con el jefe resuelto. Sin esto, la firma del envelope solo
+    # certificaría un valor que el atacante eligió.
+    jefe = _resolve_jefe_farmaceutico(session, medico.id_clinica)
+    if receta_in.id_farmaceutico != jefe.id_usuario:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"id_farmaceutico inválido: la clínica del médico tiene como "
+                f"farmacéutico jefe al usuario {jefe.id_usuario}, no al "
+                f"{receta_in.id_farmaceutico}."
+            ),
+        )
+
+    # --- Verificación ECDSA de autoría sobre el envelope opaco ---
+    # Reintroduce el control que el PR #8 eliminó: sin firma válida del
+    # médico (verificada contra su llave pública de FIRMAS registrada) no
+    # se emite. El backend nunca descifra la cápsula.
+    pub_firma = _get_signing_public_key(session, id_medico)
+    if not pub_firma:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"El médico {id_medico} no tiene llave pública de firmas "
+                "registrada; no se puede verificar la autoría de la receta."
+            ),
+        )
+    envelope_msg = _envelope_message(
+        id_medico=id_medico,
+        id_paciente=receta_in.id_paciente,
+        id_farmaceutico=receta_in.id_farmaceutico,
+        folio=receta_in.folio,
+        capsula_cifrada=receta_in.capsula_cifrada,
+        nonce=receta_in.nonce,
+        creada_en=receta_in.creada_en,
+        expira_en=receta_in.expira_en,
+    )
+    if not verify_p256_ecdsa(pub_firma, envelope_msg, receta_in.firma_envelope):
+        raise HTTPException(
+            status_code=400,
+            detail="Firma de autoría inválida: el envelope no verifica "
+                   "contra la llave pública del médico.",
+        )
 
     db_receta = Receta(
         folio=receta_in.folio,
@@ -214,6 +355,39 @@ def emitir_receta(
     session.commit()
     session.refresh(db_receta)
     return db_receta
+
+
+@router.get(
+    "/recetas/farmaceutico-jefe",
+    response_model=schemas.FarmaceuticoJefePublic,
+)
+def resolver_farmaceutico_jefe(
+    *,
+    session: Session = Depends(get_session),
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    """Devuelve el farmacéutico jefe de la clínica del médico autenticado.
+
+    Sustituye al `DEMO_FARMACEUTICO_ID` hardcodeado en el frontend: el
+    cliente ya no inventa a quién va dirigida la receta, lo resuelve el
+    servidor desde el JWT. Declarada ANTES de `/recetas/{id_receta}` para
+    que la ruta literal gane sobre la paramétrica.
+    """
+    if current_user.role not in ("Medico", "Administrador"):
+        raise HTTPException(
+            status_code=403,
+            detail=f"El rol '{current_user.role}' no puede resolver el "
+                   "farmacéutico jefe.",
+        )
+    medico = session.get(Usuario, current_user.id)
+    if not medico:
+        raise HTTPException(status_code=404, detail="Médico no encontrado.")
+    jefe = _resolve_jefe_farmaceutico(session, medico.id_clinica)
+    return schemas.FarmaceuticoJefePublic(
+        id_farmaceutico=jefe.id_usuario,
+        id_clinica=jefe.id_clinica,
+        nombre_completo=f"{jefe.nombre} {jefe.paterno}",
+    )
 
 
 @router.get("/recetas/{id_receta}", response_model=schemas.RecetaDetailPublic)
@@ -312,12 +486,27 @@ def sellar_receta(
             detail="La receta está vencida y no puede dispensarse.",
         )
 
-    id_farma = current_user.id if current_user.role == "Farmaceutico" else sello_in.id_farmaceutico
+    # El farmacéutico destino quedó ATADO en la emisión (jefe de la
+    # clínica del médico) y la firma del envelope lo certifica. Aquí solo
+    # se verifica que quien sella sea ese mismo farmacéutico: un
+    # Farmaceutico no puede surtir —ni apropiarse— una receta dirigida a
+    # otra farmacia. NO se reasigna `id_farmaceutico`: dejar que el sello
+    # lo sobrescribiera anulaba la auto-asignación hecha al emitir.
+    if (
+        current_user.role == "Farmaceutico"
+        and current_user.id != receta.id_farmaceutico
+    ):
+        raise HTTPException(
+            status_code=403,
+            detail=(
+                "Esta receta está dirigida a otro farmacéutico "
+                f"(id {receta.id_farmaceutico}); no puedes surtirla."
+            ),
+        )
 
     receta.capsula_cifrada = sello_in.capsula_cifrada
-    receta.nonce = sello_in.nonce   
+    receta.nonce = sello_in.nonce
     receta.accesos = [a.model_dump() for a in sello_in.accesos]
-    receta.id_farmaceutico = id_farma
     receta.estado = "surtida"
 
     session.add(receta)
