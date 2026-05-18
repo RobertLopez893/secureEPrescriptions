@@ -139,7 +139,74 @@ def _seed_demo_data(session: Session) -> None:
         ))
         session.commit()
 
+    _seed_batch_users(session, clinica, rol_medico, rol_paciente, hashed)
+
     print("Usuarios demo creados y llaves públicas registradas.")
+
+
+def _stable_seed(tag: str) -> str:
+    """Semilla de 32 bytes (64 hex) determinista y estable entre reinicios,
+    sin necesidad de declarar una variable de entorno por usuario."""
+    return hashlib.sha256(f"rxpro-batch-v1:{tag}".encode()).hexdigest()
+
+
+def _registrar_llaves(session: Session, id_usuario: int, seed_hex: str) -> None:
+    """Registra las dos llaves públicas que el sistema espera para cualquier
+    usuario: 'recetas' (cifrado E2E) y 'firmas' (autoría / login por tarjeta)."""
+    session.add_all([
+        models.Llave(id_usuario=id_usuario, llave_publica=_pub_hex_from_seed_hex(seed_hex, _HKDF_INFO_RECIPES), activo=True, responsabilidad="recetas"),
+        models.Llave(id_usuario=id_usuario, llave_publica=_pub_hex_from_seed_hex(seed_hex, _HKDF_INFO_SIGN), activo=True, responsabilidad="firmas"),
+    ])
+
+
+def _seed_batch_users(session, clinica, rol_medico, rol_paciente, hashed: str) -> None:
+    """Crea un lote de 5 pacientes + 3 médicos en la clínica demo para poder
+    probar el flujo completo de inmediato. Reutiliza el ÚNICO farmacéutico
+    demo (la clínica no puede tener más de uno: ver _resolve_jefe_farmaceutico).
+    Las semillas son deterministas, así que los QR no cambian entre reinicios."""
+    print("Sembrando lote de prueba (5 pacientes + 3 médicos)...")
+    qr_lines: list[str] = []
+
+    for n in range(1, 6):
+        curp = f"PAC{n:02d}000101HDFXXX0{n}"
+        seed = _stable_seed(f"paciente:{n}")
+        u = models.Usuario(
+            id_rol=rol_paciente.id_rol, id_clinica=clinica.id_clinica,
+            nombre=f"Paciente{n}", paterno="Demo", correo=f"paciente{n}@rxpro.demo",
+            contrasena=hashed,
+            paciente=models.Paciente(
+                curp=curp, nacimiento=date(2000, 1, 1),
+                sexo="O", tel_emergencia="5555555555",
+            ),
+        )
+        session.add(u)
+        session.commit()
+        session.refresh(u)
+        _registrar_llaves(session, u.id_usuario, seed)
+        qr_lines.append(f"  Paciente{n} (id={u.id_usuario}, CURP {curp}): rxpro://card/v1/paciente/{curp}/{seed}")
+
+    for n in range(1, 4):
+        cedula = f"DEMO-MED-100{n}"
+        seed = _stable_seed(f"medico:{n}")
+        u = models.Usuario(
+            id_rol=rol_medico.id_rol, id_clinica=clinica.id_clinica,
+            nombre=f"Doctor{n}", paterno="Demo", correo=f"doctor{n}@rxpro.demo",
+            contrasena=hashed,
+            medico=models.Medico(
+                cedula=cedula, especialidad="General",
+                universidad="Universidad Demo",
+            ),
+        )
+        session.add(u)
+        session.commit()
+        session.refresh(u)
+        _registrar_llaves(session, u.id_usuario, seed)
+        qr_lines.append(f"  Doctor{n} (id={u.id_usuario}, céd. {cedula}): rxpro://card/v1/medico/{cedula}/{seed}")
+
+    session.commit()
+    print("Lote de prueba creado. QR de login (password legacy: demo1234):")
+    for line in qr_lines:
+        print(line)
 
 def create_initial_data(session: Session):
     """Crea los datos iniciales (roles + demo data opcional)."""
