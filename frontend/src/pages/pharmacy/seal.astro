@@ -64,8 +64,8 @@ const steps=[{label:'ESCANEAR',href:'/pharmacy'},{label:'VERIFICAR',href:'/pharm
 
       // Llaves públicas 'recipes' de paciente y médico para re-cifrar el sello.
       const [pacPub, docPub] = await Promise.all([
-        Api.obtenerLlavePublica(recetaInfo.id_paciente, 'recipes'),
-        Api.obtenerLlavePublica(recetaInfo.id_medico, 'recipes')
+        Api.obtenerLlavePublica(recetaInfo.id_paciente, 'recetas'),
+        Api.obtenerLlavePublica(recetaInfo.id_medico, 'recetas')
       ])
       pubKeys = {
         paciente: pacPub.llave_publica,
