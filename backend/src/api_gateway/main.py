@@ -1,11 +1,30 @@
 import os
+from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
-from sqlmodel import SQLModel, Session
+from sqlmodel import Session
 # Importamos el motor de conexión
 from src.database.database import engine
 from src.database.seed_demo import create_initial_data
+from src.core.config import settings
+
+
+def _run_migrations() -> None:
+    """Lleva el esquema a `head` con Alembic en lugar de create_all.
+
+    create_all NO altera tablas existentes: añadir/renombrar columnas
+    (lo que hizo el PR #8) sobre una BD ya creada quedaba silenciosamente
+    sin aplicar. Las migraciones versionadas sí lo hacen y son
+    reproducibles entre entornos.
+    """
+    from alembic import command
+    from alembic.config import Config
+
+    backend_dir = Path(__file__).resolve().parents[2]
+    cfg = Config(str(backend_dir / "alembic.ini"))
+    cfg.set_main_option("script_location", str(backend_dir / "migrations"))
+    command.upgrade(cfg, "head")
 
 from src.api_gateway.routers import recetas, auth, usuarios, clinicas
 
@@ -58,10 +77,16 @@ def _wait_for_db(max_attempts: int = 30, delay_seconds: float = 1.0) -> None:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # --- Lógica de Inicio (Startup) ---
+    # En tests, conftest.py maneja su propio engine in-memory y crea el
+    # esquema con create_all en una fixture; no debemos tocar la BD aquí.
+    if settings.APP_ENV.strip().lower() == "test":
+        yield
+        return
+
     print("Esperando a que la base de datos acepte conexiones...")
     _wait_for_db()
-    print("Verificando y creando tablas de la base de datos...")
-    SQLModel.metadata.create_all(engine)
+    print("Aplicando migraciones (alembic upgrade head)...")
+    _run_migrations()
     with Session(engine) as session:
         create_initial_data(session)
     _warn_if_multiworker()

@@ -17,7 +17,8 @@ pycparser==3.0
 pycryptodome==3.23.0
 pydantic==2.12.5
 pydantic_core==2.41.5
-sqlmodel==0.0.16
+sqlmodel==0.0.38
+alembic==1.18.4
 starlette==0.52.1
 typing-inspection==0.4.2
 typing_extensions==4.15.0
