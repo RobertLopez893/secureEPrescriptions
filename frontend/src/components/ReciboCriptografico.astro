@@ -1,0 +1,169 @@
+---
+import type { RecetaContainer, RecetaCifrada } from '../crypto/interfaces.ts'
+
+interface Entidad {
+  nombre?: string
+  id?: string | number
+}
+
+interface Props {
+  /** Contenedor descifrado y verificado de la receta. */
+  contenedor: RecetaContainer
+  /** Sobre cifrado (opcional): aporta nonce, cápsula y accesos. */
+  sobre?: RecetaCifrada
+  /** Folio de la transacción (cae a datos.folio si se omite). */
+  folio?: string
+  /** Fecha/hora de la constancia (ISO; cae a fecha_emision). */
+  fechaHora?: string
+  emisor?: Entidad
+  receptor?: Entidad
+}
+
+const { contenedor, sobre, folio, fechaHora, emisor, receptor } = Astro.props as Props
+
+const datos = contenedor.datos
+const sello = contenedor.sellos
+
+const folioTx = folio ?? datos.folio ?? 'SIN-FOLIO'
+const fechaTx = fechaHora ?? datos.fecha_emision ?? new Date().toISOString()
+
+// La "Cadena Original" es la representación canónica de lo que el médico firmó.
+const cadenaOriginal = JSON.stringify(datos)
+
+const guion = '—'
+
+// Bloques criptográficos de ancho completo (estilo SAT/CFDI).
+const bloques: Array<{ titulo: string; valor: string }> = [
+  { titulo: 'Cadena Original del Complemento de Receta', valor: cadenaOriginal },
+  { titulo: 'Sello Digital del Emisor (Firma ECDSA del Médico)', valor: contenedor.firma_medico || guion },
+]
+
+if (sello?.hmac_sello) {
+  bloques.push({ titulo: 'Sello de Dispensación (HMAC-SHA256)', valor: sello.hmac_sello })
+}
+
+if (sobre?.capsula_cifrada) {
+  bloques.push({ titulo: 'Hash de Integridad de la Cápsula (AES-256-GCM)', valor: sobre.capsula_cifrada })
+}
+
+if (sobre?.nonce) {
+  bloques.push({ titulo: 'Vector de Inicialización (Nonce)', valor: sobre.nonce })
+}
+
+const accesos = sobre?.accesos ?? []
+// NOTE: tailwind.config del proyecto remapea las fuentes utilitarias a la
+// tipografía pixel (VT323); aquí se usan pilas reales vía valores arbitrarios
+// (font-[ui-monospace,...]) para conservar el aspecto sobrio tipo CFDI.
+---
+
+<article class="mx-auto max-w-3xl bg-white text-gray-900 border border-gray-300 shadow-sm font-[system-ui,Arial,sans-serif]">
+  <!-- Encabezado -->
+  <header class="border-b border-gray-300 px-6 py-4 flex items-start justify-between gap-4">
+    <div>
+      <h1 class="text-sm font-bold uppercase tracking-wide text-gray-800">
+        Constancia Criptográfica de Receta Electrónica
+      </h1>
+      <p class="text-[10px] text-gray-500 mt-0.5">
+        Documento técnico-legal · Bitácora de auditoría
+      </p>
+    </div>
+    <span class="text-[10px] font-[ui-monospace,Menlo,Consolas,monospace] text-gray-400 whitespace-nowrap pt-1">v1.0</span>
+  </header>
+
+  <!-- 1. Datos generales -->
+  <section class="px-6 py-4 border-b border-gray-200">
+    <h2 class="text-[11px] font-bold uppercase tracking-wider text-gray-700 mb-3">
+      Datos Generales
+    </h2>
+    <dl class="grid grid-cols-1 sm:grid-cols-3 gap-y-3 gap-x-6">
+      <div>
+        <dt class="text-[10px] font-semibold uppercase text-gray-500">Folio de Transacción</dt>
+        <dd class="text-xs font-[ui-monospace,Menlo,Consolas,monospace] text-gray-900 break-all mt-0.5">{folioTx}</dd>
+      </div>
+      <div>
+        <dt class="text-[10px] font-semibold uppercase text-gray-500">Fecha y Hora</dt>
+        <dd class="text-xs font-[ui-monospace,Menlo,Consolas,monospace] text-gray-900 break-all mt-0.5">{fechaTx}</dd>
+      </div>
+      <div>
+        <dt class="text-[10px] font-semibold uppercase text-gray-500">Vigencia</dt>
+        <dd class="text-xs font-[ui-monospace,Menlo,Consolas,monospace] text-gray-900 break-all mt-0.5">
+          {datos.fecha_vencimiento ?? guion}
+        </dd>
+      </div>
+    </dl>
+  </section>
+
+  <!-- 2. Entidades -->
+  <section class="px-6 py-4 border-b border-gray-200">
+    <h2 class="text-[11px] font-bold uppercase tracking-wider text-gray-700 mb-3">
+      Entidades
+    </h2>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div class="border border-gray-200 rounded-sm p-3 bg-gray-50">
+        <p class="text-[10px] font-semibold uppercase text-gray-500 mb-1">Emisor (Médico)</p>
+        <p class="text-xs text-gray-900">{emisor?.nombre ?? guion}</p>
+        <p class="text-[10px] font-[ui-monospace,Menlo,Consolas,monospace] text-gray-500 mt-1 break-all">
+          ID: {emisor?.id ?? datos.id_medico ?? guion}
+        </p>
+      </div>
+      <div class="border border-gray-200 rounded-sm p-3 bg-gray-50">
+        <p class="text-[10px] font-semibold uppercase text-gray-500 mb-1">Receptor (Paciente)</p>
+        <p class="text-xs text-gray-900">{receptor?.nombre ?? guion}</p>
+        <p class="text-[10px] font-[ui-monospace,Menlo,Consolas,monospace] text-gray-500 mt-1 break-all">
+          ID: {receptor?.id ?? datos.id_paciente ?? guion}
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. Bloques criptográficos -->
+  <section class="px-6 py-4">
+    <h2 class="text-[11px] font-bold uppercase tracking-wider text-gray-700 mb-3">
+      Bloques Criptográficos
+    </h2>
+    <div class="space-y-4">
+      {bloques.map((b) => (
+        <div>
+          <p class="text-[10px] font-bold uppercase tracking-wide text-gray-700 mb-1">
+            {b.titulo}
+          </p>
+          <p class="w-full bg-gray-50 border border-gray-200 rounded-sm px-3 py-2 font-[ui-monospace,Menlo,Consolas,monospace] text-[10px] leading-relaxed text-gray-700 break-words whitespace-pre-wrap">
+            {b.valor}
+          </p>
+        </div>
+      ))}
+
+      {accesos.length > 0 && (
+        <div>
+          <p class="text-[10px] font-bold uppercase tracking-wide text-gray-700 mb-1">
+            Sobres de Acceso (ECDH + AES-KW)
+          </p>
+          <div class="space-y-2">
+            {accesos.map((a) => (
+              <div class="w-full bg-gray-50 border border-gray-200 rounded-sm px-3 py-2">
+                <p class="text-[10px] font-semibold uppercase text-gray-500 mb-1">
+                  Rol: {a.rol}
+                </p>
+                <p class="font-[ui-monospace,Menlo,Consolas,monospace] text-[10px] leading-relaxed text-gray-700 break-words">
+                  <span class="text-gray-400">wrappedKey:</span> {a.wrappedKey}
+                </p>
+                <p class="font-[ui-monospace,Menlo,Consolas,monospace] text-[10px] leading-relaxed text-gray-700 break-words mt-1">
+                  <span class="text-gray-400">ephemeral_pub:</span> {a.ephemeral_pub_hex}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  </section>
+
+  <!-- Pie -->
+  <footer class="border-t border-gray-300 px-6 py-3">
+    <p class="text-[10px] text-gray-400 leading-relaxed">
+      Esta constancia reproduce los elementos criptográficos verificados de la receta.
+      Los sellos digitales garantizan integridad y no repudio bajo el esquema
+      ECDSA P-256 / AES-256-GCM / HMAC-SHA256.
+    </p>
+  </footer>
+</article>
