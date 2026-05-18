@@ -25,7 +25,7 @@ const steps=[{label:'LOGIN',href:'/doctor'},{label:'PACIENTE',href:'/doctor/pati
 
   <!-- Aviso de límite -->
   <div id="limit-warning"
-       style="display:none;background:#1a0a0a;border:3px solid var(--role-pharmacy);padding:14px 16px;gap:12px;align-items:flex-start;">
+       style="display:none;background:rgba(232,0,61,.12);box-shadow:var(--shadow-red);border:3px solid var(--role-pharmacy);padding:14px 16px;gap:12px;align-items:flex-start;">
     <svg width="20" height="20" viewBox="0 0 20 20" style="image-rendering:pixelated;color:var(--role-pharmacy);flex-shrink:0;">
       <rect x="8" y="0" width="4" height="12" fill="currentColor"/>
       <rect x="8" y="14" width="4" height="4" fill="currentColor"/>
@@ -115,9 +115,9 @@ function buildCard(id: number): HTMLElement {
   const card = document.createElement('div')
   card.id = `med-card-${id}`
   card.style.cssText = [
-    'background:#222639',
-    'border:3px solid #38b764',
-    'box-shadow:4px 4px 0 #257a43',
+    'background:var(--surface-card)',
+    'border:3px solid var(--role-doctor)',
+    'box-shadow:var(--shadow-green)',
     'padding:20px',
   ].join(';')
 
@@ -125,7 +125,7 @@ function buildCard(id: number): HTMLElement {
     ? `<button type="button" data-remove="${id}"
          style="background:transparent;border:2px solid #e8003d;padding:4px 8px;
                 font-family:'Press Start 2P',monospace;font-size:7px;color:#e8003d;cursor:pointer;">
-         ✕ QUITAR
+         <svg width="9" height="9" viewBox="0 0 16 16" style="image-rendering:pixelated;color:#e8003d;flex-shrink:0;vertical-align:middle;"><use href="#ico-x"/></svg> QUITAR
        </button>`
     : ''
 

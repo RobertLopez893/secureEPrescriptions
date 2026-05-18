@@ -139,7 +139,7 @@ const steps=[{label:'LOGIN',href:'/doctor'},{label:'PACIENTE',href:'/doctor/pati
         doctor.pub                    // Quien firmó el documento (siempre el médico)
       );
 
-      clearWindow.value = `// ESTADO DE VERIFICACIÓN (Firma del Doctor): ${resultado.valido ? 'VÁLIDA ✓' : 'INVÁLIDA ❌'}\n\n// CONTENIDO:\n` + JSON.stringify(resultado.contenido, null, 2);
+      clearWindow.value = `// ESTADO DE VERIFICACIÓN (Firma del Doctor): ${resultado.valido ? 'VÁLIDA [OK]' : 'INVÁLIDA [X]'}\n\n// CONTENIDO:\n` + JSON.stringify(resultado.contenido, null, 2);
 
     } catch (e: any) {
       clearWindow.value = `// FALLO CRIPTOGRÁFICO:\n${e.message}\n\nPosibles causas:\n- Alteraste un caracter del texto cifrado (MAC mismatch).\n- Borraste el KeyWrap de este actor.\n- Intentaste descifrar con la llave de alguien más.`;

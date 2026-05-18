@@ -17,7 +17,7 @@ const steps = [
   <!-- Resumen receta -->
   <div style="background:var(--surface-card);border:3px solid var(--role-doctor);box-shadow:4px 4px 0 var(--role-doctor-d);padding:0;overflow:hidden;">
     <div style="background:var(--role-doctor);padding:10px 16px;">
-      <span style="font-family:'Press Start 2P',monospace;font-size:8px;color:#1a1c2c;">📋 RESUMEN DE RECETA</span>
+      <span style="font-family:'Press Start 2P',monospace;font-size:8px;color:#1a1c2c;display:inline-flex;align-items:center;gap:8px;"><svg width="14" height="18" viewBox="0 0 22 28" style="image-rendering:pixelated;color:#1a1c2c;flex-shrink:0;"><use href="#ico-clipboard"/></svg>RESUMEN DE RECETA</span>
     </div>
     <div id="resumen-dinamico" style="padding:20px;">
       <p style="font-family:'VT323',monospace;font-size:18px;color:var(--text-muted);">Cargando datos...</p>
@@ -38,8 +38,8 @@ const steps = [
   </div>
 
   <!-- Errores de backend -->
-  <div id="api-error" style="display:none;background:#2a0d0d;border:3px solid var(--role-pharmacy);padding:14px;">
-    <p style="font-family:'Press Start 2P',monospace;font-size:8px;color:var(--role-pharmacy);margin-bottom:8px;">⛔ ERROR AL EMITIR</p>
+  <div id="api-error" style="display:none;background:rgba(232,0,61,.12);box-shadow:var(--shadow-red);border:3px solid var(--role-pharmacy);padding:14px;">
+    <p style="font-family:'Press Start 2P',monospace;font-size:8px;color:var(--role-pharmacy);margin-bottom:8px;display:flex;align-items:center;gap:8px;"><svg width="14" height="14" viewBox="0 0 16 16" style="image-rendering:pixelated;color:var(--role-pharmacy);flex-shrink:0;"><use href="#ico-x"/></svg>ERROR AL EMITIR</p>
     <p id="api-error-msg" style="font-family:'VT323',monospace;font-size:19px;color:var(--text-muted);line-height:1.5;"></p>
   </div>
 
@@ -47,7 +47,7 @@ const steps = [
   <button type="button" id="sign-btn" onclick="doSign()" disabled
           class="px-btn px-btn-yellow px-btn-lg"
           style="width:100%;justify-content:center;font-size:12px;opacity:.4;cursor:not-allowed;">
-    🔑 FIRMAR Y EMITIR RECETA
+    FIRMAR Y EMITIR RECETA
   </button>
 
   <div style="display:flex;justify-content:center;gap:24px;">
@@ -194,7 +194,7 @@ const steps = [
     const priv = getUserPrivKeyHex('medico', 'sign')
     const btn = document.getElementById('sign-btn') as HTMLButtonElement;
     if (!priv) {
-      btn.textContent = '⛔ SIN LLAVE EN SESIÓN'
+      btn.textContent = 'SIN LLAVE EN SESIÓN'
       btn.style.color = '#e8003d'
       btn.style.borderColor = '#e8003d'
       showApiError('No hay llave derivada en esta sesión. Vuelve a iniciar sesión con tu tarjeta QR.');
@@ -207,12 +207,12 @@ const steps = [
       const pubHex = CryptoEngine.getPublicKey(activePrivKeyHex)
       console.log('Llave de sesión cargada. PubKey:', pubHex)
 
-      btn.textContent = '🔑 FIRMAR Y EMITIR RECETA';
+      btn.textContent = 'FIRMAR Y EMITIR RECETA';
       btn.disabled = false;
       btn.style.opacity = '1';
       btn.style.cursor = 'pointer';
     } catch(e) {
-      btn.textContent = '⛔ ERROR'
+      btn.textContent = 'ERROR'
       btn.style.color = '#e8003d'
       console.error(e)
     }
@@ -235,7 +235,7 @@ const steps = [
     hideApiError()
     const btn = document.getElementById('sign-btn') as HTMLButtonElement
     btn.disabled     = true
-    btn.textContent  = '⏳ FIRMANDO CON @noble/curves...'
+    btn.textContent  = 'FIRMANDO CON @noble/curves...'
     btn.style.opacity = '.7'
     try {
       if (!ID_PACIENTE) {
@@ -261,7 +261,7 @@ const steps = [
         )
       }
       // ── Resolver el farmacéutico jefe en el SERVIDOR (no hardcode) ────
-      btn.textContent = '⏳ RESOLVIENDO FARMACÉUTICO...'
+      btn.textContent = 'RESOLVIENDO FARMACÉUTICO...'
       let jefeId: number
       try {
         jefeId = (await Api.resolverFarmaceuticoJefe()).id_farmaceutico
@@ -286,7 +286,7 @@ const steps = [
       }
 
       // ── 4) Construir cápsula cifrada E2E con CryptoEngine ──────────────
-      btn.textContent = '⏳ CIFRANDO CÁPSULA E2E...'
+      btn.textContent = 'CIFRANDO CÁPSULA E2E...'
       const cifrada = CryptoEngine.emitirRecetaGlobal(
         RECETA.datos as DatosMedicos,
         activePrivKeyHex,   // mismo par para firma y cifrado en este prototipo
@@ -298,7 +298,7 @@ const steps = [
       
 
       // ── 5) Firmar el envelope opaco (autoría verificable por backend) ──
-      btn.textContent = '⏳ FIRMANDO ENVELOPE...'
+      btn.textContent = 'FIRMANDO ENVELOPE...'
       const firma_envelope = firmarEnvelope(
         envelopeMessage({
           id_medico:       ID_MEDICO,
@@ -314,7 +314,7 @@ const steps = [
       )
 
       // ── 6) POST /api/v1/recetas ────────────────────────────────────────
-      btn.textContent = '⏳ ENVIANDO AL BACKEND...'
+      btn.textContent = 'ENVIANDO AL BACKEND...'
       const created = await Api.crearReceta({
         folio:      RECETA.datos.folio,
         id_medico:       ID_MEDICO,
@@ -329,7 +329,7 @@ const steps = [
       })
       console.log('Receta creada en backend:', created)
       sessionStorage.setItem('rxpro_last_receta', JSON.stringify(created))
-      btn.textContent  = '✓ RECETA EMITIDA #' + RECETA.datos.folio
+      btn.textContent  = 'RECETA EMITIDA #' + RECETA.datos.folio
       btn.style.color  = '#38b764'
       btn.style.borderColor = '#38b764'
       btn.style.opacity = '1'
@@ -341,7 +341,7 @@ const steps = [
         : (e?.message || 'Error desconocido al firmar/emitir.')
       showApiError(msg)
       btn.disabled     = false
-      btn.textContent  = '🔑 FIRMAR Y EMITIR RECETA'
+      btn.textContent  = 'FIRMAR Y EMITIR RECETA'
       btn.style.opacity = '1'
       btn.style.cursor  = 'pointer'
       console.error('Emisión fallida:', e)

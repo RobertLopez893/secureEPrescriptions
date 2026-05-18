@@ -74,10 +74,10 @@ import '../../styles/global.css'
 
   <!-- Tabs -->
   <nav id="tabs" style="display:flex;gap:8px;flex-wrap:wrap;">
-    <button class="admin-tab active" data-tab="medico">👨‍⚕️ MÉDICO</button>
-    <button class="admin-tab" data-tab="paciente">🧑‍💼 PACIENTE</button>
-    <button class="admin-tab" data-tab="farmaceutico">💊 FARMACÉUTICO</button>
-    <button class="admin-tab" data-tab="clinica">🏥 CLÍNICA</button>
+    <button class="admin-tab active" data-tab="medico" style="display:inline-flex;align-items:center;gap:8px;"><svg width="14" height="16" viewBox="0 0 24 28" style="image-rendering:pixelated;flex-shrink:0;"><use href="#ico-doctor"/></svg>MÉDICO</button>
+    <button class="admin-tab" data-tab="paciente" style="display:inline-flex;align-items:center;gap:8px;"><svg width="14" height="16" viewBox="0 0 24 28" style="image-rendering:pixelated;flex-shrink:0;"><use href="#ico-patient"/></svg>PACIENTE</button>
+    <button class="admin-tab" data-tab="farmaceutico" style="display:inline-flex;align-items:center;gap:8px;"><svg width="18" height="9" viewBox="0 0 32 16" style="image-rendering:pixelated;flex-shrink:0;"><use href="#ico-pill"/></svg>FARMACÉUTICO</button>
+    <button class="admin-tab" data-tab="clinica">CLÍNICA</button>
   </nav>
 
   <!-- ------------- FORM: MÉDICO ------------- -->
@@ -207,7 +207,7 @@ import '../../styles/global.css'
       <canvas id="card-qr" style="image-rendering:pixelated;"></canvas>
     </div>
     <p style="font-family:'VT323',monospace;font-size:14px;color:#b13e53;text-align:center;line-height:1.4;">
-      ⚠ ESTA TARJETA ES LA ÚNICA COPIA.<br/>
+      <svg width="12" height="12" viewBox="0 0 16 16" style="image-rendering:pixelated;color:#b13e53;vertical-align:middle;"><use href="#ico-x"/></svg> ESTA TARJETA ES LA ÚNICA COPIA.<br/>
       SI SE PIERDE, HAY QUE RE-EMITIRLA.
     </p>
     <div class="card-overlay" style="display:flex;gap:8px;">
@@ -403,10 +403,10 @@ import '../../styles/global.css'
       const identificador = (data[identifierField] || '').toString().toUpperCase()
       const nombre = `${data.nombre} ${data.paterno}${data.materno ? ' ' + data.materno : ''}`.toUpperCase()
       await showCard(rol, nombre, identificador, seedHex)
-      showResult(`✓ ${roleLabelES[rol]} creado (id=${user.id_usuario}, ${identificador}). Tarjeta lista para imprimir.`)
+      showResult(`${roleLabelES[rol]} creado (id=${user.id_usuario}, ${identificador}). Tarjeta lista para imprimir.`)
       form.reset()
     } catch (err) {
-      showResult('✗ ' + errMsg(err), true)
+      showResult(errMsg(err), true)
     } finally {
       btn.disabled = false
       btn.textContent = original
@@ -438,11 +438,11 @@ import '../../styles/global.css'
       // id_clinica no aplica aquí
       delete data.id_clinica
       const c = await Api.crearClinica(data as any)
-      showResult(`✓ Clínica creada (id=${c.id_clinica}, ${c.nombre}).`)
+      showResult(`Clínica creada (id=${c.id_clinica}, ${c.nombre}).`)
       form.reset()
       cargarClinicas()
     } catch (err) {
-      showResult('✗ ' + errMsg(err), true)
+      showResult(errMsg(err), true)
     } finally {
       btn.disabled = false
       btn.textContent = original
