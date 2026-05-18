@@ -9,7 +9,6 @@ export class CryptoContextFactory {
    * NIST SP 800-38D: Vincula el texto cifrado a sus actores principales.
    */
   static buildAAD(folio: string, idMedico: string, idPaciente: string): Uint8Array {
-    console.log("pasa")
     if (!folio || !idMedico || !idPaciente) throw new Error("AAD incompleto");
     return utf8ToBytes(`${folio}|${idMedico}|${idPaciente}`);
   }
@@ -23,7 +22,6 @@ export class CryptoContextFactory {
       throw new Error("Contexto HKDF incompleto: Faltan IDs de destino.");
     }
     const cadena=`${CRYPTO_VERSION.kw}|${folio}|${idReceptor}`;
-    console.log("Cadena: ",cadena)
     return utf8ToBytes(cadena);
   }
 
