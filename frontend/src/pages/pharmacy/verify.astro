@@ -61,30 +61,10 @@ const steps = [
 </div>
 </FlowLayout>
 
-<style is:global>
-  /* Texto "cifrado" mientras se resuelve: brillo verde matriz + parpadeo. */
-  .rx-scramble.rx-cipher {
-    animation: rxCipherFlicker .12s steps(2, end) infinite;
-    letter-spacing: .02em;
-  }
-  @keyframes rxCipherFlicker {
-    0%, 100% { opacity: 1; }
-    50%      { opacity: .72; }
-  }
-  /* Texto ya descifrado: aterriza limpio con una transición suave. */
-  .rx-scramble.rx-clear {
-    animation: rxClearIn .25s ease-out both;
-    transition: color .25s ease, text-shadow .25s ease;
-  }
-  @keyframes rxClearIn {
-    from { filter: brightness(1.6); }
-    to   { filter: brightness(1); }
-  }
-</style>
-
 <script>
   import { requireSession } from '../../utils/sessionGuard.ts'
   import { cargarRecetaValidada, RecetaValidationError } from '../../utils/pharmacyReceta.ts'
+  import { decryptReveal } from '../../utils/scrambleReveal.ts'
 
   requireSession('Farmaceutico', '/pharmacy/login')
 
@@ -169,52 +149,6 @@ const steps = [
     body.innerHTML = html
     // Tras pasar las 3 validaciones cripto, la receta se "descifra" en pantalla.
     decryptReveal(Array.from(body.querySelectorAll<HTMLElement>('.rx-scramble')))
-  }
-
-  /**
-   * Efecto de descifrado: cada campo arranca como ruido verde-matrix y se
-   * resuelve con un barrido izquierda→derecha + parpadeo en el borde.
-   * Los elementos se escalonan de arriba a abajo para que lea como un
-   * barrido descendente por la tarjeta.
-   */
-  function decryptReveal(els: HTMLElement[]) {
-    const NOISE = '01@#%&*/\\<>=+$?¬{}[]·•01'
-    const rnd = () => NOISE[(Math.random() * NOISE.length) | 0]
-    els.forEach((el, idx) => {
-      const finalText = el.textContent ?? ''
-      const cleanColor = el.style.color
-      const len = finalText.length
-      if (!len) return
-      el.classList.add('rx-cipher')
-      el.style.color = 'var(--role-doctor)'
-      el.style.textShadow = '0 0 6px rgba(56,183,100,.85)'
-      el.textContent = Array.from({ length: len }, (_, i) => (finalText[i] === ' ' ? ' ' : rnd())).join('')
-
-      const startDelay = 140 + idx * 130     // escalonado descendente
-      let revealed = 0
-      const speed = Math.max(0.55, len / 26) // chars revelados por tick
-      window.setTimeout(() => {
-        const timer = window.setInterval(() => {
-          revealed += speed
-          const cut = Math.min(len, Math.floor(revealed))
-          let out = finalText.slice(0, cut)
-          for (let i = cut; i < len; i++) out += finalText[i] === ' ' ? ' ' : rnd()
-          // Parpadeo en el carácter del borde que se está resolviendo.
-          if (cut > 0 && cut < len && Math.random() < 0.5) {
-            out = out.slice(0, cut - 1) + rnd() + out.slice(cut)
-          }
-          el.textContent = out
-          if (cut >= len) {
-            window.clearInterval(timer)
-            el.textContent = finalText
-            el.classList.remove('rx-cipher')
-            el.classList.add('rx-clear')
-            el.style.color = cleanColor
-            el.style.textShadow = 'none'
-          }
-        }, 45)
-      }, startDelay)
-    })
   }
 
   init()

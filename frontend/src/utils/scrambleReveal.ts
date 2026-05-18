@@ -1,0 +1,88 @@
+/**
+ * Efecto de "descifrado" scramble/reveal para texto sensible.
+ *
+ * Cada elemento arranca como ruido verde-matrix con parpadeo y se resuelve
+ * con un barrido izquierda→derecha; los elementos se escalonan de arriba a
+ * abajo para que lea como un barrido descendente. Al terminar, el texto
+ * aterriza limpio recuperando su color original.
+ *
+ * El CSS se inyecta una sola vez en <head> para que el util sea
+ * autocontenido y reutilizable desde cualquier página (incl. contenido
+ * inyectado por innerHTML, donde los estilos scoped de Astro no aplican).
+ */
+
+const STYLE_ID = 'rx-scramble-styles'
+const CSS = `
+.rx-scramble.rx-cipher {
+  animation: rxCipherFlicker .12s steps(2, end) infinite;
+  letter-spacing: .02em;
+}
+@keyframes rxCipherFlicker {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: .72; }
+}
+.rx-scramble.rx-clear {
+  animation: rxClearIn .25s ease-out both;
+  transition: color .25s ease, text-shadow .25s ease;
+}
+@keyframes rxClearIn {
+  from { filter: brightness(1.6); }
+  to   { filter: brightness(1); }
+}
+`
+
+function ensureStyles(): void {
+  if (typeof document === 'undefined') return
+  if (document.getElementById(STYLE_ID)) return
+  const tag = document.createElement('style')
+  tag.id = STYLE_ID
+  tag.textContent = CSS
+  document.head.appendChild(tag)
+}
+
+const NOISE = '01@#%&*/\\<>=+$?¬{}[]·•01'
+const rnd = () => NOISE[(Math.random() * NOISE.length) | 0]
+
+/**
+ * Anima los elementos dados (típicamente `.rx-scramble`): el texto actual
+ * de cada elemento se toma como el valor "real" a revelar.
+ */
+export function decryptReveal(els: HTMLElement[]): void {
+  ensureStyles()
+  els.forEach((el, idx) => {
+    const finalText = el.textContent ?? ''
+    const cleanColor = el.style.color
+    const len = finalText.length
+    if (!len) return
+
+    el.classList.add('rx-cipher')
+    el.style.color = 'var(--role-doctor)'
+    el.style.textShadow = '0 0 6px rgba(56,183,100,.85)'
+    el.textContent = Array.from({ length: len }, (_, i) => (finalText[i] === ' ' ? ' ' : rnd())).join('')
+
+    const startDelay = 140 + idx * 130     // escalonado descendente
+    let revealed = 0
+    const speed = Math.max(0.55, len / 26) // chars revelados por tick
+    window.setTimeout(() => {
+      const timer = window.setInterval(() => {
+        revealed += speed
+        const cut = Math.min(len, Math.floor(revealed))
+        let out = finalText.slice(0, cut)
+        for (let i = cut; i < len; i++) out += finalText[i] === ' ' ? ' ' : rnd()
+        // Parpadeo en el carácter del borde que se está resolviendo.
+        if (cut > 0 && cut < len && Math.random() < 0.5) {
+          out = out.slice(0, cut - 1) + rnd() + out.slice(cut)
+        }
+        el.textContent = out
+        if (cut >= len) {
+          window.clearInterval(timer)
+          el.textContent = finalText
+          el.classList.remove('rx-cipher')
+          el.classList.add('rx-clear')
+          el.style.color = cleanColor
+          el.style.textShadow = 'none'
+        }
+      }, 45)
+    }, startDelay)
+  })
+}
