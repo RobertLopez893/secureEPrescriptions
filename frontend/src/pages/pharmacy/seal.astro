@@ -9,11 +9,12 @@ const steps=[{label:'ESCANEAR',href:'/pharmacy'},{label:'VERIFICAR',href:'/pharm
     <p style="font-family:'VT323',monospace;font-size:22px;color:var(--text-muted);">Valida los ítems y aplica el sello digital</p>
   </div>
 
-  <div id="seal-loading" style="background:var(--surface-card);border:3px solid var(--border-default);padding:30px;text-align:center;">
-    <p class="anim-blink" style="font-family:'Press Start 2P',monospace;font-size:9px;color:var(--role-pharmacy);">⏳ CARGANDO DETALLES PARA DISPENSACIÓN...</p>
+  <div id="seal-loading" class="px-card-dark" style="padding:30px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:14px;">
+    <div class="px-spinner" style="border-top-color:var(--role-pharmacy);"></div>
+    <p class="anim-blink" style="font-family:'Press Start 2P',monospace;font-size:9px;color:var(--text-subtle);">CARGANDO DETALLES PARA DISPENSACIÓN...</p>
   </div>
 
-  <div id="med-display" style="display:none; background:#1a0d0d; border:4px solid var(--role-pharmacy); box-shadow:6px 6px 0 var(--role-pharmacy-d); padding:24px;">
+  <div id="med-display" style="display:none; background:var(--surface-card); border:3px solid var(--role-pharmacy); box-shadow:var(--shadow-red); padding:24px;">
     <p style="font-family:'Press Start 2P',monospace;font-size:8px;color:var(--role-pharmacy);margin-bottom:16px;">ÍTEMS A ENTREGAR:</p>
     <div id="med-list-container" style="display:flex; flex-direction:column; gap:12px;">
        </div>
@@ -34,14 +35,16 @@ const steps=[{label:'ESCANEAR',href:'/pharmacy'},{label:'VERIFICAR',href:'/pharm
 <script>
   import { Api, getSession } from '../../utils/api.ts'
   import { CryptoEngine } from '../../crypto/index.ts'
-  import { getUserPrivKeyHex } from '../../utils/userKeys.ts'
+  import { getUserPrivKeyHex, getUserPublicKeyHex } from '../../utils/userKeys.ts'
   import { requireSession } from '../../utils/sessionGuard.ts'
+  import { cargarRecetaValidada, RecetaValidationError } from '../../utils/pharmacyReceta.ts'
 
   requireSession('Farmaceutico', '/pharmacy/login')
 
   let currentContainer: any = null // Contenedor descifrado (RecetaContainer)
   let recetaInfo: any = null
-  let pubKeys: { paciente: string, doctor: string } | null = null
+  // Llaves públicas 'recipes' de los 3 destinatarios para el re-wrap del sello.
+  let pubKeys: { paciente: string, doctor: string, farmaceutico: string } | null = null
 
   async function init() {
     const params = new URLSearchParams(window.location.search)
@@ -49,39 +52,27 @@ const steps=[{label:'ESCANEAR',href:'/pharmacy'},{label:'VERIFICAR',href:'/pharm
     if (!idReceta) return window.location.href = '/pharmacy'
 
     try {
-      const session = getSession()
-      // 1. Obtener llaves privadas del farmacéutico [cite: 21]
-      const privRecipes = getUserPrivKeyHex('farmaceutico', 'recipes')
-      const privSeal    = getUserPrivKeyHex('farmaceutico', 'seal')
+      // Defensa en profundidad: aunque se llegue aquí por URL directa, se
+      // re-ejecutan TODAS las validaciones, incluida la firma del médico.
+      const validada = await cargarRecetaValidada(idReceta)
+      recetaInfo = validada.recetaInfo
+      currentContainer = validada.contenedor
 
-      if (!privRecipes || !privSeal) throw new Error("Llaves de sesión no encontradas")
+      const privSeal = getUserPrivKeyHex('farmaceutico', 'seal')
+      const farmaPub = getUserPublicKeyHex('farmaceutico', 'recipes')
+      if (!privSeal || !farmaPub) throw new RecetaValidationError('SIN_LLAVE', 'Llaves de sello no encontradas en la sesión.')
 
-      // 2. Traer info y payload
-      recetaInfo = await Api.obtenerRecetaInfo(idReceta)
-      const payload = await Api.obtenerRecetaCripto(idReceta)
-
-      // 3. Traer llaves públicas de cifrado (recipes) de los involucrados para el re-wrap [cite: 18, 20]
+      // Llaves públicas 'recipes' de paciente y médico para re-cifrar el sello.
       const [pacPub, docPub] = await Promise.all([
         Api.obtenerLlavePublica(recetaInfo.id_paciente, 'recipes'),
         Api.obtenerLlavePublica(recetaInfo.id_medico, 'recipes')
       ])
-      pubKeys = { paciente: pacPub.llave_publica, doctor: docPub.llave_publica }
+      pubKeys = {
+        paciente: pacPub.llave_publica,
+        doctor: docPub.llave_publica,
+        farmaceutico: farmaPub,
+      }
 
-      // 4. Descifrar el contenedor actual 
-      // Usamos la misma lógica que en verify.astro
-      const decrypted = CryptoEngine.abrirReceta(
-        payload,
-        "farmaceutico",
-        privRecipes,
-        (await Api.obtenerLlavePublica(recetaInfo.id_medico, 'sign')).llave_publica,
-        'DOC-' + recetaInfo.id_medico,
-        'USR-' + recetaInfo.id_paciente,
-        'FAR-' + recetaInfo.id_farmaceutico,
-        recetaInfo.folio
-      )
-      currentContainer = decrypted.contenedor // Guardamos el RecetaContainer original 
-
-      // 5. Renderizar UI
       renderMedication(recetaInfo.medico.nombre_completo)
       setupChecklist()
 
@@ -90,8 +81,9 @@ const steps=[{label:'ESCANEAR',href:'/pharmacy'},{label:'VERIFICAR',href:'/pharm
       document.getElementById('checklist-card')!.style.display = 'block'
 
     } catch (err) {
-      console.error("Error al preparar dispensación:", err)
-      window.location.href = `/pharmacy/verify?id=${idReceta}&error=seal_prep_failed`
+      console.error("Dispensación bloqueada:", err)
+      // Volvemos a verify, que mostrará el motivo exacto del bloqueo.
+      window.location.href = `/pharmacy/verify?id=${idReceta}`
     }
   }
 
@@ -154,13 +146,14 @@ const steps=[{label:'ESCANEAR',href:'/pharmacy'},{label:'VERIFICAR',href:'/pharm
       
       // 1. Ejecutar sellado criptográfico 
       // sellarRecetaGlobal realiza el HMAC, actualiza el contenedor y cifra de nuevo
+      // Firma de sellar(): (Contenedor, keyPrivSello, sealInfo, pacientePub, doctorPub, farmaceuticoPub)
       const resCripto = CryptoEngine.sellar(
-        currentContainer, 
+        currentContainer,
         privSeal,
-        { estado: "surtida",id_clinica: "CLINICA-001", }, // En producción vendría de la sesión
-        recetaInfo.folio,
+        { estado: "surtida", id_clinica: "CLINICA-001" }, // En producción vendría de la sesión
         pubKeys!.paciente,
         pubKeys!.doctor,
+        pubKeys!.farmaceutico,
       )
 
       // 2. Enviar al backend [cite: 20]
@@ -174,7 +167,7 @@ const steps=[{label:'ESCANEAR',href:'/pharmacy'},{label:'VERIFICAR',href:'/pharm
       window.location.href = '/pharmacy/done'
     } catch (err) {
       console.error("Falla al sellar:", err)
-      alert("Error crítico al generar el sello digital.")
+      ;(window as any).showToast?.("Error crítico al generar el sello digital.", "#e8003d")
       btn.disabled = false
       btn.textContent = "APLICAR SELLO Y SURTIR"
     }

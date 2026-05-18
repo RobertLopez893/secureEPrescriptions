@@ -15,40 +15,37 @@ const steps = [
     </p>
   </div>
 
-  <div id="api-error" style="display:none;background:#2a0d0d;border:3px solid var(--role-pharmacy);padding:14px;margin-bottom:20px;">
-    <p style="font-family:'Press Start 2P',monospace;font-size:8px;color:var(--role-pharmacy);margin-bottom:8px;">⛔ ERROR DEL SISTEMA</p>
-    <p id="api-error-msg" style="font-family:'VT323',monospace;font-size:19px;color:var(--text-muted);"></p>
+  <div id="state-loading" class="px-card-dark" style="padding:28px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:14px;">
+    <div class="px-spinner" style="border-top-color:var(--role-pharmacy);"></div>
+    <p style="font-family:'Press Start 2P',monospace;font-size:9px;color:var(--text-subtle);" class="anim-blink">VERIFICANDO FIRMA Y DESCIFRANDO...</p>
+    <p style="font-family:'VT323',monospace;font-size:19px;color:var(--text-muted);">Ejecutando p256.verify() y AES-GCM-256</p>
   </div>
 
-  <div id="state-loading" style="background:var(--surface-card);border:3px solid var(--border-default);padding:28px;text-align:center;">
-    <p style="font-family:'Press Start 2P',monospace;font-size:9px;color:var(--text-subtle);" class="anim-blink">⏳ VERIFICANDO FIRMA Y DESCIFRANDO...</p>
-    <p style="font-family:'VT323',monospace;font-size:19px;color:var(--text-muted);margin-top:8px;">Ejecutando p256.verify() y AES-GCM-256</p>
-  </div>
-
-  <div id="patient-card" style="display:none; background:#0d1a2e; border:3px solid var(--role-patient); box-shadow:4px 4px 0 var(--role-patient-d); padding:16px; margin-bottom:20px;">
+  <div id="patient-card" style="display:none; background:var(--surface-card); border:3px solid var(--role-patient); box-shadow:var(--shadow-blue); padding:16px; margin-bottom:20px;">
     <div style="display:flex; align-items:center; gap:14px;">
-      <span style="font-size:32px;">🧑‍💼</span>
+      <svg width="30" height="35" viewBox="0 0 24 28" style="image-rendering:pixelated;color:var(--role-patient);flex-shrink:0;"><use href="#ico-patient"/></svg>
       <div>
         <p style="font-family:'Press Start 2P',monospace; font-size:9px; color:var(--role-patient);">DATOS DEL PACIENTE</p>
-        <p id="p-name" style="font-family:'VT323',monospace; font-size:22px; color:#f4f4f4; margin-top:4px;">—</p>
+        <p id="p-name" style="font-family:'VT323',monospace; font-size:22px; color:var(--text-primary); margin-top:4px;">—</p>
         <p id="p-curp" style="font-family:'VT323',monospace; font-size:18px; color:var(--text-muted);">CURP: —</p>
       </div>
     </div>
   </div>
 
-  <div id="result-valid" style="display:none; background:#04100a; border:3px solid var(--role-doctor); box-shadow:4px 4px 0 var(--role-doctor-d); padding:14px; align-items:center; gap:12px; margin-bottom:20px;">
-    <svg width="24" height="24" viewBox="0 0 24 24" style="color:var(--role-doctor);"><use href="#ico-shield"/></svg>
-    <p style="font-family:'Press Start 2P',monospace; font-size:8px; color:var(--role-doctor);">FIRMA DIGITAL VÁLIDA · DOCUMENTO AUTÉNTICO</p>
+  <div id="result-valid" style="display:none; background:rgba(56,183,100,.12); border:3px solid var(--role-doctor); box-shadow:var(--shadow-green); padding:14px; align-items:center; gap:12px; margin-bottom:20px;">
+    <svg width="24" height="28" viewBox="0 0 24 28" style="image-rendering:pixelated;color:var(--role-doctor);flex-shrink:0;"><use href="#ico-shield"/></svg>
+    <p style="font-family:'Press Start 2P',monospace; font-size:8px; color:var(--role-doctor); line-height:1.5;">FIRMA DIGITAL VÁLIDA · DOCUMENTO AUTÉNTICO</p>
   </div>
 
-  <div id="result-error" style="display:none; background:#1a0404; border:3px solid var(--role-pharmacy); box-shadow:4px 4px 0 var(--role-pharmacy-d); padding:14px; align-items:center; gap:12px; margin-bottom:20px;">
-    <span style="font-size:24px;">⚠️</span>
-    <p style="font-family:'Press Start 2P',monospace; font-size:8px; color:var(--role-pharmacy);">ERROR: LA FIRMA NO COINCIDE O LOS DATOS FUERON ALTERADOS</p>
+  <div id="result-error" style="display:none; background:rgba(232,0,61,.12); border:3px solid var(--role-pharmacy); box-shadow:var(--shadow-red); padding:14px; align-items:center; gap:12px; margin-bottom:20px;">
+    <svg width="22" height="22" viewBox="0 0 16 16" style="image-rendering:pixelated;color:var(--role-pharmacy);flex-shrink:0;"><use href="#ico-x"/></svg>
+    <p id="result-error-msg" style="font-family:'Press Start 2P',monospace; font-size:8px; color:var(--role-pharmacy); line-height:1.5;">ERROR: LA FIRMA NO COINCIDE O LOS DATOS FUERON ALTERADOS</p>
   </div>
 
-  <div id="prescription-container" style="display:none; background:var(--surface-card); border:3px solid var(--role-pharmacy); box-shadow:4px 4px 0 var(--role-pharmacy-d); padding:0; overflow:hidden;">
-    <div style="background:var(--role-pharmacy); padding:10px 16px;">
-      <span style="font-family:'Press Start 2P',monospace; font-size:8px; color:#f4f4f4;">💊 DETALLE DE PRESCRIPCIÓN</span>
+  <div id="prescription-container" style="display:none; background:var(--surface-card); border:3px solid var(--role-pharmacy); box-shadow:var(--shadow-red); padding:0; overflow:hidden;">
+    <div style="background:var(--role-pharmacy); padding:10px 16px;display:flex;align-items:center;gap:8px;">
+      <svg width="22" height="11" viewBox="0 0 32 16" style="image-rendering:pixelated;"><use href="#ico-pill"/></svg>
+      <span style="font-family:'Press Start 2P',monospace; font-size:8px; color:#f4f4f4;">DETALLE DE PRESCRIPCIÓN</span>
     </div>
     <div id="prescription-body" style="padding:20px;">
         </div>
@@ -65,86 +62,51 @@ const steps = [
 </FlowLayout>
 
 <script>
-  import { Api, getSession, ApiError } from '../../utils/api.ts'
-  import { CryptoEngine } from '../../crypto/index.ts'
   import { requireSession } from '../../utils/sessionGuard.ts'
-  import { getUserPrivKeyHex } from '../../utils/userKeys'
+  import { cargarRecetaValidada, RecetaValidationError } from '../../utils/pharmacyReceta.ts'
 
   requireSession('Farmaceutico', '/pharmacy/login')
 
-  let activePrivKeyHex: string | null = null
-
-  function showApiError(msg: string) {
-    const box = document.getElementById('api-error') as HTMLDivElement
-    const m   = document.getElementById('api-error-msg') as HTMLParagraphElement
-    m.textContent = msg
-    box.style.display = 'block'
+  function bloquear(msg: string, err: unknown) {
+    console.error('Verificación bloqueada:', err)
     document.getElementById('state-loading')!.style.display = 'none'
-  }
-
-  function loadSessionKey() {
-    const priv = getUserPrivKeyHex('farmaceutico', "recipes")
-    if (!priv) {
-      showApiError('No hay llave de cifrado en esta sesión. Vuelve a escanear tu tarjeta.');
-      throw new Error("Missing private key");
-    }
-    activePrivKeyHex = priv;
-    console.log('Llave de sesión cargada correctamente.');
+    // Compuerta dura: nunca se muestra el panel "válido" ni el botón de dispensar.
+    document.getElementById('result-valid')!.style.display = 'none'
+    document.getElementById('action-valid')!.style.display = 'none'
+    document.getElementById('result-error-msg')!.textContent = msg
+    document.getElementById('result-error')!.style.display = 'flex'
+    document.getElementById('action-error')!.style.display = 'flex'
   }
 
   async function init() {
     const params = new URLSearchParams(window.location.search)
     const idReceta = Number(params.get('id'))
-    
+
     if (!idReceta) return window.location.href = '/pharmacy'
-    
+
     try {
-      // 1. Validar y cargar llave del farmacéutico logueado
-      loadSessionKey()
-      if(!activePrivKeyHex) return
+      // Carga + descifrado + TODAS las validaciones (firma del médico incluida).
+      const { recetaInfo, contenedor } = await cargarRecetaValidada(idReceta)
 
-      // 2. Obtener datos y cápsula
-      const info = await Api.obtenerRecetaInfo(idReceta)
-      const payload = await Api.obtenerRecetaCripto(idReceta)
-      
-      // 3. Obtener llave pública de FIRMA del médico
-      const docPub = (await Api.obtenerLlavePublica(info.id_medico, 'firmas')).llave_publica
-    
-      // 4. Descifrar y Verificar (Motor Criptográfico)
-      const contenido = CryptoEngine.abrirReceta(
-        payload,
-        "farmaceutico",
-        activePrivKeyHex,
-        docPub,
-        'DOC-' + info.id_medico,
-        'USR-' + info.id_paciente,
-        'FAR-' + info.id_farmaceutico,
-        info.folio
-      )
-
-      // 5. Renderizar Datos del Paciente
-      document.getElementById('p-name')!.textContent = info.paciente.nombre_completo.toUpperCase()
-      document.getElementById('p-curp')!.textContent = `CURP: ${ 'NO DISPONIBLE'}`
+      document.getElementById('p-name')!.textContent = recetaInfo.paciente.nombre_completo.toUpperCase()
+      document.getElementById('p-curp')!.textContent = `CURP: NO DISPONIBLE`
       document.getElementById('patient-card')!.style.display = 'block'
 
-      // 6. Ocultar loading y mostrar panel de éxito
       document.getElementById('state-loading')!.style.display = 'none'
       document.getElementById('result-valid')!.style.display = 'flex'
       document.getElementById('action-valid')!.style.display = 'flex'
 
-      // 7. Renderizar Prescripción
-      renderPrescription(contenido.contenido.datos, info.medico.nombre_completo)
+      renderPrescription(contenedor.datos, recetaInfo.medico.nombre_completo)
 
-      // 8. Botón para avanzar a dispensar
       document.getElementById('btn-go-seal')?.addEventListener('click', () => {
         window.location.href = `/pharmacy/seal?id=${idReceta}`
       })
 
     } catch (err) {
-      console.error('Falla de verificación:', err)
-      document.getElementById('state-loading')!.style.display = 'none'
-      document.getElementById('result-error')!.style.display = 'flex'
-      document.getElementById('action-error')!.style.display = 'flex'
+      const msg = err instanceof RecetaValidationError
+        ? err.message
+        : 'Error inesperado al verificar la receta.'
+      bloquear(msg, err)
     }
   }
 
