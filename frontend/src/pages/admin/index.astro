@@ -45,9 +45,12 @@ import '../../styles/global.css'
       color:var(--text-subtle);margin-bottom:4px;display:block;
     }
     @media print {
-      body > *:not(#print-card) { display:none !important; }
-      #print-card { position:static !important; background:white !important; }
-      #print-card .card-overlay { display:none !important; }
+      body:not(.printing-constancia) > *:not(#print-card) { display:none !important; }
+      body:not(.printing-constancia) #print-card { position:static !important; background:white !important; }
+      body:not(.printing-constancia) #print-card .card-overlay { display:none !important; }
+      body.printing-constancia > *:not(#constancia-modal) { display:none !important; }
+      body.printing-constancia #constancia-modal { position:static !important; background:white !important; padding:0 !important; }
+      body.printing-constancia #constancia-modal .modal-chrome { display:none !important; }
     }
   </style>
 </head>
@@ -78,6 +81,7 @@ import '../../styles/global.css'
     <button class="admin-tab" data-tab="paciente" style="display:inline-flex;align-items:center;gap:8px;"><svg width="14" height="16" viewBox="0 0 24 28" style="image-rendering:pixelated;flex-shrink:0;"><use href="#ico-patient"/></svg>PACIENTE</button>
     <button class="admin-tab" data-tab="farmaceutico" style="display:inline-flex;align-items:center;gap:8px;"><svg width="18" height="9" viewBox="0 0 32 16" style="image-rendering:pixelated;flex-shrink:0;"><use href="#ico-pill"/></svg>FARMACÉUTICO</button>
     <button class="admin-tab" data-tab="clinica">CLÍNICA</button>
+    <button class="admin-tab" data-tab="auditoria" style="display:inline-flex;align-items:center;gap:8px;"><svg width="14" height="16" viewBox="0 0 20 24" style="image-rendering:pixelated;flex-shrink:0;"><use href="#ico-lock"/></svg>AUDITORÍA</button>
   </nav>
 
   <!-- ------------- FORM: MÉDICO ------------- -->
@@ -185,6 +189,58 @@ import '../../styles/global.css'
     </form>
   </section>
 
+  <!-- ------------- AUDITORÍA / REPORTES ------------- -->
+  <section id="panel-auditoria" class="admin-panel" style="display:none;background:var(--surface-card);border:3px solid var(--border-default);padding:20px;">
+    <h2 style="font-family:'Press Start 2P',monospace;font-size:10px;color:var(--text-primary);margin-bottom:6px;">AUDITORÍA DE RECETAS</h2>
+    <p style="font-family:'VT323',monospace;font-size:17px;color:var(--text-muted);margin-bottom:16px;line-height:1.4;">
+      Bitácora de transacciones. El admin ve los bloques criptográficos públicos (cápsula, nonce, sobres ECDH); el contenido clínico y la firma del médico permanecen cifrados.
+    </p>
+
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px;">
+      <label><span class="admin-label">ESTADO</span>
+        <select id="aud-estado" class="admin-input">
+          <option value="">Todos</option>
+          <option value="activa">Activa</option>
+          <option value="surtida">Surtida</option>
+          <option value="expirada">Expirada</option>
+        </select>
+      </label>
+      <label><span class="admin-label">ID MÉDICO (OPC.)</span><input id="aud-medico" class="admin-input" type="number" min="1" placeholder="—"/></label>
+      <label><span class="admin-label">ID PACIENTE (OPC.)</span><input id="aud-paciente" class="admin-input" type="number" min="1" placeholder="—"/></label>
+      <label><span class="admin-label">FOLIO (OPC.)</span><input id="aud-folio" class="admin-input" placeholder="RX-..."/></label>
+      <label><span class="admin-label">DESDE (EMISIÓN)</span><input id="aud-desde" class="admin-input" type="date"/></label>
+      <label><span class="admin-label">HASTA (EMISIÓN)</span><input id="aud-hasta" class="admin-input" type="date"/></label>
+      <label><span class="admin-label">LÍMITE</span>
+        <select id="aud-limit" class="admin-input">
+          <option value="50">50</option>
+          <option value="100">100</option>
+          <option value="200">200</option>
+        </select>
+      </label>
+      <button id="aud-buscar" class="px-btn px-btn-green" style="grid-column:1/-1;justify-content:center;">BUSCAR / ACTUALIZAR</button>
+    </div>
+
+    <p id="aud-summary" style="font-family:'VT323',monospace;font-size:18px;color:var(--text-muted);margin-bottom:10px;"></p>
+
+    <div style="overflow-x:auto;border:2px solid var(--border-default);">
+      <table style="width:100%;border-collapse:collapse;font-family:'VT323',monospace;font-size:17px;">
+        <thead>
+          <tr style="background:var(--surface-inset);color:var(--text-subtle);text-align:left;">
+            <th style="padding:8px 10px;font-family:'Press Start 2P',monospace;font-size:7px;">FOLIO</th>
+            <th style="padding:8px 10px;font-family:'Press Start 2P',monospace;font-size:7px;">EMISIÓN</th>
+            <th style="padding:8px 10px;font-family:'Press Start 2P',monospace;font-size:7px;">ESTADO</th>
+            <th style="padding:8px 10px;font-family:'Press Start 2P',monospace;font-size:7px;">MÉDICO</th>
+            <th style="padding:8px 10px;font-family:'Press Start 2P',monospace;font-size:7px;">PACIENTE</th>
+            <th style="padding:8px 10px;font-family:'Press Start 2P',monospace;font-size:7px;">CONSTANCIA</th>
+          </tr>
+        </thead>
+        <tbody id="aud-tbody">
+          <tr><td colspan="6" style="padding:14px;color:var(--text-subtle);">Pulsa BUSCAR para cargar la bitácora.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
   <!-- ------------- RESULTADOS ------------- -->
   <div id="result-box" style="display:none;background:var(--surface-card);border:3px solid var(--role-doctor);padding:16px;">
     <p id="result-msg" style="font-family:'VT323',monospace;font-size:20px;color:var(--role-doctor);line-height:1.4;"></p>
@@ -218,8 +274,21 @@ import '../../styles/global.css'
   </div>
 </div>
 
+<!-- ------------- CONSTANCIA (modal auditoría) ------------- -->
+<div id="constancia-modal" style="display:none;position:fixed;inset:0;background:rgba(6,7,16,.85);z-index:9999;overflow-y:auto;padding:24px;">
+  <div style="max-width:768px;margin:0 auto;">
+    <div class="modal-chrome" style="display:flex;gap:8px;margin-bottom:12px;justify-content:flex-end;">
+      <button id="btn-print-constancia" class="px-btn px-btn-green" style="justify-content:center;">IMPRIMIR / PDF</button>
+      <button id="btn-close-constancia" class="px-btn px-btn-ghost" style="justify-content:center;">CERRAR</button>
+    </div>
+    <div id="constancia-body"></div>
+  </div>
+</div>
+
 <script>
   import { Api, ApiError, getSession, clearSession } from '../../utils/api.ts'
+  import { renderConstanciaAdminHTML } from '../../utils/constanciaAdmin.ts'
+  import type { RecetaDetailDTO } from '../../utils/api.ts'
   import type {
     ClinicaPublicDTO, MedicoCreateDTO, PacienteCreateDTO, FarmaceuticoCreateDTO,
   } from '../../utils/api.ts'
@@ -447,6 +516,111 @@ import '../../styles/global.css'
       btn.disabled = false
       btn.textContent = original
     }
+  })
+
+  // ── Auditoría / constancias ──
+  const audTbody = document.getElementById('aud-tbody') as HTMLTableSectionElement
+  const audSummary = document.getElementById('aud-summary') as HTMLParagraphElement
+  const constanciaModal = document.getElementById('constancia-modal') as HTMLDivElement
+  const constanciaBody = document.getElementById('constancia-body') as HTMLDivElement
+
+  function fechaCorta(iso: string): string {
+    const d = new Date(iso)
+    return isNaN(d.getTime()) ? iso : d.toISOString().slice(0, 16).replace('T', ' ')
+  }
+  function estadoTxt(r: RecetaDetailDTO): string {
+    if (r.estado === 'surtida') return 'SURTIDA'
+    if (r.vencida) return 'VENCIDA'
+    return r.estado.toUpperCase()
+  }
+
+  let audCache: RecetaDetailDTO[] = []
+
+  async function buscarAuditoria() {
+    const btn = document.getElementById('aud-buscar') as HTMLButtonElement
+    const original = btn.textContent || ''
+    btn.disabled = true
+    btn.textContent = 'CONSULTANDO...'
+    try {
+      const estado = (document.getElementById('aud-estado') as HTMLSelectElement).value
+      const medico = (document.getElementById('aud-medico') as HTMLInputElement).value
+      const paciente = (document.getElementById('aud-paciente') as HTMLInputElement).value
+      const folio = (document.getElementById('aud-folio') as HTMLInputElement).value.trim()
+      const limit = Number((document.getElementById('aud-limit') as HTMLSelectElement).value)
+      const desde = (document.getElementById('aud-desde') as HTMLInputElement).value
+      const hasta = (document.getElementById('aud-hasta') as HTMLInputElement).value
+
+      const filters: any = { limit }
+      if (estado) filters.estado = estado
+      if (medico) filters.id_medico = Number(medico)
+      if (paciente) filters.id_paciente = Number(paciente)
+      if (folio) filters.folio = folio
+
+      let list = await Api.listarRecetas(filters)
+
+      // El backend no filtra por rango de fechas: se aplica en cliente
+      // sobre la fecha de emisión (creada_en).
+      if (desde) list = list.filter(r => r.creada_en >= desde)
+      if (hasta) list = list.filter(r => r.creada_en <= hasta + 'T23:59:59.999Z')
+
+      audCache = list
+      renderTabla(list)
+    } catch (err) {
+      audTbody.innerHTML = `<tr><td colspan="6" style="padding:14px;color:var(--role-pharmacy);">${errMsg(err)}</td></tr>`
+      audSummary.textContent = ''
+    } finally {
+      btn.disabled = false
+      btn.textContent = original
+    }
+  }
+
+  function renderTabla(list: RecetaDetailDTO[]) {
+    if (!list.length) {
+      audTbody.innerHTML = `<tr><td colspan="6" style="padding:14px;color:var(--text-subtle);">Sin recetas para los filtros dados.</td></tr>`
+      audSummary.textContent = '0 recetas.'
+      return
+    }
+    const surtidas = list.filter(r => r.estado === 'surtida').length
+    const vencidas = list.filter(r => r.vencida).length
+    const activas = list.length - surtidas - vencidas
+    audSummary.textContent = `${list.length} recetas · ${activas} activas · ${surtidas} surtidas · ${vencidas} vencidas.`
+
+    audTbody.innerHTML = list.map(r => `
+      <tr style="border-top:2px solid var(--border-default);">
+        <td style="padding:8px 10px;font-family:'VT323',monospace;color:var(--text-primary);">${r.folio}</td>
+        <td style="padding:8px 10px;color:var(--text-muted);">${fechaCorta(r.creada_en)}</td>
+        <td style="padding:8px 10px;color:var(--text-primary);">${estadoTxt(r)}</td>
+        <td style="padding:8px 10px;color:var(--text-muted);">${r.medico?.nombre_completo ?? '—'}</td>
+        <td style="padding:8px 10px;color:var(--text-muted);">${r.paciente?.nombre_completo ?? '—'}</td>
+        <td style="padding:8px 10px;"><button class="px-btn px-btn-ghost aud-ver" data-id="${r.id_receta}" style="font-size:7px;padding:5px 8px;">VER</button></td>
+      </tr>`).join('')
+
+    audTbody.querySelectorAll<HTMLButtonElement>('.aud-ver').forEach(b => {
+      b.addEventListener('click', () => verConstancia(Number(b.dataset.id)))
+    })
+  }
+
+  async function verConstancia(idReceta: number) {
+    const receta = audCache.find(r => r.id_receta === idReceta)
+    if (!receta) return
+    constanciaBody.innerHTML = `<div style="background:#fff;color:#374151;padding:24px;font-family:system-ui,Arial,sans-serif;font-size:13px;">Generando constancia…</div>`
+    constanciaModal.style.display = 'block'
+    try {
+      const cripto = await Api.obtenerRecetaCripto(idReceta)
+      constanciaBody.innerHTML = renderConstanciaAdminHTML(receta, cripto)
+    } catch (err) {
+      constanciaBody.innerHTML = `<div style="background:#fff;color:#b91c1c;padding:24px;font-family:system-ui,Arial,sans-serif;font-size:13px;">No se pudo cargar el sobre criptográfico: ${errMsg(err)}</div>`
+    }
+  }
+
+  ;(document.getElementById('aud-buscar') as HTMLButtonElement).addEventListener('click', buscarAuditoria)
+  ;(document.getElementById('btn-close-constancia') as HTMLButtonElement).addEventListener('click', () => {
+    constanciaModal.style.display = 'none'
+  })
+  ;(document.getElementById('btn-print-constancia') as HTMLButtonElement).addEventListener('click', () => {
+    document.body.classList.add('printing-constancia')
+    window.print()
+    document.body.classList.remove('printing-constancia')
   })
 </script>
 </body>
