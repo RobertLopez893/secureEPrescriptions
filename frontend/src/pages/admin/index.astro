@@ -28,9 +28,20 @@ import '../../styles/global.css'
     .admin-tab {
       font-family:'Press Start 2P',monospace;font-size:8px;
       padding:10px 14px;border:3px solid var(--border-default);
-      background:transparent;color:var(--text-subtle);cursor:pointer;
+      background:transparent;color:var(--text-muted);cursor:pointer;
       transition:all .05s;letter-spacing:.05em;
     }
+    .rxpro-theme-toggle {
+      display:inline-flex;align-items:center;gap:6px;padding:6px 10px;
+      border:2px solid var(--border-default);background:transparent;color:var(--text-muted);
+      font-family:'Press Start 2P',monospace;font-size:7px;letter-spacing:.08em;cursor:pointer;
+      transition:all .05s;
+    }
+    .rxpro-theme-toggle:hover { border-color:var(--role-doctor);color:var(--role-doctor); }
+    .rxpro-theme-toggle .ico-sun  { display:none; }
+    .rxpro-theme-toggle .ico-moon { display:inline-block; }
+    :root[data-theme="light"] .rxpro-theme-toggle .ico-sun  { display:inline-block; }
+    :root[data-theme="light"] .rxpro-theme-toggle .ico-moon { display:none; }
     .admin-tab.active {
       background:var(--role-doctor);color:#1a1c2c;border-color:var(--role-doctor);
       box-shadow:3px 3px 0 var(--role-doctor-d);
@@ -42,7 +53,7 @@ import '../../styles/global.css'
     }
     .admin-label {
       font-family:'Press Start 2P',monospace;font-size:7px;
-      color:var(--text-subtle);margin-bottom:4px;display:block;
+      color:var(--text-muted);margin-bottom:5px;display:block;letter-spacing:.04em;
     }
     @media print {
       body:not(.printing-constancia) > *:not(#print-card) { display:none !important; }
@@ -69,6 +80,15 @@ import '../../styles/global.css'
   </div>
   <div style="display:flex;align-items:center;gap:10px;">
     <span id="admin-name" style="font-family:'VT323',monospace;font-size:18px;color:var(--text-muted);"></span>
+    <button id="rxpro-theme-toggle" type="button" title="Cambiar tema" class="rxpro-theme-toggle">
+      <svg class="ico-moon" width="11" height="11" viewBox="0 0 14 14" style="image-rendering:pixelated;">
+        <rect x="6" y="0" width="6" height="2" fill="currentColor"/><rect x="3" y="2" width="7" height="2" fill="currentColor"/><rect x="1" y="4" width="7" height="2" fill="currentColor"/><rect x="0" y="6" width="7" height="2" fill="currentColor"/><rect x="1" y="8" width="7" height="2" fill="currentColor"/><rect x="3" y="10" width="7" height="2" fill="currentColor"/><rect x="6" y="12" width="6" height="2" fill="currentColor"/>
+      </svg>
+      <svg class="ico-sun" width="11" height="11" viewBox="0 0 14 14" style="image-rendering:pixelated;">
+        <rect x="6" y="0" width="2" height="3" fill="currentColor"/><rect x="6" y="11" width="2" height="3" fill="currentColor"/><rect x="0" y="6" width="3" height="2" fill="currentColor"/><rect x="11" y="6" width="3" height="2" fill="currentColor"/><rect x="2" y="2" width="2" height="2" fill="currentColor"/><rect x="10" y="2" width="2" height="2" fill="currentColor"/><rect x="2" y="10" width="2" height="2" fill="currentColor"/><rect x="10" y="10" width="2" height="2" fill="currentColor"/><rect x="5" y="4" width="4" height="6" fill="currentColor"/><rect x="4" y="5" width="6" height="4" fill="currentColor"/>
+      </svg>
+      <span id="rxpro-theme-label">MODO</span>
+    </button>
     <button id="logout-btn" class="px-btn px-btn-ghost" style="font-size:7px;padding:6px 10px;">CERRAR SESIÓN</button>
   </div>
 </header>
@@ -323,6 +343,24 @@ import '../../styles/global.css'
     clearSession()
     window.location.replace('/admin/login')
   })
+
+  // ── Theme toggle (claro ⇄ oscuro, persistido) ──
+  try {
+    const toggleBtn = document.getElementById('rxpro-theme-toggle')
+    const toggleLbl = document.getElementById('rxpro-theme-label')
+    const applyLabel = () => {
+      const t = document.documentElement.getAttribute('data-theme') || 'dark'
+      if (toggleLbl) toggleLbl.textContent = t === 'light' ? 'CLARO' : 'OSCURO'
+    }
+    applyLabel()
+    toggleBtn?.addEventListener('click', () => {
+      const cur = document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark'
+      const next = cur === 'light' ? 'dark' : 'light'
+      document.documentElement.setAttribute('data-theme', next)
+      try { localStorage.setItem('rxpro_theme', next) } catch {}
+      applyLabel()
+    })
+  } catch { /* noop */ }
 
   // ── Cargar clínicas en los selects ──
   async function cargarClinicas() {
