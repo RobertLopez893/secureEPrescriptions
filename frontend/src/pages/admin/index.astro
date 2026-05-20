@@ -27,8 +27,8 @@ import Icons from '../../components/Icons.astro'
   </script>
   <style>
     .admin-tab {
-      font-family:'Press Start 2P',monospace;font-size:8px;
-      padding:10px 14px;border:3px solid var(--border-default);
+      font-family:'Press Start 2P',monospace;font-size:10px;
+      padding:12px 18px;border:3px solid var(--border-default);
       background:var(--surface-card);color:var(--text-muted);cursor:pointer;
       transition:all .05s;letter-spacing:.05em;
     }
@@ -49,13 +49,13 @@ import Icons from '../../components/Icons.astro'
       box-shadow:3px 3px 0 var(--role-doctor-d);
     }
     .admin-input {
-      font-family:'VT323',monospace;font-size:18px;padding:8px 10px;
+      font-family:'VT323',monospace;font-size:22px;padding:10px 14px;
       background:var(--surface-inset);border:2px solid var(--border-default);
       color:var(--text-primary);width:100%;
     }
     .admin-label {
-      font-family:'Press Start 2P',monospace;font-size:7px;
-      color:var(--text-muted);margin-bottom:5px;display:block;letter-spacing:.04em;
+      font-family:'Press Start 2P',monospace;font-size:8px;
+      color:var(--text-muted);margin-bottom:6px;display:block;letter-spacing:.04em;
     }
     @media print {
       body:not(.printing-constancia) > *:not(#print-card) { display:none !important; }
@@ -97,7 +97,7 @@ import Icons from '../../components/Icons.astro'
   </div>
 </header>
 
-<main style="max-width:1100px;margin:24px auto;padding:0 20px;display:flex;flex-direction:column;gap:20px;">
+<main style="max-width:1280px;margin:20px auto;padding:0 20px;display:flex;flex-direction:column;gap:18px;">
 
   <!-- Tabs -->
   <nav id="tabs" style="display:flex;gap:8px;flex-wrap:wrap;">
@@ -110,7 +110,7 @@ import Icons from '../../components/Icons.astro'
 
   <!-- ------------- FORM: MÉDICO ------------- -->
   <section id="panel-medico" class="admin-panel" style="background:var(--surface-card);border:3px solid var(--border-default);box-shadow:var(--shadow-base);padding:24px;">
-    <h2 style="font-family:'Press Start 2P',monospace;font-size:10px;color:var(--role-doctor);margin-bottom:12px;">DAR DE ALTA — MÉDICO</h2>
+    <h2 style="font-family:'Press Start 2P',monospace;font-size:13px;color:var(--role-doctor);margin-bottom:16px;">DAR DE ALTA — MÉDICO</h2>
     <form id="form-medico" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;">
       <label><span class="admin-label">NOMBRE</span><input class="admin-input" name="nombre" required/></label>
       <label><span class="admin-label">APELLIDO PATERNO</span><input class="admin-input" name="paterno" required/></label>
@@ -134,7 +134,7 @@ import Icons from '../../components/Icons.astro'
 
   <!-- ------------- FORM: PACIENTE ------------- -->
   <section id="panel-paciente" class="admin-panel" style="display:none;background:var(--surface-card);border:3px solid var(--border-default);box-shadow:var(--shadow-base);padding:24px;">
-    <h2 style="font-family:'Press Start 2P',monospace;font-size:10px;color:var(--role-patient);margin-bottom:12px;">DAR DE ALTA — PACIENTE</h2>
+    <h2 style="font-family:'Press Start 2P',monospace;font-size:13px;color:var(--role-patient);margin-bottom:16px;">DAR DE ALTA — PACIENTE</h2>
     <form id="form-paciente" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;">
       <label><span class="admin-label">NOMBRE</span><input class="admin-input" name="nombre" required/></label>
       <label><span class="admin-label">APELLIDO PATERNO</span><input class="admin-input" name="paterno" required/></label>
@@ -162,7 +162,7 @@ import Icons from '../../components/Icons.astro'
 
   <!-- ------------- FORM: FARMACEUTICO ------------- -->
   <section id="panel-farmaceutico" class="admin-panel" style="display:none;background:var(--surface-card);border:3px solid var(--border-default);box-shadow:var(--shadow-base);padding:24px;">
-    <h2 style="font-family:'Press Start 2P',monospace;font-size:10px;color:var(--role-pharmacy);margin-bottom:12px;">DAR DE ALTA — FARMACÉUTICO</h2>
+    <h2 style="font-family:'Press Start 2P',monospace;font-size:13px;color:var(--role-pharmacy);margin-bottom:16px;">DAR DE ALTA — FARMACÉUTICO</h2>
     <form id="form-farmaceutico" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;">
       <label><span class="admin-label">NOMBRE</span><input class="admin-input" name="nombre" required/></label>
       <label><span class="admin-label">APELLIDO PATERNO</span><input class="admin-input" name="paterno" required/></label>
@@ -191,7 +191,7 @@ import Icons from '../../components/Icons.astro'
 
   <!-- ------------- FORM: CLINICA ------------- -->
   <section id="panel-clinica" class="admin-panel" style="display:none;background:var(--surface-card);border:3px solid var(--border-default);box-shadow:var(--shadow-base);padding:24px;">
-    <h2 style="font-family:'Press Start 2P',monospace;font-size:10px;color:var(--text-primary);margin-bottom:12px;">DAR DE ALTA — CLÍNICA</h2>
+    <h2 style="font-family:'Press Start 2P',monospace;font-size:13px;color:var(--text-primary);margin-bottom:16px;">DAR DE ALTA — CLÍNICA</h2>
     <form id="form-clinica" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;">
       <label><span class="admin-label">NOMBRE</span><input class="admin-input" name="nombre" required/></label>
       <label><span class="admin-label">CLUES</span><input class="admin-input" name="clues" required/></label>
