@@ -526,6 +526,23 @@ export const Api = {
     });
   },
 
+  /**
+   * Registra/rota una llave pública de un usuario para una responsabilidad
+   * concreta. Endpoint admin-only. Lo usa el panel de administración para
+   * dar de alta las dos llaves que cada usuario necesita: `firmas` (login y
+   * firma ECDSA) y `recetas` (cifrado E2E del contenedor).
+   */
+  async registrarLlavePublica(
+    idUsuario: number,
+    llavePublica: string,
+    responsabilidad: string,
+  ): Promise<LlavePublicaDTO> {
+    return request<LlavePublicaDTO>(`/api/v1/usuarios/${idUsuario}/llave`, {
+      method: 'POST',
+      body: JSON.stringify({ llave_publica: llavePublica, responsabilidad }),
+    });
+  },
+
   // ---- Health ----
   async health(): Promise<{ message: string; status: string }> {
     return request('/');

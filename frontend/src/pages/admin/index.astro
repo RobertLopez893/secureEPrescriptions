@@ -761,13 +761,36 @@ import Icons from '../../components/Icons.astro'
     btn.textContent = 'GENERANDO...'
     try {
       const data = formToObject(form)
-      // 1) Generar semilla y derivar llave pública
-      const seedHex = generateCardSeed()
-      const { publicKeyHex } = deriveKeysFromSeed(seedHex,"sign")
-      // 2) Registrar en backend con la pública ya derivada
-      const body = { ...data, llave_publica: publicKeyHex }
+      // 1) Generar semilla y derivar las dos llaves públicas que el backend
+      //    necesita: 'sign' (responsabilidad="firmas" — login + firma ECDSA)
+      //    y 'recipes' (responsabilidad="recetas" — cifrado E2E del
+      //    contenedor). El keypair 'seal' del farmacéutico se mantiene
+      //    local en la tarjeta: el backend no lo consulta y exponerlo daría
+      //    un canal para impersonar dispensaciones.
+      const seedHex   = generateCardSeed()
+      const pubSign   = deriveKeysFromSeed(seedHex, 'sign').publicKeyHex
+      const pubReceta = deriveKeysFromSeed(seedHex, 'recipes').publicKeyHex
+      // 2) Crear el usuario en el backend SIN llave_publica en el cuerpo.
+      //    Si la mandamos aquí, el endpoint la guarda con
+      //    responsabilidad="general" (default de _set_active_key) y queda
+      //    como fila huérfana que no sirve a ningún flujo del sistema.
+      const body = { ...data }
+      delete body.llave_publica
       const user = await createFn(body)
-      // 3) Mostrar tarjeta imprimible con la semilla recién creada
+      // 3) Registrar ambas llaves con su responsabilidad correcta. Si
+      //    cualquiera falla revertimos para no dejar al usuario a medias.
+      try {
+        await Api.registrarLlavePublica(user.id_usuario, pubSign,   'firmas')
+        await Api.registrarLlavePublica(user.id_usuario, pubReceta, 'recetas')
+      } catch (keyErr) {
+        // Sin llaves el usuario es inservible; mejor abortar visiblemente.
+        throw new Error(
+          `Usuario creado (id=${user.id_usuario}) pero falló al registrar sus llaves: ` +
+          (keyErr instanceof Error ? keyErr.message : String(keyErr)) +
+          '. Vuelve a registrarlo o elimínalo manualmente.',
+        )
+      }
+      // 4) Mostrar tarjeta imprimible con la semilla recién creada
       const identificador = (data[identifierField] || '').toString().toUpperCase()
       const nombre = `${data.nombre} ${data.paterno}${data.materno ? ' ' + data.materno : ''}`.toUpperCase()
       await showCard(rol, nombre, identificador, seedHex)
