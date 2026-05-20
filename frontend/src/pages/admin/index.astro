@@ -57,6 +57,41 @@ import Icons from '../../components/Icons.astro'
       font-family:'Press Start 2P',monospace;font-size:7px;
       color:var(--text-muted);margin-bottom:5px;display:block;letter-spacing:.04em;
     }
+    /* Hacker animation para la demo de manipulación */
+    #hacker.attack {
+      animation: hackerEnter .35s steps(6) forwards;
+    }
+    #hacker.defeated {
+      animation: hackerLeave .4s steps(6) forwards;
+    }
+    @keyframes hackerEnter {
+      0%   { transform: translate(120px, 160px) rotate(0deg); }
+      100% { transform: translate(0, 0) rotate(-6deg); }
+    }
+    @keyframes hackerLeave {
+      0%   { transform: translate(0, 0) rotate(-6deg); opacity:1; }
+      100% { transform: translate(180px, 60px) rotate(40deg); opacity:0; }
+    }
+    #hacker.attack .hacker-eye {
+      animation: eyeBlink .35s steps(2) infinite;
+    }
+    @keyframes eyeBlink { 0%, 100% { fill:#e8003d } 50% { fill:#ffcd75 } }
+    #hacker.attack #hacker-bubble {
+      display: block !important;
+      animation: bubbleShake .25s steps(2) infinite;
+    }
+    @keyframes bubbleShake {
+      0%, 100% { transform: translateX(0) rotate(-2deg); }
+      50%      { transform: translateX(-3px) rotate(2deg); }
+    }
+    /* Verdict pulse */
+    .verdict-ok   { border-color:var(--role-doctor) !important;   background:rgba(56,183,100,.12) !important;  color:var(--role-doctor) !important; }
+    .verdict-fail { border-color:var(--role-pharmacy) !important; background:rgba(232,0,61,.15) !important;  color:var(--role-pharmacy) !important;
+                    animation: verdictShake .12s steps(2) 4; }
+    @keyframes verdictShake {
+      0%, 100% { transform: translateX(0); }
+      50%      { transform: translateX(-4px); }
+    }
     @media print {
       body:not(.printing-constancia) > *:not(#print-card) { display:none !important; }
       body:not(.printing-constancia) #print-card { position:static !important; background:white !important; }
@@ -83,6 +118,7 @@ import Icons from '../../components/Icons.astro'
     <span style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--role-doctor);padding:4px 8px;border:2px solid var(--role-doctor);margin-left:8px;">ADMIN</span>
   </div>
   <div style="display:flex;align-items:center;gap:10px;">
+    <a href="/" class="px-btn px-btn-ghost" style="font-size:7px;padding:6px 10px;text-decoration:none;display:inline-flex;align-items:center;gap:6px;">◄ INICIO</a>
     <span id="admin-name" style="font-family:'VT323',monospace;font-size:18px;color:var(--text-muted);"></span>
     <button id="rxpro-theme-toggle" type="button" title="Cambiar tema" class="rxpro-theme-toggle">
       <svg class="ico-moon" width="11" height="11" viewBox="0 0 14 14" style="image-rendering:pixelated;">
@@ -268,7 +304,113 @@ import Icons from '../../components/Icons.astro'
 
   <!-- ------------- INVÁLIDAS (generador de QR de prueba) ------------- -->
   <section id="panel-invalidas" class="admin-panel" style="display:none;background:var(--surface-card);border:3px solid var(--border-default);box-shadow:var(--shadow-base);padding:24px;">
-    <h2 style="font-family:'Press Start 2P',monospace;font-size:13px;color:var(--role-pharmacy);margin-bottom:8px;">GENERAR RECETAS INVÁLIDAS (DEMO)</h2>
+
+    <!-- =========================================================== -->
+    <!-- DEMO REAL DE MANIPULACIÓN (criptografía ECDSA en vivo)     -->
+    <!-- =========================================================== -->
+    <h2 style="font-family:'Press Start 2P',monospace;font-size:13px;color:var(--role-doctor);margin-bottom:8px;">DEMO EN VIVO — ¿POR QUÉ NO SE PUEDE MANIPULAR UNA RECETA?</h2>
+    <p style="font-family:'VT323',monospace;font-size:18px;color:var(--text-muted);line-height:1.4;margin-bottom:18px;">
+      Esto es <b>criptografía real</b>: se firma la receta con ECDSA P-256, y al cambiar <b>un solo carácter</b> la firma deja de coincidir. No hay simulación: <code style="background:var(--surface-inset);padding:1px 6px;">p256.verify()</code> se ejecuta cada vez que tecleas.
+    </p>
+
+    <div id="demo-attack-wrap" style="position:relative;display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px;overflow:hidden;">
+
+      <!-- Columna izquierda: receta editable -->
+      <div style="background:var(--surface-inset);border:3px solid var(--role-doctor);padding:14px;display:flex;flex-direction:column;gap:10px;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <svg width="18" height="9" viewBox="0 0 32 16" style="image-rendering:pixelated;color:var(--role-doctor);"><use href="#ico-pill"/></svg>
+          <span style="font-family:'Press Start 2P',monospace;font-size:9px;color:var(--role-doctor);">RECETA ORIGINAL · FIRMADA</span>
+        </div>
+
+        <label style="display:flex;flex-direction:column;gap:4px;">
+          <span class="admin-label">MEDICAMENTO</span>
+          <input id="demo-med" class="admin-input" value="Amoxicilina"/>
+        </label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <label style="display:flex;flex-direction:column;gap:4px;">
+            <span class="admin-label">DOSIS</span>
+            <input id="demo-dosis" class="admin-input" value="500 mg"/>
+          </label>
+          <label style="display:flex;flex-direction:column;gap:4px;">
+            <span class="admin-label">CANTIDAD</span>
+            <input id="demo-cant" class="admin-input" type="number" value="21"/>
+          </label>
+        </div>
+        <label style="display:flex;flex-direction:column;gap:4px;">
+          <span class="admin-label">PACIENTE</span>
+          <input id="demo-pac" class="admin-input" value="García Mendoza, Luis"/>
+        </label>
+
+        <div style="display:flex;gap:8px;margin-top:6px;">
+          <button type="button" id="demo-sign" class="px-btn px-btn-green" style="flex:1;justify-content:center;">FIRMAR (ECDSA)</button>
+          <button type="button" id="demo-restore" class="px-btn px-btn-ghost" style="flex:1;justify-content:center;" disabled>RESTAURAR</button>
+        </div>
+      </div>
+
+      <!-- Columna derecha: verificación + hacker -->
+      <div style="background:var(--surface-inset);border:3px solid var(--border-default);padding:14px;display:flex;flex-direction:column;gap:10px;position:relative;overflow:hidden;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <svg width="14" height="16" viewBox="0 0 20 24" style="image-rendering:pixelated;color:var(--text-muted);"><use href="#ico-lock"/></svg>
+          <span style="font-family:'Press Start 2P',monospace;font-size:9px;color:var(--text-muted);">VERIFICACIÓN DE FIRMA</span>
+        </div>
+
+        <div>
+          <p class="admin-label" style="margin-bottom:3px;">HASH SHA3-256 (CONTENIDO)</p>
+          <p id="demo-hash" style="font-family:'VT323',monospace;font-size:14px;color:var(--text-primary);word-break:break-all;background:var(--surface-page);border:2px solid var(--border-default);padding:6px 8px;line-height:1.3;min-height:38px;">—</p>
+        </div>
+        <div>
+          <p class="admin-label" style="margin-bottom:3px;">FIRMA ECDSA P-256</p>
+          <p id="demo-sig" style="font-family:'VT323',monospace;font-size:14px;color:var(--text-primary);word-break:break-all;background:var(--surface-page);border:2px solid var(--border-default);padding:6px 8px;line-height:1.3;min-height:38px;">—</p>
+        </div>
+
+        <!-- Verdict gigante -->
+        <div id="demo-verdict" style="margin-top:auto;padding:10px;border:3px solid var(--border-default);background:var(--surface-page);text-align:center;">
+          <p style="font-family:'Press Start 2P',monospace;font-size:8px;color:var(--text-muted);">FIRMA NUNCA GENERADA</p>
+        </div>
+
+        <!-- Personaje hacker pixel-art -->
+        <div id="hacker" style="position:absolute;bottom:-160px;right:-120px;width:140px;height:140px;pointer-events:none;transition:none;">
+          <svg viewBox="0 0 32 32" width="140" height="140" style="image-rendering:pixelated;">
+            <!-- capucha -->
+            <rect x="6" y="2" width="20" height="3" fill="#1a1c2c"/>
+            <rect x="4" y="5" width="24" height="3" fill="#1a1c2c"/>
+            <rect x="3" y="8" width="26" height="11" fill="#1a1c2c"/>
+            <rect x="2" y="11" width="2" height="6" fill="#1a1c2c"/>
+            <rect x="28" y="11" width="2" height="6" fill="#1a1c2c"/>
+            <!-- cara -->
+            <rect x="8" y="10" width="16" height="7" fill="#94c5ac"/>
+            <!-- ojos rojos malvados -->
+            <rect class="hacker-eye" x="11" y="12" width="3" height="2" fill="#e8003d"/>
+            <rect class="hacker-eye" x="18" y="12" width="3" height="2" fill="#e8003d"/>
+            <!-- sonrisa malvada -->
+            <rect x="13" y="15" width="6" height="1" fill="#1a1c2c"/>
+            <rect x="12" y="14" width="1" height="1" fill="#1a1c2c"/>
+            <rect x="19" y="14" width="1" height="1" fill="#1a1c2c"/>
+            <!-- cuerpo / sudadera -->
+            <rect x="6" y="19" width="20" height="9" fill="#0f0f1e"/>
+            <rect x="6" y="20" width="20" height="1" fill="#1a1c2c"/>
+            <!-- laptop -->
+            <rect x="9" y="24" width="14" height="4" fill="#41a6f6"/>
+            <rect x="9" y="24" width="14" height="1" fill="#1a1c2c"/>
+            <rect x="11" y="25" width="2" height="2" fill="#38b764"/>
+            <rect x="14" y="25" width="2" height="2" fill="#e8003d"/>
+            <rect x="17" y="25" width="2" height="2" fill="#ffcd75"/>
+            <!-- manos -->
+            <rect x="7" y="22" width="2" height="2" fill="#94c5ac"/>
+            <rect x="23" y="22" width="2" height="2" fill="#94c5ac"/>
+          </svg>
+          <!-- Burbuja "JA JA JA" -->
+          <div id="hacker-bubble" style="position:absolute;top:-8px;left:-78px;background:#fff;border:3px solid #1a1c2c;padding:6px 10px;font-family:'Press Start 2P',monospace;font-size:9px;color:#e8003d;display:none;white-space:nowrap;">JA JA JA</div>
+        </div>
+      </div>
+    </div>
+
+    <hr style="border:none;border-top:2px dashed var(--border-default);margin:24px 0;"/>
+
+    <!-- =========================================================== -->
+    <!-- Generador de QR (errores simulados, simples)                -->
+    <!-- =========================================================== -->
+    <h2 style="font-family:'Press Start 2P',monospace;font-size:13px;color:var(--role-pharmacy);margin-bottom:8px;">GENERAR QR DE RECETAS INVÁLIDAS</h2>
     <p style="font-family:'VT323',monospace;font-size:18px;color:var(--text-muted);line-height:1.4;margin-bottom:18px;">
       Genera un código QR que, al ser escaneado por un farmacéutico, simula una receta rechazada. No toca la base de datos: el panel de verificación reconoce el flag <code style="background:var(--surface-inset);padding:1px 6px;">demo_invalid</code> y muestra el error correspondiente.
     </p>
@@ -751,6 +893,107 @@ import Icons from '../../components/Icons.astro'
   ;(document.getElementById('inv-print') as HTMLButtonElement | null)?.addEventListener('click', () => {
     window.print()
   })
+
+  // ── Demo de manipulación en vivo (criptografía real ECDSA P-256) ──────
+  // El admin teclea sobre la receta firmada y la verificación corre en
+  // tiempo real con @noble/curves. Al cambiar un solo byte la firma falla.
+  ;(async function setupAttackDemo() {
+    const { p256 } = await import('@noble/curves/nist.js')
+    const { sha3_256 } = await import('@noble/hashes/sha3.js')
+    const { utf8ToBytes, bytesToHex, hexToBytes, randomBytes } = await import('@noble/hashes/utils.js')
+
+    const medEl     = document.getElementById('demo-med')     as HTMLInputElement
+    const dosisEl   = document.getElementById('demo-dosis')   as HTMLInputElement
+    const cantEl    = document.getElementById('demo-cant')    as HTMLInputElement
+    const pacEl     = document.getElementById('demo-pac')     as HTMLInputElement
+    const signBtn   = document.getElementById('demo-sign')    as HTMLButtonElement
+    const restBtn   = document.getElementById('demo-restore') as HTMLButtonElement
+    const hashEl    = document.getElementById('demo-hash')    as HTMLParagraphElement
+    const sigEl     = document.getElementById('demo-sig')     as HTMLParagraphElement
+    const verdict   = document.getElementById('demo-verdict') as HTMLDivElement
+    const hacker    = document.getElementById('hacker')       as HTMLDivElement
+
+    if (!medEl) return // panel aún no en DOM
+
+    type Snapshot = { med: string; dosis: string; cant: string; pac: string }
+    let signedSnap: Snapshot | null = null
+    let signedPub  = ''
+    let signedSig  = ''
+
+    function read(): Snapshot {
+      return { med: medEl.value, dosis: dosisEl.value, cant: cantEl.value, pac: pacEl.value }
+    }
+    function canonical(s: Snapshot): string {
+      // JSON canónico: campos ordenados alfabéticamente
+      return JSON.stringify({ cantidad: s.cant, dosis: s.dosis, medicamento: s.med, paciente: s.pac })
+    }
+    function computeHash(s: Snapshot): string {
+      return bytesToHex(sha3_256(utf8ToBytes(canonical(s))))
+    }
+    function short(hex: string, head = 24, tail = 12): string {
+      if (hex.length <= head + tail + 3) return hex
+      return hex.slice(0, head) + '...' + hex.slice(-tail)
+    }
+    function setVerdict(state: 'idle' | 'ok' | 'fail', msg: string) {
+      verdict.classList.remove('verdict-ok','verdict-fail')
+      if (state === 'ok')   verdict.classList.add('verdict-ok')
+      if (state === 'fail') verdict.classList.add('verdict-fail')
+      verdict.innerHTML = `<p style="font-family:'Press Start 2P',monospace;font-size:9px;line-height:1.7;">${msg}</p>`
+    }
+    function showHacker(on: boolean) {
+      hacker.classList.remove('attack','defeated')
+      // Forzar reflow para reiniciar la animación
+      void hacker.offsetWidth
+      hacker.classList.add(on ? 'attack' : 'defeated')
+    }
+
+    function recheck() {
+      if (!signedSnap) {
+        setVerdict('idle', 'AÚN NO HAY FIRMA · PULSA "FIRMAR"')
+        return
+      }
+      const cur = read()
+      hashEl.textContent = short(computeHash(cur))
+      const ok = p256.verify(hexToBytes(signedSig), sha3_256(utf8ToBytes(canonical(cur))), hexToBytes(signedPub))
+      if (ok) {
+        setVerdict('ok', '✓ FIRMA VÁLIDA · CONTENIDO AUTÉNTICO')
+        hacker.classList.remove('attack')
+        hacker.classList.add('defeated')
+      } else {
+        setVerdict('fail', '✗ FIRMA INVÁLIDA · LA RECETA FUE MANIPULADA')
+        showHacker(true)
+      }
+    }
+
+    signBtn.addEventListener('click', () => {
+      const snap = read()
+      const priv = randomBytes(32)
+      const pub  = p256.getPublicKey(priv, false)
+      const hash = sha3_256(utf8ToBytes(canonical(snap)))
+      const sig  = p256.sign(hash, priv)
+      signedSnap = snap
+      signedPub  = bytesToHex(pub)
+      signedSig  = bytesToHex(sig)
+      hashEl.textContent = short(bytesToHex(hash))
+      sigEl.textContent  = short(signedSig)
+      restBtn.disabled = false
+      setVerdict('ok', '✓ RECETA FIRMADA · MODIFICA ALGÚN CAMPO PARA VER QUÉ PASA')
+      hacker.classList.remove('attack')
+    })
+
+    restBtn.addEventListener('click', () => {
+      if (!signedSnap) return
+      medEl.value   = signedSnap.med
+      dosisEl.value = signedSnap.dosis
+      cantEl.value  = signedSnap.cant
+      pacEl.value   = signedSnap.pac
+      recheck()
+    })
+
+    ;[medEl, dosisEl, cantEl, pacEl].forEach(el => {
+      el.addEventListener('input', recheck)
+    })
+  })()
 </script>
 </body>
 </html>
