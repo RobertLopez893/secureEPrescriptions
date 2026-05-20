@@ -6,6 +6,7 @@
 // backend junto con el registro. La semilla solo se muestra UNA vez en
 // forma de tarjeta QR para imprimir o descargar — no se guarda en BD.
 import '../../styles/global.css'
+import Icons from '../../components/Icons.astro'
 ---
 <!DOCTYPE html>
 <html lang="es">
@@ -28,9 +29,10 @@ import '../../styles/global.css'
     .admin-tab {
       font-family:'Press Start 2P',monospace;font-size:8px;
       padding:10px 14px;border:3px solid var(--border-default);
-      background:transparent;color:var(--text-muted);cursor:pointer;
+      background:var(--surface-card);color:var(--text-muted);cursor:pointer;
       transition:all .05s;letter-spacing:.05em;
     }
+    .admin-tab:hover { border-color:var(--role-doctor);color:var(--text-primary); }
     .rxpro-theme-toggle {
       display:inline-flex;align-items:center;gap:6px;padding:6px 10px;
       border:2px solid var(--border-default);background:transparent;color:var(--text-muted);
@@ -65,10 +67,12 @@ import '../../styles/global.css'
     }
   </style>
 </head>
-<body style="min-height:100vh;background:var(--surface-base);color:var(--text-primary);padding:0;">
+<body style="min-height:100vh;background:var(--surface-page);color:var(--text-primary);padding:0;">
+
+<Icons/>
 
 <!-- TOPBAR -->
-<header class="topbar" style="padding:14px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid var(--border-default);">
+<header class="topbar" style="padding:14px 20px;display:flex;align-items:center;justify-content:space-between;background:var(--surface-topbar);border-bottom:4px solid var(--surface-topbar-border);position:sticky;top:0;z-index:50;">
   <div style="display:flex;align-items:center;gap:12px;">
     <svg width="28" height="14" viewBox="0 0 32 16" style="image-rendering:pixelated;">
       <rect x="1" y="3" width="14" height="10" rx="5" fill="#e8003d"/>
@@ -105,9 +109,9 @@ import '../../styles/global.css'
   </nav>
 
   <!-- ------------- FORM: MÉDICO ------------- -->
-  <section id="panel-medico" class="admin-panel" style="background:var(--surface-card);border:3px solid var(--border-default);padding:20px;">
+  <section id="panel-medico" class="admin-panel" style="background:var(--surface-card);border:3px solid var(--border-default);box-shadow:var(--shadow-base);padding:24px;">
     <h2 style="font-family:'Press Start 2P',monospace;font-size:10px;color:var(--role-doctor);margin-bottom:12px;">DAR DE ALTA — MÉDICO</h2>
-    <form id="form-medico" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+    <form id="form-medico" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;">
       <label><span class="admin-label">NOMBRE</span><input class="admin-input" name="nombre" required/></label>
       <label><span class="admin-label">APELLIDO PATERNO</span><input class="admin-input" name="paterno" required/></label>
       <label><span class="admin-label">APELLIDO MATERNO</span><input class="admin-input" name="materno"/></label>
@@ -129,9 +133,9 @@ import '../../styles/global.css'
   </section>
 
   <!-- ------------- FORM: PACIENTE ------------- -->
-  <section id="panel-paciente" class="admin-panel" style="display:none;background:var(--surface-card);border:3px solid var(--border-default);padding:20px;">
+  <section id="panel-paciente" class="admin-panel" style="display:none;background:var(--surface-card);border:3px solid var(--border-default);box-shadow:var(--shadow-base);padding:24px;">
     <h2 style="font-family:'Press Start 2P',monospace;font-size:10px;color:var(--role-patient);margin-bottom:12px;">DAR DE ALTA — PACIENTE</h2>
-    <form id="form-paciente" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+    <form id="form-paciente" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;">
       <label><span class="admin-label">NOMBRE</span><input class="admin-input" name="nombre" required/></label>
       <label><span class="admin-label">APELLIDO PATERNO</span><input class="admin-input" name="paterno" required/></label>
       <label><span class="admin-label">APELLIDO MATERNO</span><input class="admin-input" name="materno"/></label>
@@ -157,9 +161,9 @@ import '../../styles/global.css'
   </section>
 
   <!-- ------------- FORM: FARMACEUTICO ------------- -->
-  <section id="panel-farmaceutico" class="admin-panel" style="display:none;background:var(--surface-card);border:3px solid var(--border-default);padding:20px;">
+  <section id="panel-farmaceutico" class="admin-panel" style="display:none;background:var(--surface-card);border:3px solid var(--border-default);box-shadow:var(--shadow-base);padding:24px;">
     <h2 style="font-family:'Press Start 2P',monospace;font-size:10px;color:var(--role-pharmacy);margin-bottom:12px;">DAR DE ALTA — FARMACÉUTICO</h2>
-    <form id="form-farmaceutico" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+    <form id="form-farmaceutico" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;">
       <label><span class="admin-label">NOMBRE</span><input class="admin-input" name="nombre" required/></label>
       <label><span class="admin-label">APELLIDO PATERNO</span><input class="admin-input" name="paterno" required/></label>
       <label><span class="admin-label">APELLIDO MATERNO</span><input class="admin-input" name="materno"/></label>
@@ -186,9 +190,9 @@ import '../../styles/global.css'
   </section>
 
   <!-- ------------- FORM: CLINICA ------------- -->
-  <section id="panel-clinica" class="admin-panel" style="display:none;background:var(--surface-card);border:3px solid var(--border-default);padding:20px;">
+  <section id="panel-clinica" class="admin-panel" style="display:none;background:var(--surface-card);border:3px solid var(--border-default);box-shadow:var(--shadow-base);padding:24px;">
     <h2 style="font-family:'Press Start 2P',monospace;font-size:10px;color:var(--text-primary);margin-bottom:12px;">DAR DE ALTA — CLÍNICA</h2>
-    <form id="form-clinica" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+    <form id="form-clinica" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;">
       <label><span class="admin-label">NOMBRE</span><input class="admin-input" name="nombre" required/></label>
       <label><span class="admin-label">CLUES</span><input class="admin-input" name="clues" required/></label>
       <label><span class="admin-label">CALLE</span><input class="admin-input" name="calle" required/></label>
@@ -210,13 +214,13 @@ import '../../styles/global.css'
   </section>
 
   <!-- ------------- AUDITORÍA / REPORTES ------------- -->
-  <section id="panel-auditoria" class="admin-panel" style="display:none;background:var(--surface-card);border:3px solid var(--border-default);padding:20px;">
+  <section id="panel-auditoria" class="admin-panel" style="display:none;background:var(--surface-card);border:3px solid var(--border-default);box-shadow:var(--shadow-base);padding:24px;">
     <h2 style="font-family:'Press Start 2P',monospace;font-size:10px;color:var(--text-primary);margin-bottom:6px;">AUDITORÍA DE RECETAS</h2>
     <p style="font-family:'VT323',monospace;font-size:17px;color:var(--text-muted);margin-bottom:16px;line-height:1.4;">
       Bitácora de transacciones. El admin ve los bloques criptográficos públicos (cápsula, nonce, sobres ECDH); el contenido clínico y la firma del médico permanecen cifrados.
     </p>
 
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px;">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:14px;">
       <label><span class="admin-label">ESTADO</span>
         <select id="aud-estado" class="admin-input">
           <option value="">Todos</option>
@@ -245,7 +249,7 @@ import '../../styles/global.css'
     <div style="overflow-x:auto;border:2px solid var(--border-default);">
       <table style="width:100%;border-collapse:collapse;font-family:'VT323',monospace;font-size:17px;">
         <thead>
-          <tr style="background:var(--surface-inset);color:var(--text-subtle);text-align:left;">
+          <tr style="background:var(--surface-stepbar);color:var(--text-muted);text-align:left;">
             <th style="padding:8px 10px;font-family:'Press Start 2P',monospace;font-size:7px;">FOLIO</th>
             <th style="padding:8px 10px;font-family:'Press Start 2P',monospace;font-size:7px;">EMISIÓN</th>
             <th style="padding:8px 10px;font-family:'Press Start 2P',monospace;font-size:7px;">ESTADO</th>
