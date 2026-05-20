@@ -129,7 +129,7 @@
     background: var(--surface-page);
     color: var(--text-primary);
     font-family: 'VT323', monospace;
-    font-size: 20px;
+    font-size: 22px;
     min-height: 100vh;
     /* Pixel grid texture */
     background-image:
@@ -141,7 +141,7 @@
   ::-webkit-scrollbar-track { background: var(--surface-page); }
   ::-webkit-scrollbar-thumb { background: var(--border-default); border: 2px solid var(--surface-page); }
   ::-webkit-scrollbar-thumb:hover { background: var(--role-patient); }
-  input, select, textarea { outline: none; font-family: 'VT323', monospace; font-size: 20px; }
+  input, select, textarea { outline: none; font-family: 'VT323', monospace; font-size: 22px; }
 }
 
 @layer components {

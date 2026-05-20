@@ -27,7 +27,7 @@ import Icons from '../../components/Icons.astro'
 <body style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;background:var(--surface-page);color:var(--text-primary);">
 <Icons/>
 
-  <div style="width:100%;max-width:440px;">
+  <div style="width:100%;max-width:520px;">
     <div style="text-align:center;margin-bottom:28px;">
       <div style="display:inline-flex;gap:8px;margin-bottom:14px;">
         <svg width="28" height="14" viewBox="0 0 32 16" style="image-rendering:pixelated;">
@@ -37,7 +37,7 @@ import Icons from '../../components/Icons.astro'
         </svg>
         <span style="font-family:'Press Start 2P',monospace;font-size:12px;color:var(--text-primary);letter-spacing:.1em;">RXPRO</span>
       </div>
-      <h1 style="font-family:'Press Start 2P',monospace;font-size:11px;color:var(--role-doctor);line-height:1.7;">
+      <h1 style="font-family:'Press Start 2P',monospace;font-size:14px;color:var(--role-doctor);line-height:1.7;">
         PANEL DE ADMINISTRACIÓN
       </h1>
       <p style="font-family:'VT323',monospace;font-size:20px;color:var(--text-muted);margin-top:6px;">
@@ -50,13 +50,13 @@ import Icons from '../../components/Icons.astro'
         <span style="font-family:'Press Start 2P',monospace;font-size:8px;color:var(--text-muted);">CORREO</span>
         <input type="email" id="correo" required autocomplete="username"
                placeholder="admin@rxpro.demo"
-               style="font-family:'VT323',monospace;font-size:20px;padding:10px 12px;background:var(--surface-inset);border:2px solid var(--border-default);color:var(--text-primary);"/>
+               style="font-family:'VT323',monospace;font-size:22px;padding:12px 14px;background:var(--surface-inset);border:2px solid var(--border-default);color:var(--text-primary);"/>
       </label>
       <label style="display:flex;flex-direction:column;gap:6px;">
         <span style="font-family:'Press Start 2P',monospace;font-size:8px;color:var(--text-muted);">CONTRASEÑA</span>
         <input type="password" id="contrasena" required autocomplete="current-password"
                placeholder="••••••••"
-               style="font-family:'VT323',monospace;font-size:20px;padding:10px 12px;background:var(--surface-inset);border:2px solid var(--border-default);color:var(--text-primary);"/>
+               style="font-family:'VT323',monospace;font-size:22px;padding:12px 14px;background:var(--surface-inset);border:2px solid var(--border-default);color:var(--text-primary);"/>
       </label>
       <p id="login-err" style="display:none;font-family:'VT323',monospace;font-size:18px;color:var(--role-pharmacy);"></p>
       <button id="login-btn" type="submit" class="px-btn px-btn-green px-btn-lg" style="margin-top:6px;justify-content:center;">
