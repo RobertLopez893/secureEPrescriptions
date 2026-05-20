@@ -14,7 +14,7 @@
 const STYLE_ID = 'rx-scramble-styles'
 const CSS = `
 .rx-scramble.rx-cipher {
-  animation: rxCipherFlicker .12s steps(2, end) infinite;
+  animation: rxCipherFlicker .28s steps(2, end) infinite;
   letter-spacing: .02em;
 }
 @keyframes rxCipherFlicker {
@@ -22,8 +22,8 @@ const CSS = `
   50%      { opacity: .72; }
 }
 .rx-scramble.rx-clear {
-  animation: rxClearIn .25s ease-out both;
-  transition: color .25s ease, text-shadow .25s ease;
+  animation: rxClearIn .55s ease-out both;
+  transition: color .55s ease, text-shadow .55s ease;
 }
 @keyframes rxClearIn {
   from { filter: brightness(1.6); }
@@ -60,9 +60,9 @@ export function decryptReveal(els: HTMLElement[]): void {
     el.style.textShadow = '0 0 6px rgba(56,183,100,.85)'
     el.textContent = Array.from({ length: len }, (_, i) => (finalText[i] === ' ' ? ' ' : rnd())).join('')
 
-    const startDelay = 140 + idx * 130     // escalonado descendente
+    const startDelay = 260 + idx * 240     // escalonado descendente más pausado
     let revealed = 0
-    const speed = Math.max(0.55, len / 26) // chars revelados por tick
+    const speed = Math.max(0.25, len / 70) // chars revelados por tick (más lento)
     window.setTimeout(() => {
       const timer = window.setInterval(() => {
         revealed += speed
@@ -82,7 +82,7 @@ export function decryptReveal(els: HTMLElement[]): void {
           el.style.color = cleanColor
           el.style.textShadow = 'none'
         }
-      }, 45)
+      }, 95)
     }, startDelay)
   })
 }
