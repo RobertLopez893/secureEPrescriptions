@@ -106,10 +106,12 @@ import '../styles/global.css'
       <span class="anim-blink" style="display:inline-block;width:8px;height:8px;background:#38b764;"></span>
       <span style="font-family:'Press Start 2P',monospace;font-size:8px;color:#38b764;">SISTEMA ACTIVO</span>
     </div>
-    <div style="display:flex;gap:5px;flex-wrap:wrap;">
-      {['ECDSA','AES-GCM','HKDF','E2E'].map(t=>(
-        <span style="font-family:'Press Start 2P',monospace;font-size:6px;padding:3px 6px;border:2px solid var(--border-default);color:var(--text-subtle);">{t}</span>
-      ))}
+    <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+      <a href="/admin/login" title="Acceso administrador" aria-label="Acceso administrador"
+         style="font-family:'Press Start 2P',monospace;font-size:7px;padding:5px 9px;border:2px solid var(--role-doctor);color:var(--role-doctor);text-decoration:none;letter-spacing:.08em;display:inline-flex;align-items:center;gap:6px;">
+        <svg width="9" height="11" viewBox="0 0 20 24" style="image-rendering:pixelated;"><use href="#ico-lock"/></svg>
+        ADMIN
+      </a>
 
       <button id="rxpro-theme-toggle" type="button" title="Cambiar tema" class="rxpro-theme-toggle">
         <svg class="ico-moon" width="11" height="11" viewBox="0 0 14 14" style="image-rendering:pixelated;">
@@ -370,16 +372,6 @@ import '../styles/global.css'
 <footer style="background:var(--surface-topbar);border-top:3px solid var(--surface-stepbar);padding:12px 20px;position:relative;z-index:1;">
   <div style="max-width:1100px;margin:0 auto;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;">
     <span style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--text-subtle);">RxPro · CRYPTOGRAPHY PROJECT 2026</span>
-    <div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center;">
-      {['ECDSA P-256','AES-256-GCM','HMAC-SHA256','RFC 8785','FIPS 186-5'].map(t=>(
-        <span style="font-family:'Press Start 2P',monospace;font-size:6px;padding:3px 7px;border:2px solid var(--border-default);color:var(--text-subtle);">{t}</span>
-      ))}
-      <a href="/admin/login" title="Acceso administrador" aria-label="Acceso administrador"
-         style="font-family:'Press Start 2P',monospace;font-size:6px;padding:3px 7px;border:2px solid var(--role-doctor);color:var(--role-doctor);text-decoration:none;letter-spacing:.08em;display:inline-flex;align-items:center;gap:5px;">
-        <svg width="8" height="10" viewBox="0 0 20 24" style="image-rendering:pixelated;color:var(--role-doctor);"><use href="#ico-lock"/></svg>
-        ADMIN
-      </a>
-    </div>
   </div>
 </footer>
 
