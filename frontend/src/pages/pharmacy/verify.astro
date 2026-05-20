@@ -74,8 +74,25 @@ const steps = [
   async function init() {
     const params = new URLSearchParams(window.location.search)
     const idReceta = Number(params.get('id'))
+    const demoInvalid = params.get('demo_invalid')
 
     if (!idReceta) return window.location.href = '/pharmacy'
+
+    // Modo demo: simula que la receta es inválida SIN tocar el backend.
+    // Se usa desde el panel /admin (sección INVÁLIDAS) para que durante
+    // una presentación se pueda mostrar qué ocurre cuando la firma no
+    // cuadra, los datos fueron alterados o el médico no está certificado.
+    if (demoInvalid) {
+      const motivos: Record<string, string> = {
+        signature:   'FIRMA INVÁLIDA · La firma ECDSA no coincide con la llave pública del médico.',
+        manipulated: 'RECETA MANIPULADA · El contenido fue alterado después de firmar.',
+        no_cert:     'MÉDICO NO CERTIFICADO · Cédula profesional no validada en el directorio.',
+      }
+      const motivo = motivos[demoInvalid] || 'RECETA INVÁLIDA · No se puede dispensar.'
+      // Pequeño delay para que se vea el spinner antes del rechazo.
+      setTimeout(() => bloquear(motivo, new Error(`demo_invalid=${demoInvalid}`)), 900)
+      return
+    }
 
     try {
       // Carga + descifrado + TODAS las validaciones (firma del médico incluida).
