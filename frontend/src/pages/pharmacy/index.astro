@@ -301,28 +301,30 @@ const steps=[{label:'ACCESO',href:'/pharmacy/login'},{label:'ESCANEAR',href:'/ph
   /**
    * QR de receta: puede ser un id numérico crudo, un JSON {"id_receta":N} o
    * una URL tipo rxpro://receta?id=N. Cualquier otra cosa es inválida.
+   *
+   * Devuelve también el flag `demo_invalid` cuando el QR lo trae como
+   * query param. Esto permite que la pantalla de verificación simule
+   * recetas con firma inválida / manipuladas / no certificadas para
+   * demostraciones, sin tocar la base de datos.
    */
-  function parseRecetaQr(raw: string): number | null {
+  function parseRecetaQr(raw: string): { id: number; demoInvalid: string | null } | null {
     const trimmed = raw.trim()
-    if (/^\d+$/.test(trimmed)) return Number(trimmed)
+    if (/^\d+$/.test(trimmed)) return { id: Number(trimmed), demoInvalid: null }
     try {
       const obj = JSON.parse(trimmed)
       const id = Number(obj?.id_receta ?? obj?.id)
-      if (Number.isFinite(id) && id > 0) return id
+      if (Number.isFinite(id) && id > 0) return { id, demoInvalid: null }
     } catch {}
-    if (trimmed.startsWith('rxpro://')) {
-      try {
-        const u = new URL(trimmed)
-        const id = Number(u.searchParams.get('id') || '')
-        if (Number.isFinite(id) && id > 0) return id
-      } catch {}
-    }
-    // Última oportunidad: parámetro ?id= en URL http(s).
-    try {
-      const u = new URL(trimmed)
+    const tryUrl = (u: URL): { id: number; demoInvalid: string | null } | null => {
       const id = Number(u.searchParams.get('id') || '')
-      if (Number.isFinite(id) && id > 0) return id
-    } catch {}
+      if (!Number.isFinite(id) || id <= 0) return null
+      const di = u.searchParams.get('demo_invalid')
+      return { id, demoInvalid: di || null }
+    }
+    if (trimmed.startsWith('rxpro://')) {
+      try { const r = tryUrl(new URL(trimmed)); if (r) return r } catch {}
+    }
+    try { const r = tryUrl(new URL(trimmed)); if (r) return r } catch {}
     return null
   }
 
@@ -364,8 +366,8 @@ const steps=[{label:'ACCESO',href:'/pharmacy/login'},{label:'ESCANEAR',href:'/ph
     progFill.style.width = '100%'
     video.style.display = 'none'
 
-    const idReceta = parseRecetaQr(raw)
-    if (!idReceta) {
+    const parsed = parseRecetaQr(raw)
+    if (!parsed) {
       showPanel('idle')
       showError('El QR leído no contiene un folio de receta válido.')
       btn.disabled = false
@@ -380,6 +382,7 @@ const steps=[{label:'ACCESO',href:'/pharmacy/login'},{label:'ESCANEAR',href:'/ph
     viewport.style.borderColor = '#38b764'
     viewport.style.background  = 'var(--surface-inset)'
     sessionStorage.setItem('rxpro_scan_method', 'qr')
-    setTimeout(() => { window.location.href = `/pharmacy/verify?id=${idReceta}` }, 600)
+    const extra = parsed.demoInvalid ? `&demo_invalid=${encodeURIComponent(parsed.demoInvalid)}` : ''
+    setTimeout(() => { window.location.href = `/pharmacy/verify?id=${parsed.id}${extra}` }, 600)
   })
 </script>

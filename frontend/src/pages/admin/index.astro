@@ -106,6 +106,7 @@ import Icons from '../../components/Icons.astro'
     <button class="admin-tab" data-tab="farmaceutico" style="display:inline-flex;align-items:center;gap:8px;"><svg width="18" height="9" viewBox="0 0 32 16" style="image-rendering:pixelated;flex-shrink:0;"><use href="#ico-pill"/></svg>FARMACÉUTICO</button>
     <button class="admin-tab" data-tab="clinica">CLÍNICA</button>
     <button class="admin-tab" data-tab="auditoria" style="display:inline-flex;align-items:center;gap:8px;"><svg width="14" height="16" viewBox="0 0 20 24" style="image-rendering:pixelated;flex-shrink:0;"><use href="#ico-lock"/></svg>AUDITORÍA</button>
+    <button class="admin-tab" data-tab="invalidas" style="display:inline-flex;align-items:center;gap:8px;"><svg width="14" height="14" viewBox="0 0 16 16" style="image-rendering:pixelated;flex-shrink:0;"><use href="#ico-x"/></svg>INVÁLIDAS</button>
   </nav>
 
   <!-- ------------- FORM: MÉDICO ------------- -->
@@ -262,6 +263,43 @@ import Icons from '../../components/Icons.astro'
           <tr><td colspan="6" style="padding:14px;color:var(--text-subtle);">Pulsa BUSCAR para cargar la bitácora.</td></tr>
         </tbody>
       </table>
+    </div>
+  </section>
+
+  <!-- ------------- INVÁLIDAS (generador de QR de prueba) ------------- -->
+  <section id="panel-invalidas" class="admin-panel" style="display:none;background:var(--surface-card);border:3px solid var(--border-default);box-shadow:var(--shadow-base);padding:24px;">
+    <h2 style="font-family:'Press Start 2P',monospace;font-size:13px;color:var(--role-pharmacy);margin-bottom:8px;">GENERAR RECETAS INVÁLIDAS (DEMO)</h2>
+    <p style="font-family:'VT323',monospace;font-size:18px;color:var(--text-muted);line-height:1.4;margin-bottom:18px;">
+      Genera un código QR que, al ser escaneado por un farmacéutico, simula una receta rechazada. No toca la base de datos: el panel de verificación reconoce el flag <code style="background:var(--surface-inset);padding:1px 6px;">demo_invalid</code> y muestra el error correspondiente.
+    </p>
+
+    <div style="display:grid;grid-template-columns:140px 1fr;gap:14px;margin-bottom:18px;align-items:end;">
+      <label>
+        <span class="admin-label">ID DE RECETA</span>
+        <input id="inv-id" class="admin-input" type="number" min="1" value="9999"/>
+      </label>
+      <p style="font-family:'VT323',monospace;font-size:16px;color:var(--text-subtle);line-height:1.4;">
+        Cualquier número sirve para la demo (el verificador corta el flujo antes de consultar el backend cuando viene <code>demo_invalid</code>).
+      </p>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-bottom:18px;">
+      <button type="button" class="px-btn px-btn-red" data-inv="signature"   style="width:100%;justify-content:center;">FIRMA INVÁLIDA</button>
+      <button type="button" class="px-btn px-btn-red" data-inv="manipulated" style="width:100%;justify-content:center;">RECETA MANIPULADA</button>
+      <button type="button" class="px-btn px-btn-red" data-inv="no_cert"     style="width:100%;justify-content:center;">MÉDICO NO CERTIFICADO</button>
+    </div>
+
+    <!-- Resultado: QR + payload + botones -->
+    <div id="inv-result" style="display:none;background:var(--surface-inset);border:2px solid var(--border-default);padding:18px;flex-direction:column;align-items:center;gap:12px;">
+      <p id="inv-kind-label" style="font-family:'Press Start 2P',monospace;font-size:10px;color:var(--role-pharmacy);">—</p>
+      <div style="background:#fff;padding:12px;border:3px solid var(--border-strong);">
+        <canvas id="inv-qr" style="image-rendering:pixelated;"></canvas>
+      </div>
+      <p id="inv-payload" style="font-family:'VT323',monospace;font-size:15px;color:var(--text-muted);word-break:break-all;text-align:center;max-width:520px;"></p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;">
+        <button type="button" id="inv-print"    class="px-btn px-btn-ghost" style="justify-content:center;">IMPRIMIR</button>
+        <button type="button" id="inv-download" class="px-btn px-btn-ghost" style="justify-content:center;">DESCARGAR PNG</button>
+      </div>
     </div>
   </section>
 
@@ -663,6 +701,55 @@ import Icons from '../../components/Icons.astro'
     document.body.classList.add('printing-constancia')
     window.print()
     document.body.classList.remove('printing-constancia')
+  })
+
+  // ── Generador de recetas inválidas (demo) ─────────────────────────────
+  const KIND_LABELS: Record<string, string> = {
+    signature:   'FIRMA INVÁLIDA',
+    manipulated: 'RECETA MANIPULADA',
+    no_cert:     'MÉDICO NO CERTIFICADO',
+  }
+  const invIdInput   = document.getElementById('inv-id')        as HTMLInputElement
+  const invResult    = document.getElementById('inv-result')    as HTMLDivElement
+  const invCanvas    = document.getElementById('inv-qr')        as HTMLCanvasElement
+  const invPayload   = document.getElementById('inv-payload')   as HTMLParagraphElement
+  const invKindLabel = document.getElementById('inv-kind-label') as HTMLParagraphElement
+
+  let invLastKind = ''
+  let invLastId   = 0
+
+  async function generateInvalid(kind: string) {
+    const id = Number(invIdInput?.value || 9999)
+    if (!Number.isFinite(id) || id <= 0) return
+    invLastKind = kind
+    invLastId   = id
+    const payload = `rxpro://receta?id=${id}&demo_invalid=${kind}`
+    invKindLabel.textContent = `${KIND_LABELS[kind] || kind} · ID ${id}`
+    invKindLabel.style.color = 'var(--role-pharmacy)'
+    invPayload.textContent   = payload
+    await QRCode.toCanvas(invCanvas, payload, {
+      width: 280,
+      margin: 1,
+      errorCorrectionLevel: 'M',
+      color: { dark: '#1a1c2c', light: '#ffffff' },
+    })
+    invResult.style.display = 'flex'
+  }
+
+  document.querySelectorAll<HTMLButtonElement>('[data-inv]').forEach(btn => {
+    btn.addEventListener('click', () => generateInvalid(btn.dataset.inv || ''))
+  })
+
+  ;(document.getElementById('inv-download') as HTMLButtonElement | null)?.addEventListener('click', () => {
+    if (!invLastKind) return
+    const link = document.createElement('a')
+    link.download = `qr-demo-${invLastKind}-${invLastId}.png`
+    link.href = invCanvas.toDataURL('image/png')
+    link.click()
+  })
+
+  ;(document.getElementById('inv-print') as HTMLButtonElement | null)?.addEventListener('click', () => {
+    window.print()
   })
 </script>
 </body>
