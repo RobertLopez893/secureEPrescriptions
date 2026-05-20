@@ -94,6 +94,9 @@ const FORMAS = [
   'INYECTABLE','CREMA','UNGÜENTO','GEL','GOTAS','SPRAY','PARCHE','POLVO',
 ]
 
+// Unidades de dosis comunes en recetas médicas
+const UNIDADES = ['mg', 'g', 'mcg', 'ml', 'UI', '%']
+
 // ── Estado ────────────────────────────────────────────────────────────────
 let medications: number[] = []
 let nextId = 1
@@ -130,6 +133,7 @@ function buildCard(id: number): HTMLElement {
     : ''
 
   const options = FORMAS.map(f => `<option value="${f}">${f}</option>`).join('')
+  const unidades = UNIDADES.map(u => `<option value="${u}">${u}</option>`).join('')
 
   card.innerHTML = `
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
@@ -150,12 +154,18 @@ function buildCard(id: number): HTMLElement {
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
         <div>
           <label class="px-label" style="color:var(--role-doctor);">DOSIS *</label>
-          <input id="m${id}-dose" type="text" class="px-input green"
-                 placeholder="500 mg, 10 ml, 1 g..." required/>
+          <div style="display:grid;grid-template-columns:1fr 90px;gap:8px;">
+            <input id="m${id}-dose-amount" type="number" class="px-input green"
+                   placeholder="500" min="0.01" step="0.01"
+                   inputmode="decimal" required/>
+            <select id="m${id}-dose-unit" class="px-input green" required>
+              ${unidades}
+            </select>
+          </div>
         </div>
         <div>
           <label class="px-label" style="color:var(--role-doctor);">FORMA FARMACÉUTICA *</label>
-          <select id="m${id}-form" class="px-input green">
+          <select id="m${id}-form" class="px-input green" required>
             <option value="">SELECCIONAR...</option>
             ${options}
           </select>
@@ -166,12 +176,12 @@ function buildCard(id: number): HTMLElement {
         <div>
           <label class="px-label" style="color:var(--role-doctor);">CANTIDAD *</label>
           <input id="m${id}-qty" type="number" class="px-input green"
-                 placeholder="14" min="1" required/>
+                 placeholder="14" min="1" step="1" inputmode="numeric" required/>
         </div>
         <div>
           <label class="px-label" style="color:var(--role-doctor);">RECARGAS</label>
           <input id="m${id}-refills" type="number" class="px-input green"
-                 placeholder="0" min="0" max="5" value="0"/>
+                 placeholder="0" min="0" max="5" step="1" inputmode="numeric" value="0"/>
         </div>
       </div>
 
@@ -240,13 +250,21 @@ submitBtn.addEventListener('click', () => {
   let firstInvalid = -1
 
   for (const id of medications) {
-    const name  = (document.getElementById(`m${id}-name`)  as HTMLInputElement)?.value.trim()
-    const dose  = (document.getElementById(`m${id}-dose`)  as HTMLInputElement)?.value.trim()
-    const form  = (document.getElementById(`m${id}-form`)  as HTMLSelectElement)?.value
-    const qty   = (document.getElementById(`m${id}-qty`)   as HTMLInputElement)?.value.trim()
-    const instr = (document.getElementById(`m${id}-instr`) as HTMLTextAreaElement)?.value.trim()
-    const refills = (document.getElementById(`m${id}-refills`) as HTMLInputElement)?.value.trim()
-    if (!name || !dose || !form || !qty || !instr) {
+    const name       = (document.getElementById(`m${id}-name`)        as HTMLInputElement)?.value.trim()
+    const doseAmount = (document.getElementById(`m${id}-dose-amount`) as HTMLInputElement)?.value.trim()
+    const doseUnit   = (document.getElementById(`m${id}-dose-unit`)   as HTMLSelectElement)?.value
+    const form       = (document.getElementById(`m${id}-form`)        as HTMLSelectElement)?.value
+    const qty        = (document.getElementById(`m${id}-qty`)         as HTMLInputElement)?.value.trim()
+    const instr      = (document.getElementById(`m${id}-instr`)       as HTMLTextAreaElement)?.value.trim()
+    const refills    = (document.getElementById(`m${id}-refills`)     as HTMLInputElement)?.value.trim()
+
+    // Validación estricta: dosis y cantidad deben ser numéricas positivas.
+    const doseNum = Number(doseAmount)
+    const qtyNum  = Number(qty)
+    const doseValid = doseAmount !== '' && Number.isFinite(doseNum) && doseNum > 0
+    const qtyValid  = qty !== ''        && Number.isFinite(qtyNum)  && qtyNum  > 0 && Number.isInteger(qtyNum)
+
+    if (!name || !doseValid || !doseUnit || !form || !qtyValid || !instr) {
       if (firstInvalid < 0) firstInvalid = id
       const card = document.getElementById(`med-card-${id}`)
       if (card) {
@@ -256,9 +274,12 @@ submitBtn.addEventListener('click', () => {
     } else {
       meds.push({
         nombre: name,
-        dosis: dose,
+        // Se compone como un string "<número> <unidad>" para mantener
+        // compatibilidad con el backend (que recibe `dosis: string`) y con
+        // la forma en que paciente/farmacia ya muestran el campo.
+        dosis: `${doseNum} ${doseUnit}`,
         forma: form,
-        cantidad: qty,
+        cantidad: String(qtyNum),
         recargas: refills,
         instrucciones: instr,
       })

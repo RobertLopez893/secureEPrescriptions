@@ -44,11 +44,36 @@ const NOISE = '01@#%&*/\\<>=+$?¬{}[]·•01'
 const rnd = () => NOISE[(Math.random() * NOISE.length) | 0]
 
 /**
+ * Velocidades preconfiguradas para el efecto.
+ * - slow:   ideal cuando es el efecto protagonista (≈6-9s total).
+ * - medium: legible y visible sin acaparar la pantalla (≈3-5s total).
+ * - fast:   verificación rápida en farmacia (≈1.5-2.5s total).
+ *
+ * `tick` es el intervalo en ms entre frames; `divisor` controla cuántos
+ * caracteres se revelan por frame (len/divisor). `stagger` controla el
+ * retraso entre elementos consecutivos.
+ */
+type Mode = 'slow' | 'medium' | 'fast'
+const PRESETS: Record<Mode, { tick: number; divisor: number; stagger: number; startDelay: number }> = {
+  slow:   { tick: 95, divisor: 70, stagger: 240, startDelay: 260 },
+  medium: { tick: 70, divisor: 45, stagger: 160, startDelay: 180 },
+  fast:   { tick: 45, divisor: 30, stagger: 110, startDelay: 120 },
+}
+
+/**
  * Anima los elementos dados (típicamente `.rx-scramble`): el texto actual
  * de cada elemento se toma como el valor "real" a revelar.
+ *
+ * Por defecto usa el preset "slow"; pasa `{ mode: 'medium' }` o
+ * `{ mode: 'fast' }` para acelerar.
  */
-export function decryptReveal(els: HTMLElement[]): void {
+export function decryptReveal(
+  els: HTMLElement[],
+  opts: { mode?: Mode } = {},
+): void {
   ensureStyles()
+  const cfg = PRESETS[opts.mode ?? 'slow']
+
   els.forEach((el, idx) => {
     const finalText = el.textContent ?? ''
     const cleanColor = el.style.color
@@ -60,9 +85,9 @@ export function decryptReveal(els: HTMLElement[]): void {
     el.style.textShadow = '0 0 6px rgba(56,183,100,.85)'
     el.textContent = Array.from({ length: len }, (_, i) => (finalText[i] === ' ' ? ' ' : rnd())).join('')
 
-    const startDelay = 260 + idx * 240     // escalonado descendente más pausado
+    const startDelay = cfg.startDelay + idx * cfg.stagger
     let revealed = 0
-    const speed = Math.max(0.25, len / 70) // chars revelados por tick (más lento)
+    const speed = Math.max(0.25, len / cfg.divisor)
     window.setTimeout(() => {
       const timer = window.setInterval(() => {
         revealed += speed
@@ -82,7 +107,7 @@ export function decryptReveal(els: HTMLElement[]): void {
           el.style.color = cleanColor
           el.style.textShadow = 'none'
         }
-      }, 95)
+      }, cfg.tick)
     }, startDelay)
   })
 }
