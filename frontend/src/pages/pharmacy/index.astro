@@ -3,21 +3,21 @@ import FlowLayout from '../../layouts/FlowLayout.astro'
 const steps=[{label:'ACCESO',href:'/pharmacy/login'},{label:'ESCANEAR',href:'/pharmacy'},{label:'VERIFICAR',href:'/pharmacy/verify'},{label:'DISPENSAR',href:'/pharmacy/seal'}]
 ---
 <FlowLayout title="Farmacia — Escanear" role="pharmacy" steps={steps} currentStep={1}>
-<div class="anim-slide" style="display:flex;flex-direction:column;gap:20px;">
+<div class="anim-slide" style="display:flex;flex-direction:column;gap:14px;">
 
   <!-- Header -->
   <div style="text-align:center;">
-    <div class="anim-bounce" style="display:flex;justify-content:center;margin-bottom:12px;">
-      <svg width="56" height="66" viewBox="0 0 24 28" style="image-rendering:pixelated;">
+    <div class="anim-bounce" style="display:flex;justify-content:center;margin-bottom:8px;">
+      <svg width="44" height="51" viewBox="0 0 24 28" style="image-rendering:pixelated;">
         <use href="#ico-pharmacist"/>
       </svg>
     </div>
-    <h1 style="font-family:'Press Start 2P',monospace;font-size:13px;color:var(--text-primary);margin-bottom:8px;">ESCANEAR RECETA</h1>
-    <p style="font-family:'VT323',monospace;font-size:22px;color:var(--text-muted);">Pide al paciente que muestre su código QR</p>
+    <h1 style="font-family:'Press Start 2P',monospace;font-size:13px;color:var(--text-primary);margin-bottom:4px;line-height:1.7;">ESCANEAR RECETA</h1>
+    <p style="font-family:'VT323',monospace;font-size:20px;color:var(--text-muted);">Pide al paciente que muestre su código QR</p>
   </div>
 
   <!-- Chip del farmacéutico -->
-  <div style="background:var(--surface-card);border:3px solid var(--role-pharmacy);box-shadow:var(--shadow-red);padding:14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+  <div style="background:var(--surface-card);border:3px solid var(--role-pharmacy);box-shadow:var(--shadow-red);padding:10px 12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
     <div style="display:flex;align-items:center;gap:12px;">
       <svg width="32" height="38" viewBox="0 0 24 28" style="image-rendering:pixelated;">
         <use href="#ico-pharmacist"/>
@@ -43,7 +43,7 @@ const steps=[{label:'ACCESO',href:'/pharmacy/login'},{label:'ESCANEAR',href:'/ph
 
     <!-- Viewport -->
     <div id="qr-viewport"
-         style="background:#160404;border:3px solid var(--role-pharmacy);position:relative;overflow:hidden;margin-bottom:18px;height:240px;">
+         style="background:#160404;border:3px solid var(--role-pharmacy);position:relative;overflow:hidden;margin-bottom:14px;height:210px;">
 
       <!-- Live camera feed -->
       <video id="qr-video" playsinline muted
