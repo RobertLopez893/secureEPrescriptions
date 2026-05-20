@@ -3,20 +3,20 @@ import FlowLayout from '../../layouts/FlowLayout.astro'
 const steps=[{label:'ACCESO',href:'/pharmacy/login'},{label:'ESCANEAR',href:'/pharmacy'},{label:'VERIFICAR',href:'/pharmacy/verify'},{label:'DISPENSAR',href:'/pharmacy/seal'}]
 ---
 <FlowLayout title="Farmacia — Acceso" role="pharmacy" steps={steps} currentStep={0}>
-<div class="anim-slide" style="display:flex;flex-direction:column;gap:20px;">
+<div class="anim-slide" style="display:flex;flex-direction:column;gap:14px;">
 
   <!-- Header -->
   <div style="text-align:center;">
-    <div class="anim-bounce" style="display:flex;justify-content:center;margin-bottom:14px;">
-      <svg width="56" height="66" viewBox="0 0 24 28" style="image-rendering:pixelated;">
+    <div class="anim-bounce" style="display:flex;justify-content:center;margin-bottom:8px;">
+      <svg width="44" height="51" viewBox="0 0 24 28" style="image-rendering:pixelated;">
         <use href="#ico-pharmacist"/>
       </svg>
     </div>
-    <h1 style="font-family:'Press Start 2P',monospace;font-size:13px;color:var(--text-primary);margin-bottom:8px;line-height:1.7;">
+    <h1 style="font-family:'Press Start 2P',monospace;font-size:13px;color:var(--text-primary);margin-bottom:4px;line-height:1.7;">
       ACCESO FARMACIA
     </h1>
-    <p style="font-family:'VT323',monospace;font-size:22px;color:var(--text-muted);">
-      Escanea la tarjeta digital del farmacéutico
+    <p style="font-family:'VT323',monospace;font-size:20px;color:var(--text-muted);">
+      Escanea la tarjeta del farmacéutico
     </p>
   </div>
 
@@ -30,7 +30,7 @@ const steps=[{label:'ACCESO',href:'/pharmacy/login'},{label:'ESCANEAR',href:'/ph
 
     <!-- Scanner viewport -->
     <div id="qr-viewport"
-         style="background:#160404;border:3px solid var(--role-pharmacy);position:relative;overflow:hidden;margin-bottom:18px;height:240px;">
+         style="background:#160404;border:3px solid var(--role-pharmacy);position:relative;overflow:hidden;margin-bottom:14px;height:210px;">
 
       <!-- Live camera feed -->
       <video id="qr-video" playsinline muted
@@ -82,7 +82,7 @@ const steps=[{label:'ACCESO',href:'/pharmacy/login'},{label:'ESCANEAR',href:'/ph
           <text x="12" y="22" fill="#f4f4f4" style="font-family:monospace;font-size:11px;font-weight:bold;letter-spacing:1px;">RxPro</text>
           <text x="12" y="34" fill="#e8003d" style="font-family:monospace;font-size:6px;letter-spacing:2px;">QFB · FARMACIA</text>
           <text x="12" y="88" fill="#e8003d" style="font-family:monospace;font-size:8px;letter-spacing:3px;">LIC ████ ████ ••••</text>
-          <text x="12" y="100" fill="#8c0025" style="font-family:monospace;font-size:5px;letter-spacing:1px;">CREDENCIAL DISPENSACIÓN • E2E</text>
+          <text x="12" y="100" fill="#8c0025" style="font-family:monospace;font-size:5px;letter-spacing:1px;">LICENCIA DE DISPENSACIÓN</text>
         </svg>
         <p id="qr-status" style="font-family:'Press Start 2P',monospace;font-size:8px;color:var(--role-pharmacy);letter-spacing:.08em;" class="anim-blink">
           ACERQUE CREDENCIAL
@@ -126,13 +126,6 @@ const steps=[{label:'ACCESO',href:'/pharmacy/login'},{label:'ESCANEAR',href:'/ph
       </div>
     </div>
 
-    <!-- Info strip -->
-    <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
-      {['QR SEED','BCRYPT','JWT','E2E'].map(t => (
-        <span style="font-family:'Press Start 2P',monospace;font-size:6px;padding:3px 6px;border:2px solid var(--border-default);color:var(--role-pharmacy);background:#29366f22;">{t}</span>
-      ))}
-    </div>
-
     <!-- Scan button -->
     <button type="button" id="scan-btn"
             style="width:100%;padding:14px;background:#160404;border:3px solid var(--role-pharmacy);box-shadow:4px 4px 0 var(--role-pharmacy-d);font-family:'Press Start 2P',monospace;font-size:9px;color:var(--role-pharmacy);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:16px;">
@@ -156,15 +149,6 @@ const steps=[{label:'ACCESO',href:'/pharmacy/login'},{label:'ESCANEAR',href:'/ph
     <p id="scan-error" style="display:none;font-family:'Press Start 2P',monospace;font-size:7px;color:var(--role-pharmacy);background:rgba(232,0,61,.12);border:2px solid var(--role-pharmacy);padding:10px;line-height:1.8;"></p>
   </div>
 
-  <!-- Security notice -->
-  <div style="display:flex;align-items:flex-start;gap:10px;padding:12px 14px;border:2px solid var(--border-default);background:#29366f18;">
-    <svg width="16" height="20" viewBox="0 0 20 24" style="image-rendering:pixelated;color:var(--border-default);flex-shrink:0;margin-top:2px;">
-      <use href="#ico-lock"/>
-    </svg>
-    <p style="font-family:'Press Start 2P',monospace;font-size:6px;color:var(--border-default);line-height:2;">
-      CREDENCIALES VERIFICADAS SOLO POR EL BACKEND · NINGUNA CONTRASEÑA ES ALMACENADA EN EL DISPOSITIVO
-    </p>
-  </div>
 </div>
 </FlowLayout>
 
@@ -268,7 +252,7 @@ const steps=[{label:'ACCESO',href:'/pharmacy/login'},{label:'ESCANEAR',href:'/ph
     }
 
     try {
-      setStatus('FIRMANDO RETO ECDSA...', '#ffcd75')
+      setStatus('VALIDANDO ACCESO...', '#ffcd75')
       const session = await loginWithCard(card)
       if (namePreview) namePreview.textContent = session.correo
       sessionStorage.setItem('rxpro_auth_method', 'qr_card')

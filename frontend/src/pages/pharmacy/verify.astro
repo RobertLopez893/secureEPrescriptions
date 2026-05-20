@@ -7,48 +7,40 @@ const steps = [
 ]
 ---
 <FlowLayout title="Farmacia — Verificar" role="pharmacy" steps={steps} currentStep={1} back="/pharmacy" wide={true}>
-<div class="anim-slide" style="display:flex;flex-direction:column;gap:20px;">
+<div class="anim-slide" style="display:flex;flex-direction:column;gap:12px;">
   <div>
-    <h1 style="font-family:'Press Start 2P',monospace;font-size:13px;color:var(--text-primary);margin-bottom:6px;">VERIFICAR RECETA</h1>
-    <p style="font-family:'VT323',monospace;font-size:22px;color:var(--text-muted);">
-      p256.verify() · sha256() · @noble/curves + @noble/hashes
-    </p>
+    <h1 style="font-family:'Press Start 2P',monospace;font-size:13px;color:var(--text-primary);margin-bottom:0;">VERIFICACIÓN DE RECETA</h1>
   </div>
 
-  <div id="state-loading" class="px-card-dark" style="padding:28px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:14px;">
+  <div id="state-loading" class="px-card-dark" style="padding:22px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:12px;">
     <div class="px-spinner" style="border-top-color:var(--role-pharmacy);"></div>
     <p style="font-family:'Press Start 2P',monospace;font-size:9px;color:var(--text-subtle);" class="anim-blink">VERIFICANDO FIRMA Y DESCIFRANDO...</p>
-    <p style="font-family:'VT323',monospace;font-size:19px;color:var(--text-muted);">Ejecutando p256.verify() y AES-GCM-256</p>
   </div>
 
-  <div id="patient-card" style="display:none; background:var(--surface-card); border:3px solid var(--role-patient); box-shadow:var(--shadow-blue); padding:16px; margin-bottom:20px;">
+  <!-- Paciente en una sola fila (2 líneas internas) -->
+  <div id="patient-card" style="display:none; background:var(--surface-card); border:3px solid var(--role-patient); box-shadow:var(--shadow-blue); padding:10px 14px;">
     <div style="display:flex; align-items:center; gap:14px;">
-      <svg width="30" height="35" viewBox="0 0 24 28" style="image-rendering:pixelated;color:var(--role-patient);flex-shrink:0;"><use href="#ico-patient"/></svg>
-      <div>
-        <p style="font-family:'Press Start 2P',monospace; font-size:9px; color:var(--role-patient);">DATOS DEL PACIENTE</p>
-        <p id="p-name" style="font-family:'VT323',monospace; font-size:22px; color:var(--text-primary); margin-top:4px;">—</p>
-        <p id="p-curp" style="font-family:'VT323',monospace; font-size:18px; color:var(--text-muted);">CURP: —</p>
+      <svg width="26" height="30" viewBox="0 0 24 28" style="image-rendering:pixelated;color:var(--role-patient);flex-shrink:0;"><use href="#ico-patient"/></svg>
+      <div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0;">
+        <p style="font-family:'Press Start 2P',monospace; font-size:8px; color:var(--role-patient);">PACIENTE</p>
+        <p id="p-name" style="font-family:'VT323',monospace; font-size:20px; color:var(--text-primary);">—</p>
       </div>
     </div>
   </div>
 
-  <div id="result-valid" style="display:none; background:rgba(56,183,100,.12); border:3px solid var(--role-doctor); box-shadow:var(--shadow-green); padding:14px; align-items:center; gap:12px; margin-bottom:20px;">
-    <svg width="24" height="28" viewBox="0 0 24 28" style="image-rendering:pixelated;color:var(--role-doctor);flex-shrink:0;"><use href="#ico-shield"/></svg>
+  <!-- Banner de firma válida y prescripción pegados (sin margin entre ellos) -->
+  <div id="result-valid" style="display:none; background:rgba(56,183,100,.12); border:3px solid var(--role-doctor); border-bottom:none; box-shadow:none; padding:10px 14px; align-items:center; gap:12px;">
+    <svg width="22" height="26" viewBox="0 0 24 28" style="image-rendering:pixelated;color:var(--role-doctor);flex-shrink:0;"><use href="#ico-shield"/></svg>
     <p style="font-family:'Press Start 2P',monospace; font-size:8px; color:var(--role-doctor); line-height:1.5;">FIRMA DIGITAL VÁLIDA · DOCUMENTO AUTÉNTICO</p>
   </div>
 
-  <div id="result-error" style="display:none; background:rgba(232,0,61,.12); border:3px solid var(--role-pharmacy); box-shadow:var(--shadow-red); padding:14px; align-items:center; gap:12px; margin-bottom:20px;">
+  <div id="result-error" style="display:none; background:rgba(232,0,61,.12); border:3px solid var(--role-pharmacy); box-shadow:var(--shadow-red); padding:12px; align-items:center; gap:12px;">
     <svg width="22" height="22" viewBox="0 0 16 16" style="image-rendering:pixelated;color:var(--role-pharmacy);flex-shrink:0;"><use href="#ico-x"/></svg>
     <p id="result-error-msg" style="font-family:'Press Start 2P',monospace; font-size:8px; color:var(--role-pharmacy); line-height:1.5;">ERROR: LA FIRMA NO COINCIDE O LOS DATOS FUERON ALTERADOS</p>
   </div>
 
-  <div id="prescription-container" style="display:none; background:var(--surface-card); border:3px solid var(--role-pharmacy); box-shadow:var(--shadow-red); padding:0; overflow:hidden;">
-    <div style="background:var(--role-pharmacy); padding:10px 16px;display:flex;align-items:center;gap:8px;">
-      <svg width="22" height="11" viewBox="0 0 32 16" style="image-rendering:pixelated;"><use href="#ico-pill"/></svg>
-      <span style="font-family:'Press Start 2P',monospace; font-size:8px; color:#f4f4f4;">DETALLE DE PRESCRIPCIÓN</span>
-    </div>
-    <div id="prescription-body" style="padding:20px;">
-        </div>
+  <div id="prescription-container" style="display:none; background:var(--surface-card); border:3px solid var(--role-doctor); border-top:none; box-shadow:var(--shadow-green); padding:0; overflow:hidden; margin-top:-12px;">
+    <div id="prescription-body"></div>
   </div>
 
   <div id="action-valid" style="display:none; margin-top:10px;">
@@ -82,15 +74,31 @@ const steps = [
   async function init() {
     const params = new URLSearchParams(window.location.search)
     const idReceta = Number(params.get('id'))
+    const demoInvalid = params.get('demo_invalid')
 
     if (!idReceta) return window.location.href = '/pharmacy'
+
+    // Modo demo: simula que la receta es inválida SIN tocar el backend.
+    // Se usa desde el panel /admin (sección INVÁLIDAS) para que durante
+    // una presentación se pueda mostrar qué ocurre cuando la firma no
+    // cuadra, los datos fueron alterados o el médico no está certificado.
+    if (demoInvalid) {
+      const motivos: Record<string, string> = {
+        signature:   'FIRMA INVÁLIDA · La firma ECDSA no coincide con la llave pública del médico.',
+        manipulated: 'RECETA MANIPULADA · El contenido fue alterado después de firmar.',
+        no_cert:     'MÉDICO NO CERTIFICADO · Cédula profesional no validada en el directorio.',
+      }
+      const motivo = motivos[demoInvalid] || 'RECETA INVÁLIDA · No se puede dispensar.'
+      // Pequeño delay para que se vea el spinner antes del rechazo.
+      setTimeout(() => bloquear(motivo, new Error(`demo_invalid=${demoInvalid}`)), 900)
+      return
+    }
 
     try {
       // Carga + descifrado + TODAS las validaciones (firma del médico incluida).
       const { recetaInfo, contenedor } = await cargarRecetaValidada(idReceta)
 
       document.getElementById('p-name')!.textContent = recetaInfo.paciente.nombre_completo.toUpperCase()
-      document.getElementById('p-curp')!.textContent = `CURP: NO DISPONIBLE`
       document.getElementById('patient-card')!.style.display = 'block'
 
       document.getElementById('state-loading')!.style.display = 'none'
@@ -117,38 +125,49 @@ const steps = [
     container.style.display = 'block'
 
     let html = `
-      <div style="display:flex; justify-content:space-between; padding:10px 0; border-bottom:2px solid var(--border-default);">
+      <div style="background:var(--role-doctor); padding:8px 14px;display:flex;align-items:center;gap:8px;">
+        <svg width="22" height="11" viewBox="0 0 32 16" style="image-rendering:pixelated;"><use href="#ico-pill"/></svg>
+        <span style="font-family:'Press Start 2P',monospace; font-size:8px; color:#fff;">DETALLE DE PRESCRIPCIÓN</span>
+      </div>
+      <div style="padding:14px 16px;">
+      <div style="display:flex; justify-content:space-between; padding:6px 0; border-bottom:2px solid var(--border-default);gap:12px;">
         <span style="font-family:'Press Start 2P',monospace; font-size:7px; color:var(--text-dim);">MÉDICO EMISOR</span>
-        <span class="rx-scramble" style="font-family:'VT323',monospace; font-size:21px; color:var(--role-doctor); text-align:right;">DR. ${medicoName.toUpperCase()}</span>
+        <span class="rx-scramble" style="font-family:'VT323',monospace; font-size:20px; color:var(--role-doctor); text-align:right;">DR. ${medicoName.toUpperCase()}</span>
       </div>
     `
 
     datos.medicamentos.forEach((m: any, i: number) => {
       html += `
-        <div style="margin-top:16px; padding: 14px; background: rgba(232, 0, 61, 0.05); border-left: 3px solid var(--role-pharmacy);">
-          <div style="display:flex; justify-content:space-between; padding-bottom:8px;">
-            <span style="font-family:'Press Start 2P',monospace; font-size:7px; color:var(--role-pharmacy);">ÍTEM ${i + 1}</span>
+        <div style="margin-top:10px; padding:10px 12px; background: rgba(56, 183, 100, 0.06); border-left: 3px solid var(--role-doctor);">
+          <div style="display:flex; justify-content:space-between; padding-bottom:6px;gap:12px;">
+            <span style="font-family:'Press Start 2P',monospace; font-size:7px; color:var(--role-doctor);">ÍTEM ${i + 1}</span>
             <span class="rx-scramble" style="font-family:'Press Start 2P',monospace; font-size:10px; color:var(--text-primary); text-align:right;">${m.nombre}</span>
           </div>
-          <div style="display:flex; justify-content:space-between; padding:4px 0;">
+          <div style="display:flex; justify-content:space-between; padding:3px 0;gap:12px;">
             <span style="font-family:'Press Start 2P',monospace; font-size:7px; color:var(--text-dim);">PRESENTACIÓN</span>
-            <span class="rx-scramble" style="font-family:'VT323',monospace; font-size:20px; color:var(--text-primary); text-align:right;">${m.dosis} · ${m.forma}</span>
+            <span class="rx-scramble" style="font-family:'VT323',monospace; font-size:19px; color:var(--text-primary); text-align:right;">${m.dosis} · ${m.forma}</span>
           </div>
-          <div style="display:flex; justify-content:space-between; padding:4px 0;">
+          <div style="display:flex; justify-content:space-between; padding:3px 0;gap:12px;">
             <span style="font-family:'Press Start 2P',monospace; font-size:7px; color:var(--text-dim);">CANTIDAD</span>
-            <span class="rx-scramble" style="font-family:'VT323',monospace; font-size:20px; color:var(--text-primary); text-align:right;">${m.cantidad} UNIDADES</span>
+            <span class="rx-scramble" style="font-family:'VT323',monospace; font-size:19px; color:var(--text-primary); text-align:right;">${m.cantidad} UNIDADES</span>
           </div>
-          <div style="margin-top:8px; padding-top:8px; border-top:1px dashed var(--border-default);">
-            <p style="font-family:'Press Start 2P',monospace; font-size:6px; color:var(--text-dim); margin-bottom:4px;">INDICACIONES:</p>
+          <div style="margin-top:6px; padding-top:6px; border-top:1px dashed var(--border-default);">
+            <p style="font-family:'Press Start 2P',monospace; font-size:6px; color:var(--text-dim); margin-bottom:4px;">INDICACIONES</p>
             <p class="rx-scramble" style="font-family:'VT323',monospace; font-size:18px; color:var(--text-primary); line-height:1.4;">${m.instrucciones}</p>
           </div>
         </div>
       `
     })
+    html += '</div>'
     
     body.innerHTML = html
-    // Tras pasar las 3 validaciones cripto, la receta se "descifra" en pantalla.
-    decryptReveal(Array.from(body.querySelectorAll<HTMLElement>('.rx-scramble')))
+    // Tras pasar las 3 validaciones cripto, la receta se "descifra" en
+    // pantalla. Velocidad media: aprox 4-5s totales (legible para el
+    // farmacéutico sin ser exagerado).
+    decryptReveal(
+      Array.from(body.querySelectorAll<HTMLElement>('.rx-scramble')),
+      { mode: 'medium' },
+    )
   }
 
   init()
