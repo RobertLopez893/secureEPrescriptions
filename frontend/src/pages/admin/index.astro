@@ -205,6 +205,25 @@ import Icons from '../../components/Icons.astro'
 
 <main style="max-width:1280px;margin:20px auto;padding:0 20px;display:flex;flex-direction:column;gap:18px;">
 
+  <!-- Contadores globales de la red (clínicas y usuarios por rol) -->
+  <section id="rxpro-stats" aria-label="Resumen de la red"
+           style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;">
+    {[
+      {k:'centros',      label:'CENTROS MÉD.',  c:'#41a6f6'},
+      {k:'hospitales',   label:'HOSPITALES',    c:'#ffcd75'},
+      {k:'farmacias',    label:'FARMACIAS',     c:'#e8003d'},
+      {k:'medicos',      label:'MÉDICOS',       c:'#38b764'},
+      {k:'pacientes',    label:'PACIENTES',     c:'#41a6f6'},
+      {k:'farmaceuticos',label:'FARMACÉUTICOS', c:'#e8003d'},
+    ].map(s=>(
+      <div style={'background:var(--surface-card);border:2px solid '+s.c+';box-shadow:4px 4px 0 rgba(0,0,0,.3);padding:12px 14px;display:flex;flex-direction:column;gap:6px;'}>
+        <span style={"font-family:'Press Start 2P',monospace;font-size:7px;letter-spacing:.08em;color:"+s.c+';'}>{s.label}</span>
+        <span data-stat={s.k}
+              style="font-family:'Press Start 2P',monospace;font-size:18px;color:var(--text-primary);">—</span>
+      </div>
+    ))}
+  </section>
+
   <!-- Tabs -->
   <nav id="tabs" style="display:flex;gap:8px;flex-wrap:wrap;">
     <button class="admin-tab active" data-tab="medico" style="display:inline-flex;align-items:center;gap:8px;"><svg width="14" height="16" viewBox="0 0 24 28" style="image-rendering:pixelated;flex-shrink:0;"><use href="#ico-doctor"/></svg>MÉDICO</button>
@@ -1270,6 +1289,30 @@ import Icons from '../../components/Icons.astro'
     ;[medEl, dosisEl, cantEl, pacEl].forEach(el => {
       el.addEventListener('input', recheck)
     })
+  })()
+
+  // Carga el conteo público (clínicas + usuarios por rol) y lo pinta
+  // arriba de los tabs. Endpoint público — no requiere el JWT de admin.
+  // Si el backend no responde, dejamos los "—" como fallback silencioso.
+  (async () => {
+    try {
+      const base = (import.meta.env.PUBLIC_API_URL || 'http://localhost:8000').replace(/\/$/, '')
+      const r = await fetch(base + '/api/v1/stats', { credentials: 'omit' })
+      if (!r.ok) return
+      const j = await r.json()
+      const map: Record<string, number> = {
+        centros:        j.clinicas?.centros_medicos ?? 0,
+        hospitales:     j.clinicas?.hospitales ?? 0,
+        farmacias:      j.clinicas?.farmacias ?? 0,
+        medicos:        j.usuarios?.medicos ?? 0,
+        pacientes:      j.usuarios?.pacientes ?? 0,
+        farmaceuticos:  j.usuarios?.farmaceuticos ?? 0,
+      }
+      Object.entries(map).forEach(([k,v]) => {
+        const el = document.querySelector('[data-stat="'+k+'"]')
+        if (el) el.textContent = String(v)
+      })
+    } catch { /* silencioso */ }
   })()
 </script>
 </body>
