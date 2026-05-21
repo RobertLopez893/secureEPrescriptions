@@ -58,11 +58,31 @@ export async function loginWithCard(card: CardPayload): Promise<SessionData> {
     id: Number(payload.id),
     correo: String(payload.sub || ''),
     role: String(payload.role || ''),
+    // El identificador del rol ya viene en la tarjeta; lo guardamos de una
+    // vez para que la topbar lo muestre incluso si la llamada a /me falla.
+    identificador: card.identificador,
   }
   saveSession(token.access_token, session)
   // Persistir la semilla para que páginas posteriores (sign, seal, verify,
   // detail) puedan re-derivar la llave privada cuando necesiten firmar o
   // descifrar, sin pedir otra vez el QR.
   saveUserSeed(card.seedHex)
-  return session
+
+  // 6) Enriquecer la sesión con nombre/paterno consultando /usuarios/me.
+  // No bloqueamos el flujo si /me falla — la topbar caerá al identificador
+  // y al correo.
+  try {
+    const me = await Api.obtenerMiPerfil()
+    const full: SessionData = {
+      ...session,
+      nombre: me.nombre,
+      paterno: me.paterno,
+      materno: me.materno ?? null,
+      identificador: me.identificador || session.identificador,
+    }
+    saveSession(token.access_token, full)
+    return full
+  } catch {
+    return session
+  }
 }

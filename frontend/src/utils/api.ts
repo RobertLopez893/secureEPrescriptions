@@ -39,6 +39,22 @@ export interface SessionData {
   correo: string;
   role: string;           // "Medico" | "Paciente" | "Farmaceutico" | "Administrador"
   nombre?: string;
+  paterno?: string;
+  materno?: string | null;
+  // Identificador del rol: cédula (médico) | licencia (farmacéutico) |
+  // CURP (paciente). Lo persistimos junto a la sesión para mostrar
+  // los datos del usuario en la topbar de las vistas autenticadas.
+  identificador?: string;
+}
+
+export interface UsuarioMeDTO {
+  id_usuario: number;
+  correo: string;
+  nombre: string;
+  paterno: string;
+  materno?: string | null;
+  rol_nombre: string;
+  identificador?: string | null;
 }
 
 export function saveSession(token: string, session: SessionData): void {
@@ -407,6 +423,11 @@ export const Api = {
       method: 'POST',
       body: JSON.stringify(body),
     });
+  },
+
+  /** Perfil del usuario autenticado (incluye cédula/licencia/CURP). */
+  async obtenerMiPerfil(): Promise<UsuarioMeDTO> {
+    return request<UsuarioMeDTO>('/api/v1/usuarios/me');
   },
 
   // ---- Usuarios ----

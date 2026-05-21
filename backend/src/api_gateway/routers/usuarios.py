@@ -93,6 +93,39 @@ def registrar_paciente(
     return schemas.UsuarioPublic(
         **db_usuario.model_dump(), rol_nombre=db_usuario.rol.nombre
     )
+@router.get("/usuarios/me", response_model=schemas.UsuarioMe)
+def obtener_mi_perfil(
+    *,
+    session: Session = Depends(get_session),
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    """Devuelve el perfil del usuario autenticado para que el frontend muestre
+    nombre y el identificador del rol (cédula/licencia/curp) en la topbar.
+    El JWT lleva solo id/correo/rol, así que aquí resolvemos los datos de
+    perfil contra la BD."""
+    if current_user.role == "Administrador":
+        raise HTTPException(status_code=404, detail="Administrador no tiene perfil de usuario.")
+    u = session.get(Usuario, current_user.id)
+    if not u:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado.")
+    identificador: Optional[str] = None
+    if u.medico is not None:
+        identificador = u.medico.cedula
+    elif u.farmaceutico is not None:
+        identificador = u.farmaceutico.licencia
+    elif u.paciente is not None:
+        identificador = u.paciente.curp
+    return schemas.UsuarioMe(
+        id_usuario=u.id_usuario,
+        correo=u.correo,
+        nombre=u.nombre,
+        paterno=u.paterno,
+        materno=u.materno,
+        rol_nombre=u.rol.nombre,
+        identificador=identificador,
+    )
+
+
 @router.get("/usuarios/pacientes/{id_usuario}", response_model=schemas.PacientePublic)
 def obtener_paciente_por_id(
     *,
