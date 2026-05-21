@@ -1,10 +1,10 @@
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlmodel import Session, select
+from sqlmodel import Session, select, func
 
 from src.core.security import CurrentUser, get_current_user
 from src.database.database import get_session
-from src.database.models import Clinica
+from src.database.models import Clinica, Usuario, Rol
 from src.api_gateway import schemas
 
 router = APIRouter()
@@ -38,3 +38,41 @@ def listar_clinicas(*, session: Session = Depends(get_session)):
     """Devuelve la lista de clínicas registradas (necesaria al registrar médicos)."""
     rows = session.exec(select(Clinica)).all()
     return [schemas.ClinicaPublic(**c.model_dump()) for c in rows]
+
+
+@router.get("/stats")
+def estadisticas_publicas(*, session: Session = Depends(get_session)):
+    """Conteo público (no requiere auth) de clínicas por tipo y usuarios
+    por rol. Lo consume el landing para mostrar el tamaño de la red."""
+    filas_tipo = session.exec(
+        select(Clinica.tipo, func.count(Clinica.id_clinica)).group_by(Clinica.tipo)
+    ).all()
+    por_tipo = {tipo: n for tipo, n in filas_tipo}
+
+    filas_rol = session.exec(
+        select(Rol.nombre, func.count(Usuario.id_usuario))
+        .join(Usuario, Usuario.id_rol == Rol.id_rol, isouter=True)
+        .group_by(Rol.nombre)
+    ).all()
+    por_rol = {nombre: n for nombre, n in filas_rol}
+
+    centros = por_tipo.get("Centro Medico", 0)
+    hospitales = por_tipo.get("Hospital", 0)
+    farmacias = por_tipo.get("Farmacia", 0)
+
+    return {
+        "clinicas": {
+            "total": sum(por_tipo.values()),
+            "centros_medicos": centros,
+            "hospitales": hospitales,
+            "farmacias": farmacias,
+            # Suma "instituciones de salud" (centros + hospitales) por si
+            # el front quiere un solo número.
+            "instituciones_salud": centros + hospitales,
+        },
+        "usuarios": {
+            "medicos": por_rol.get("Medico", 0),
+            "pacientes": por_rol.get("Paciente", 0),
+            "farmaceuticos": por_rol.get("Farmaceutico", 0),
+        },
+    }

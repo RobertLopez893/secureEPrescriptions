@@ -208,7 +208,170 @@ def _seed_batch_users(session, clinica, rol_medico, rol_paciente, hashed: str) -
     for line in qr_lines:
         print(line)
 
+_SPEC_ESPECIALIDADES = [
+    "Cardiología", "Neurología", "Pediatría", "Ginecología", "Oncología",
+    "Dermatología", "Endocrinología", "Gastroenterología", "Hematología",
+    "Nefrología", "Neumología", "Oftalmología", "Otorrinolaringología",
+    "Psiquiatría", "Reumatología", "Traumatología", "Urología", "Anestesiología",
+    "Radiología", "Medicina Interna", "Cirugía General", "Geriatría",
+    "Infectología", "Alergología", "Medicina Familiar",
+]
+
+_SPEC_TURNOS = ["Matutino", "Vespertino", "Nocturno"]
+
+
+def _get_or_create_clinica(
+    session: Session, *, clues: str, nombre: str, tipo: str,
+    calle: str, colonia: str, municipio: str, estado: str, cp: str,
+) -> models.Clinica:
+    existing = session.exec(select(models.Clinica).where(models.Clinica.clues == clues)).first()
+    if existing:
+        return existing
+    c = models.Clinica(
+        nombre=nombre, clues=clues, tipo=tipo,
+        calle=calle, colonia=colonia, municipio=municipio, estado=estado, cp=cp,
+    )
+    session.add(c)
+    session.commit()
+    session.refresh(c)
+    return c
+
+
+def _crear_medico_spec(
+    session: Session, *, clinica: models.Clinica, rol_medico: models.Rol,
+    hashed: str, tag: str, nombre: str, paterno: str, correo: str,
+    cedula: str, especialidad: str,
+) -> None:
+    if session.exec(select(models.Usuario).where(models.Usuario.correo == correo)).first():
+        return
+    seed = _stable_seed(tag)
+    u = models.Usuario(
+        id_rol=rol_medico.id_rol, id_clinica=clinica.id_clinica,
+        nombre=nombre, paterno=paterno, correo=correo, contrasena=hashed,
+        medico=models.Medico(cedula=cedula, especialidad=especialidad, universidad="UNAM"),
+    )
+    session.add(u)
+    session.commit()
+    session.refresh(u)
+    _registrar_llaves(session, u.id_usuario, seed)
+    session.commit()
+
+
+def _crear_jefe_farmacia(
+    session: Session, *, farmacia: models.Clinica, rol_farma: models.Rol,
+    hashed: str, tag: str, nombre: str, correo: str, licencia: str, turno: str,
+) -> None:
+    if session.exec(select(models.Usuario).where(models.Usuario.correo == correo)).first():
+        return
+    seed = _stable_seed(tag)
+    u = models.Usuario(
+        id_rol=rol_farma.id_rol, id_clinica=farmacia.id_clinica,
+        nombre=nombre, paterno="Jefe", correo=correo, contrasena=hashed,
+        farmaceutico=models.Farmaceutico(licencia=licencia, turno=turno),
+    )
+    session.add(u)
+    session.commit()
+    session.refresh(u)
+    _registrar_llaves(session, u.id_usuario, seed)
+    session.commit()
+
+
+def _seed_spec_data(session: Session) -> None:
+    """Siembra la infraestructura descrita en el enunciado:
+    - 2 centros médicos con 20 médicos cada uno
+    - 1 hospital con 300 médicos de distintas especialidades
+    - 3 farmacias, cada una con su jefe farmacéutico
+
+    Idempotente: si las clínicas con CLUES SPEC-* ya existen, no recrea
+    nada. Solo corre en APP_ENV=development."""
+    if os.getenv("APP_ENV", "development").lower() != "development":
+        return
+
+    marker = session.exec(
+        select(models.Clinica).where(models.Clinica.clues == "SPEC-HOSP-01")
+    ).first()
+    if marker:
+        return
+
+    print("Sembrando infraestructura del enunciado (2 centros + 1 hospital + 3 farmacias)...")
+
+    rol_medico = _get_rol(session, "Medico")
+    rol_farma = _get_rol(session, "Farmaceutico")
+    hashed = security.get_password_hash("demo1234")
+
+    centros = [
+        _get_or_create_clinica(
+            session, clues="SPEC-MED-01", nombre="Centro Médico Norte", tipo="Centro Medico",
+            calle="Av. Norte 100", colonia="Norte", municipio="Ciudad Demo", estado="CDMX", cp="01100",
+        ),
+        _get_or_create_clinica(
+            session, clues="SPEC-MED-02", nombre="Centro Médico Sur", tipo="Centro Medico",
+            calle="Av. Sur 200", colonia="Sur", municipio="Ciudad Demo", estado="CDMX", cp="01200",
+        ),
+    ]
+
+    hospital = _get_or_create_clinica(
+        session, clues="SPEC-HOSP-01", nombre="Hospital General Demo", tipo="Hospital",
+        calle="Av. Central 1", colonia="Centro", municipio="Ciudad Demo", estado="CDMX", cp="01000",
+    )
+
+    farmacias = [
+        _get_or_create_clinica(
+            session, clues="SPEC-FARM-01", nombre="Farmacia San Rafael", tipo="Farmacia",
+            calle="Calle 1", colonia="Centro", municipio="Ciudad Demo", estado="CDMX", cp="01000",
+        ),
+        _get_or_create_clinica(
+            session, clues="SPEC-FARM-02", nombre="Farmacia La Salud", tipo="Farmacia",
+            calle="Calle 2", colonia="Norte", municipio="Ciudad Demo", estado="CDMX", cp="01100",
+        ),
+        _get_or_create_clinica(
+            session, clues="SPEC-FARM-03", nombre="Farmacia del Pueblo", tipo="Farmacia",
+            calle="Calle 3", colonia="Sur", municipio="Ciudad Demo", estado="CDMX", cp="01200",
+        ),
+    ]
+
+    # 20 médicos por centro médico
+    for ci, centro in enumerate(centros, start=1):
+        for n in range(1, 21):
+            _crear_medico_spec(
+                session, clinica=centro, rol_medico=rol_medico, hashed=hashed,
+                tag=f"spec-med:centro{ci}:{n}",
+                nombre=f"Médico{n}", paterno=f"Centro{ci}",
+                correo=f"medico.centro{ci}.{n}@rxpro.demo",
+                cedula=f"SPEC-CM{ci}-{n:03d}",
+                especialidad="Medicina General",
+            )
+
+    # 300 médicos en el hospital, distribuyendo especialidades
+    for n in range(1, 301):
+        especialidad = _SPEC_ESPECIALIDADES[(n - 1) % len(_SPEC_ESPECIALIDADES)]
+        _crear_medico_spec(
+            session, clinica=hospital, rol_medico=rol_medico, hashed=hashed,
+            tag=f"spec-med:hospital:{n}",
+            nombre=f"Médico{n}", paterno="Hospital",
+            correo=f"medico.hospital.{n}@rxpro.demo",
+            cedula=f"SPEC-HOSP-{n:04d}",
+            especialidad=especialidad,
+        )
+
+    # 1 jefe farmacéutico por farmacia
+    for fi, farmacia in enumerate(farmacias, start=1):
+        _crear_jefe_farmacia(
+            session, farmacia=farmacia, rol_farma=rol_farma, hashed=hashed,
+            tag=f"spec-farma:jefe{fi}",
+            nombre=f"Jefe{fi}",
+            correo=f"jefe.farmacia{fi}@rxpro.demo",
+            licencia=f"SPEC-FARM-{fi:02d}-JEFE",
+            turno=_SPEC_TURNOS[(fi - 1) % len(_SPEC_TURNOS)],
+        )
+
+    session.commit()
+    print("Infraestructura del enunciado lista: 2 centros (20 médicos c/u), "
+          "1 hospital (300 médicos), 3 farmacias con jefe.")
+
+
 def create_initial_data(session: Session):
-    """Crea los datos iniciales (roles + demo data opcional)."""
+    """Crea los datos iniciales (roles + demo data opcional + infraestructura spec)."""
     _ensure_roles(session)
     _seed_demo_data(session)
+    _seed_spec_data(session)
