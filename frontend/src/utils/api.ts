@@ -290,7 +290,6 @@ export interface PacienteCreateDTO {
   paterno: string;
   materno?: string | null;
   correo: string;
-  contrasena: string;
   id_clinica?: number | null;
   curp: string;
   nacimiento: string;          // YYYY-MM-DD
@@ -304,7 +303,6 @@ export interface MedicoCreateDTO {
   paterno: string;
   materno?: string | null;
   correo: string;
-  contrasena: string;
   id_clinica: number;
   cedula: string;
   especialidad: string;
@@ -317,7 +315,6 @@ export interface FarmaceuticoCreateDTO {
   paterno: string;
   materno?: string | null;
   correo: string;
-  contrasena: string;
   id_clinica?: number | null;
   licencia: string;
   turno: string;             // "Matutino" | "Vespertino" | "Nocturno"

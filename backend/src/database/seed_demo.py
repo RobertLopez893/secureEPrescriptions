@@ -92,21 +92,19 @@ def _seed_demo_data(session: Session) -> None:
     rol_paciente = _get_rol(session, "Paciente")
     rol_farma = _get_rol(session, "Farmaceutico")
 
-    hashed = security.get_password_hash("demo1234")
-
     medico_u = models.Usuario(
         id_rol=rol_medico.id_rol, id_clinica=clinica.id_clinica, nombre="Demo", paterno="Médico",
-        correo="doctor@rxpro.demo", contrasena=hashed,
+        correo="doctor@rxpro.demo",
         medico=models.Medico(cedula="DEMO-MED-0001", especialidad="General", universidad="Universidad Demo"),
     )
     paciente_u = models.Usuario(
         id_rol=rol_paciente.id_rol, id_clinica=clinica.id_clinica, nombre="Demo", paterno="Paciente",
-        correo="paciente@rxpro.demo", contrasena=hashed,
+        correo="paciente@rxpro.demo",
         paciente=models.Paciente(curp="DEMO000101HDFXXX01", nacimiento=date(2000, 1, 1), sexo="O", tel_emergencia="5555555555"),
     )
     farma_u = models.Usuario(
         id_rol=rol_farma.id_rol, id_clinica=clinica.id_clinica, nombre="Demo", paterno="Farmacéutico",
-        correo="farma@rxpro.demo", contrasena=hashed,
+        correo="farma@rxpro.demo",
         farmaceutico=models.Farmaceutico(licencia="DEMO-FARM-0001", turno="Matutino"),
     )
 
@@ -139,7 +137,7 @@ def _seed_demo_data(session: Session) -> None:
         ))
         session.commit()
 
-    _seed_batch_users(session, clinica, rol_medico, rol_paciente, hashed)
+    _seed_batch_users(session, clinica, rol_medico, rol_paciente)
 
     print("Usuarios demo creados y llaves públicas registradas.")
 
@@ -159,7 +157,7 @@ def _registrar_llaves(session: Session, id_usuario: int, seed_hex: str) -> None:
     ])
 
 
-def _seed_batch_users(session, clinica, rol_medico, rol_paciente, hashed: str) -> None:
+def _seed_batch_users(session, clinica, rol_medico, rol_paciente) -> None:
     """Crea un lote de 5 pacientes + 3 médicos en la clínica demo para poder
     probar el flujo completo de inmediato. Reutiliza el ÚNICO farmacéutico
     demo (la clínica no puede tener más de uno: ver _resolve_jefe_farmaceutico).
@@ -173,7 +171,6 @@ def _seed_batch_users(session, clinica, rol_medico, rol_paciente, hashed: str) -
         u = models.Usuario(
             id_rol=rol_paciente.id_rol, id_clinica=clinica.id_clinica,
             nombre=f"Paciente{n}", paterno="Demo", correo=f"paciente{n}@rxpro.demo",
-            contrasena=hashed,
             paciente=models.Paciente(
                 curp=curp, nacimiento=date(2000, 1, 1),
                 sexo="O", tel_emergencia="5555555555",
@@ -191,7 +188,6 @@ def _seed_batch_users(session, clinica, rol_medico, rol_paciente, hashed: str) -
         u = models.Usuario(
             id_rol=rol_medico.id_rol, id_clinica=clinica.id_clinica,
             nombre=f"Doctor{n}", paterno="Demo", correo=f"doctor{n}@rxpro.demo",
-            contrasena=hashed,
             medico=models.Medico(
                 cedula=cedula, especialidad="General",
                 universidad="Universidad Demo",
@@ -204,7 +200,7 @@ def _seed_batch_users(session, clinica, rol_medico, rol_paciente, hashed: str) -
         qr_lines.append(f"  Doctor{n} (id={u.id_usuario}, céd. {cedula}): rxpro://card/v1/medico/{cedula}/{seed}")
 
     session.commit()
-    print("Lote de prueba creado. QR de login (password legacy: demo1234):")
+    print("Lote de prueba creado. QR de login por tarjeta:")
     for line in qr_lines:
         print(line)
 

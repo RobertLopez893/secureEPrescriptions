@@ -241,7 +241,6 @@ class PacienteCreate(BaseModel):
     paterno: str
     materno: Optional[str] = None
     correo: str
-    contrasena: str
     id_clinica: Optional[int] = None
     # Datos del perfil de paciente
     curp: str
@@ -278,7 +277,6 @@ class MedicoCreate(BaseModel):
     paterno: str
     materno: Optional[str] = None
     correo: str
-    contrasena: str
     id_clinica: int # Requerido para médicos
     # Datos del perfil de médico
     cedula: str
@@ -302,7 +300,6 @@ class FarmaceuticoCreate(BaseModel):
     paterno: str
     materno: Optional[str] = None
     correo: str
-    contrasena: str
     id_clinica: Optional[int] = None
     # Datos del perfil de farmacéutico
     licencia: str

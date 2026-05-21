@@ -55,6 +55,22 @@ def _wait_for_db(max_attempts: int = 30, delay_seconds: float = 1.0) -> None:
             time.sleep(delay_seconds)
 
 
+def _drop_legacy_usuarios_contrasena() -> None:
+    """Elimina la columna `usuarios.contrasena`, vestigio del login legacy
+    por correo+contraseña que para usuarios clínicos quedó cerrado en el PR
+    anterior. Idempotente: `IF EXISTS` lo hace no-op en BDs frescas. Stop-gap
+    hasta que las migraciones Alembic estén realmente conectadas."""
+    from sqlalchemy.exc import OperationalError, ProgrammingError
+    try:
+        with engine.begin() as conn:
+            conn.exec_driver_sql("ALTER TABLE usuarios DROP COLUMN IF EXISTS contrasena")
+    except (OperationalError, ProgrammingError) as exc:
+        # En SQLite < 3.35 DROP COLUMN no existe; en tests usamos BD en
+        # memoria fresca, así que la columna nunca llega a crearse y este
+        # error es esperado e ignorable.
+        print(f"[startup] drop legacy contrasena ignorado: {exc.orig if hasattr(exc, 'orig') else exc}")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # --- Lógica de Inicio (Startup) ---
@@ -62,6 +78,7 @@ async def lifespan(app: FastAPI):
     _wait_for_db()
     print("Verificando y creando tablas de la base de datos...")
     SQLModel.metadata.create_all(engine)
+    _drop_legacy_usuarios_contrasena()
     with Session(engine) as session:
         create_initial_data(session)
     _warn_if_multiworker()
