@@ -152,6 +152,16 @@ import Icons from '../../components/Icons.astro'
       0%, 100% { transform: translateX(0); }
       50%      { transform: translateX(-4px); }
     }
+    /* La tarjeta tiene fondo blanco hardcodeado para impresión, así que los
+       botones ghost de dentro deben usar texto oscuro independientemente del
+       tema (en dark mode --text-primary es blanco → invisible sobre blanco). */
+    #print-card .px-btn-ghost {
+      color: #1a1c2c;
+      border-color: #1a1c2c;
+    }
+    #print-card .px-btn-ghost:hover {
+      background: rgba(26,28,44,.08);
+    }
     @media print {
       body:not(.printing-constancia) > *:not(#print-card) { display:none !important; }
       body:not(.printing-constancia) #print-card { position:static !important; background:white !important; }
@@ -201,6 +211,7 @@ import Icons from '../../components/Icons.astro'
     <button class="admin-tab" data-tab="paciente" style="display:inline-flex;align-items:center;gap:8px;"><svg width="14" height="16" viewBox="0 0 24 28" style="image-rendering:pixelated;flex-shrink:0;"><use href="#ico-patient"/></svg>PACIENTE</button>
     <button class="admin-tab" data-tab="farmaceutico" style="display:inline-flex;align-items:center;gap:8px;"><svg width="18" height="9" viewBox="0 0 32 16" style="image-rendering:pixelated;flex-shrink:0;"><use href="#ico-pill"/></svg>FARMACÉUTICO</button>
     <button class="admin-tab" data-tab="clinica">CLÍNICA</button>
+    <button class="admin-tab" data-tab="reemitir" style="display:inline-flex;align-items:center;gap:8px;"><svg width="14" height="14" viewBox="0 0 16 16" style="image-rendering:pixelated;flex-shrink:0;"><use href="#ico-lock"/></svg>RE-EMITIR TARJETA</button>
     <button class="admin-tab" data-tab="auditoria" style="display:inline-flex;align-items:center;gap:8px;"><svg width="14" height="16" viewBox="0 0 20 24" style="image-rendering:pixelated;flex-shrink:0;"><use href="#ico-lock"/></svg>AUDITORÍA</button>
     <button class="admin-tab" data-tab="invalidas" style="display:inline-flex;align-items:center;gap:8px;"><svg width="14" height="14" viewBox="0 0 16 16" style="image-rendering:pixelated;flex-shrink:0;"><use href="#ico-x"/></svg>INVÁLIDAS</button>
   </nav>
@@ -284,6 +295,41 @@ import Icons from '../../components/Icons.astro'
         GENERAR TARJETA + REGISTRAR
       </button>
     </form>
+  </section>
+
+  <!-- ------------- RE-EMITIR TARJETA (usuario existente) ------------- -->
+  <section id="panel-reemitir" class="admin-panel" style="display:none;background:var(--surface-card);border:3px solid var(--border-default);box-shadow:var(--shadow-base);padding:24px;">
+    <h2 style="font-family:'Press Start 2P',monospace;font-size:13px;color:var(--text-primary);margin-bottom:8px;">RE-EMITIR TARJETA</h2>
+    <p style="font-family:'VT323',monospace;font-size:17px;color:var(--text-muted);margin-bottom:16px;line-height:1.4;">
+      Si el usuario perdió su tarjeta, búscalo por su identificador y genera una nueva. <strong>La tarjeta anterior queda invalidada</strong> (las llaves previas se desactivan).
+    </p>
+    <form id="form-reemitir" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;">
+      <label><span class="admin-label">ROL</span>
+        <select class="admin-input" name="rol" id="reemitir-rol" required>
+          <option value="Medico">Médico (cédula)</option>
+          <option value="Paciente">Paciente (CURP)</option>
+          <option value="Farmaceutico">Farmacéutico (licencia)</option>
+        </select>
+      </label>
+      <label><span class="admin-label" id="reemitir-id-label">CÉDULA PROFESIONAL</span>
+        <input class="admin-input" name="identificador" id="reemitir-identificador" required style="text-transform:uppercase;"/>
+      </label>
+      <button type="submit" class="px-btn px-btn-yellow px-btn-lg" style="grid-column:1/-1;justify-content:center;">
+        BUSCAR USUARIO
+      </button>
+    </form>
+
+    <div id="reemitir-found" style="display:none;margin-top:18px;padding:16px;border:3px dashed var(--border-default);background:var(--surface-inset);">
+      <p style="font-family:'VT323',monospace;font-size:18px;color:var(--text-primary);margin-bottom:4px;">
+        <strong id="reemitir-found-nombre"></strong>
+      </p>
+      <p style="font-family:'VT323',monospace;font-size:16px;color:var(--text-muted);margin-bottom:12px;">
+        <span id="reemitir-found-meta"></span>
+      </p>
+      <button id="btn-regenerar" type="button" class="px-btn px-btn-red px-btn-lg" style="justify-content:center;">
+        REGENERAR TARJETA (INVALIDA LA ANTERIOR)
+      </button>
+    </div>
   </section>
 
   <!-- ------------- FORM: CLINICA ------------- -->
@@ -776,7 +822,31 @@ import Icons from '../../components/Icons.astro'
       //    como fila huérfana que no sirve a ningún flujo del sistema.
       const body = { ...data }
       delete body.llave_publica
-      const user = await createFn(body)
+      let user: any
+      let regenerated = false
+      try {
+        user = await createFn(body)
+      } catch (createErr) {
+        // Caso "correo ya registrado": ofrecemos regenerar la tarjeta del
+        // usuario existente. Esto rota sus llaves (firmas + recetas): las
+        // anteriores quedan desactivadas en BD por _set_active_key, de modo
+        // que la tarjeta vieja deja de servir para login/firma.
+        const msg = createErr instanceof Error ? createErr.message : String(createErr)
+        const yaExiste = msg.toLowerCase().includes('correo ya está registrado')
+        if (!yaExiste) throw createErr
+        const correo = (data.correo || '').toString()
+        const confirmar = window.confirm(
+          `El correo ${correo} ya está registrado.\n\n` +
+          '¿Regenerar la tarjeta de acceso? Esto INVALIDA la tarjeta anterior ' +
+          '(las llaves previas se desactivan y no podrán usarse para iniciar sesión ni firmar).',
+        )
+        if (!confirmar) {
+          showResult('Alta cancelada: el correo ya está registrado.', true)
+          return
+        }
+        user = await Api.buscarUsuarioPorCorreo(correo)
+        regenerated = true
+      }
       // 3) Registrar ambas llaves con su responsabilidad correcta. Si
       //    cualquiera falla revertimos para no dejar al usuario a medias.
       try {
@@ -785,7 +855,7 @@ import Icons from '../../components/Icons.astro'
       } catch (keyErr) {
         // Sin llaves el usuario es inservible; mejor abortar visiblemente.
         throw new Error(
-          `Usuario creado (id=${user.id_usuario}) pero falló al registrar sus llaves: ` +
+          `Usuario ${regenerated ? 'existente' : 'creado'} (id=${user.id_usuario}) pero falló al registrar sus llaves: ` +
           (keyErr instanceof Error ? keyErr.message : String(keyErr)) +
           '. Vuelve a registrarlo o elimínalo manualmente.',
         )
@@ -794,7 +864,8 @@ import Icons from '../../components/Icons.astro'
       const identificador = (data[identifierField] || '').toString().toUpperCase()
       const nombre = `${data.nombre} ${data.paterno}${data.materno ? ' ' + data.materno : ''}`.toUpperCase()
       await showCard(rol, nombre, identificador, seedHex)
-      showResult(`${roleLabelES[rol]} creado (id=${user.id_usuario}, ${identificador}). Tarjeta lista para imprimir.`)
+      const verbo = regenerated ? 'regenerada' : 'creado'
+      showResult(`${roleLabelES[rol]} ${verbo} (id=${user.id_usuario}, ${identificador}). Tarjeta lista para imprimir.`)
       form.reset()
     } catch (err) {
       showResult(errMsg(err), true)
@@ -802,6 +873,102 @@ import Icons from '../../components/Icons.astro'
       btn.disabled = false
       btn.textContent = original
     }
+  }
+
+  // ── Re-emitir tarjeta ──
+  // Flujo "usuario perdió su tarjeta": el admin lo busca por cédula/CURP/
+  // licencia y rota sus llaves (`firmas` + `recetas`). _set_active_key en el
+  // backend desactiva las anteriores, así que la tarjeta vieja deja de servir
+  // para login/firma sin tocar el resto del perfil.
+  {
+    const reRol = document.getElementById('reemitir-rol') as HTMLSelectElement
+    const reIdLabel = document.getElementById('reemitir-id-label') as HTMLSpanElement
+    const reIdInput = document.getElementById('reemitir-identificador') as HTMLInputElement
+    const reForm = document.getElementById('form-reemitir') as HTMLFormElement
+    const reFound = document.getElementById('reemitir-found') as HTMLDivElement
+    const reFoundNombre = document.getElementById('reemitir-found-nombre') as HTMLSpanElement
+    const reFoundMeta = document.getElementById('reemitir-found-meta') as HTMLSpanElement
+    const btnRegenerar = document.getElementById('btn-regenerar') as HTMLButtonElement
+
+    type ReemitirRol = 'Medico' | 'Paciente' | 'Farmaceutico'
+    const labelByRol: Record<ReemitirRol, string> = {
+      Medico: 'CÉDULA PROFESIONAL',
+      Paciente: 'CURP',
+      Farmaceutico: 'LICENCIA',
+    }
+    const cardRolByRol: Record<ReemitirRol, CardRol> = {
+      Medico: 'Medico',
+      Paciente: 'Paciente',
+      Farmaceutico: 'Farmaceutico',
+    }
+
+    let foundUser: { id_usuario: number; rol: ReemitirRol; identificador: string; nombre: string } | null = null
+
+    reRol.addEventListener('change', () => {
+      reIdLabel.textContent = labelByRol[reRol.value as ReemitirRol]
+      reIdInput.value = ''
+      reFound.style.display = 'none'
+      foundUser = null
+    })
+
+    reForm.addEventListener('submit', async (e) => {
+      e.preventDefault()
+      const btn = reForm.querySelector('button[type="submit"]') as HTMLButtonElement
+      const original = btn.textContent || ''
+      btn.disabled = true
+      btn.textContent = 'BUSCANDO...'
+      reFound.style.display = 'none'
+      foundUser = null
+      try {
+        const rol = reRol.value as ReemitirRol
+        const ident = reIdInput.value.trim().toUpperCase()
+        if (!ident) throw new Error('Ingresa el identificador.')
+        let user: any
+        if (rol === 'Medico')        user = await Api.buscarMedicoPorCedula(ident)
+        else if (rol === 'Paciente') user = await Api.buscarPaciente({ curp: ident })
+        else                         user = await Api.buscarFarmaceuticoPorLicencia(ident)
+        const nombre = `${user.nombre} ${user.paterno}${user.materno ? ' ' + user.materno : ''}`.toUpperCase()
+        foundUser = { id_usuario: user.id_usuario, rol, identificador: ident, nombre }
+        reFoundNombre.textContent = nombre
+        reFoundMeta.textContent = `${rol.toUpperCase()} · ${labelByRol[rol]}: ${ident} · id=${user.id_usuario}`
+        reFound.style.display = 'block'
+      } catch (err) {
+        showResult(errMsg(err), true)
+      } finally {
+        btn.disabled = false
+        btn.textContent = original
+      }
+    })
+
+    btnRegenerar.addEventListener('click', async () => {
+      if (!foundUser) return
+      const ok = window.confirm(
+        `¿Regenerar tarjeta para ${foundUser.nombre}?\n\n` +
+        'Esto INVALIDA la tarjeta anterior: las llaves previas se desactivan ' +
+        'y la tarjeta vieja deja de servir para iniciar sesión o firmar.',
+      )
+      if (!ok) return
+      const original = btnRegenerar.textContent || ''
+      btnRegenerar.disabled = true
+      btnRegenerar.textContent = 'GENERANDO...'
+      try {
+        const seedHex   = generateCardSeed()
+        const pubSign   = deriveKeysFromSeed(seedHex, 'sign').publicKeyHex
+        const pubReceta = deriveKeysFromSeed(seedHex, 'recipes').publicKeyHex
+        await Api.registrarLlavePublica(foundUser.id_usuario, pubSign,   'firmas')
+        await Api.registrarLlavePublica(foundUser.id_usuario, pubReceta, 'recetas')
+        await showCard(cardRolByRol[foundUser.rol], foundUser.nombre, foundUser.identificador, seedHex)
+        showResult(`${roleLabelES[cardRolByRol[foundUser.rol]]} regenerado (id=${foundUser.id_usuario}). Tarjeta lista para imprimir.`)
+        reFound.style.display = 'none'
+        reForm.reset()
+        foundUser = null
+      } catch (err) {
+        showResult(errMsg(err), true)
+      } finally {
+        btnRegenerar.disabled = false
+        btnRegenerar.textContent = original
+      }
+    })
   }
 
   ;(document.getElementById('form-medico') as HTMLFormElement).addEventListener('submit', (e) => {

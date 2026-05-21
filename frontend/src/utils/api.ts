@@ -434,6 +434,25 @@ export const Api = {
     });
   },
 
+  /**
+   * Busca un usuario por correo. Lo usa el panel admin para resolver el id
+   * cuando un alta colisiona con un correo ya registrado y se decide
+   * regenerar sus llaves (rotar tarjeta).
+   */
+  async buscarUsuarioPorCorreo(correo: string): Promise<UsuarioPublicDTO> {
+    return request<UsuarioPublicDTO>(`/api/v1/usuarios/by-correo?correo=${encodeURIComponent(correo)}`);
+  },
+
+  /** Resuelve un médico por cédula (admin-only). Para re-emitir tarjeta. */
+  async buscarMedicoPorCedula(cedula: string): Promise<UsuarioPublicDTO> {
+    return request<UsuarioPublicDTO>(`/api/v1/usuarios/medicos/by-cedula?cedula=${encodeURIComponent(cedula)}`);
+  },
+
+  /** Resuelve un farmacéutico por licencia (admin-only). Para re-emitir tarjeta. */
+  async buscarFarmaceuticoPorLicencia(licencia: string): Promise<UsuarioPublicDTO> {
+    return request<UsuarioPublicDTO>(`/api/v1/usuarios/farmaceuticos/by-licencia?licencia=${encodeURIComponent(licencia)}`);
+  },
+
   async buscarPaciente(params: { curp?: string; id_usuario?: number }): Promise<PacientePublicDTO> {
     if (params.id_usuario) {
       // Búsqueda por ID directo en el path
