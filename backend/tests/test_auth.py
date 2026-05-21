@@ -17,29 +17,22 @@ class TestLoginLegacy:
         assert "access_token" in data
         assert data["token_type"] == "bearer"
 
-    def test_login_medico_exitoso(self, client, base_users):
+    @pytest.mark.parametrize("correo", [
+        "medico@test.com",
+        "paciente@test.com",
+        "farma@test.com",
+    ])
+    def test_login_clinico_rechazado_aunque_contrasena_correcta(self, client, base_users, correo):
+        """Los usuarios clínicos no pueden autenticarse por correo+contraseña:
+        su único camino es /auth/challenge + /auth/verify con su tarjeta.
+        Aunque la contraseña sembrada en el alta coincida, el endpoint debe
+        responder 401 para no ofrecer una credencial paralela a la tarjeta."""
         resp = client.post("/api/v1/auth/login", json={
-            "correo": "medico@test.com",
+            "correo": correo,
             "contrasena": "pass",
         })
-        assert resp.status_code == 200
-        assert "access_token" in resp.json()
-
-    def test_login_paciente_exitoso(self, client, base_users):
-        resp = client.post("/api/v1/auth/login", json={
-            "correo": "paciente@test.com",
-            "contrasena": "pass",
-        })
-        assert resp.status_code == 200
-        assert "access_token" in resp.json()
-
-    def test_login_farmaceutico_exitoso(self, client, base_users):
-        resp = client.post("/api/v1/auth/login", json={
-            "correo": "farma@test.com",
-            "contrasena": "pass",
-        })
-        assert resp.status_code == 200
-        assert "access_token" in resp.json()
+        assert resp.status_code == 401
+        assert "incorrectos" in resp.json()["detail"].lower()
 
     def test_login_contrasena_incorrecta(self, client, base_users):
         resp = client.post("/api/v1/auth/login", json={
@@ -56,25 +49,17 @@ class TestLoginLegacy:
         })
         assert resp.status_code == 401
 
-    @pytest.mark.parametrize("correo, rol_esperado", [
-        ("admin@test.com", "Administrador"),
-        ("medico@test.com", "Medico"),
-        ("paciente@test.com", "Paciente"),
-        ("farma@test.com", "Farmaceutico"),
-    ])
-    def test_jwt_contiene_claims_correctos(self, client, base_users, correo, rol_esperado):
-        # Usamos contraseñas distintas dependiendo de si es admin o clínico
-        password = "admin123" if rol_esperado == "Administrador" else "pass"
-        
+    def test_jwt_contiene_claims_correctos(self, client, base_users):
+        """El JWT emitido por /auth/login solo aplica al administrador."""
         resp = client.post("/api/v1/auth/login", json={
-            "correo": correo,
-            "contrasena": password,
+            "correo": "admin@test.com",
+            "contrasena": "admin123",
         })
         token = resp.json()["access_token"]
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
 
-        assert payload["sub"] == correo
-        assert payload["role"] == rol_esperado
+        assert payload["sub"] == "admin@test.com"
+        assert payload["role"] == "Administrador"
         assert "id" in payload
         assert "exp" in payload
 

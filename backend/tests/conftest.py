@@ -103,18 +103,29 @@ def base_users(client, admin_headers):
         "medico_priv": medico_priv,
     }
 
-def _get_headers_for(client, correo):
-    token = client.post("/api/v1/auth/login", json={"correo": correo, "contrasena": "pass"}).json()["access_token"]
+def _get_headers_for_card(client, rol, identificador):
+    """Obtiene un JWT de usuario clínico vía /auth/challenge + /auth/verify
+    con la verificación ECDSA mockeada (los tests no firman con curva real;
+    eso ya se ejercita en test_auth.TestLoginSmartCard)."""
+    with patch("src.api_gateway.routers.auth.verify_p256_ecdsa", return_value=True):
+        nonce = client.post(
+            "/api/v1/auth/challenge",
+            json={"rol": rol, "identificador": identificador},
+        ).json()["nonce_hex"]
+        token = client.post(
+            "/api/v1/auth/verify",
+            json={"rol": rol, "identificador": identificador, "nonce_hex": nonce, "firma_hex": "b" * 128},
+        ).json()["access_token"]
     return {"Authorization": f"Bearer {token}"}
 
 @pytest.fixture
-def paciente_headers(client, base_users): return _get_headers_for(client, "paciente@test.com")
+def paciente_headers(client, base_users): return _get_headers_for_card(client, "Paciente", "PAZA900101HDFRRL01")
 
 @pytest.fixture
-def medico_headers(client, base_users): return _get_headers_for(client, "medico@test.com")
+def medico_headers(client, base_users): return _get_headers_for_card(client, "Medico", "CED-123")
 
 @pytest.fixture
-def farmaceutico_headers(client, base_users): return _get_headers_for(client, "farma@test.com")
+def farmaceutico_headers(client, base_users): return _get_headers_for_card(client, "Farmaceutico", "LIC-123")
 
 @pytest.fixture(autouse=True)
 def reduce_bcrypt_rounds():
