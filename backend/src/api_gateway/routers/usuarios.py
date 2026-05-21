@@ -231,6 +231,56 @@ def registrar_farmaceutico(
     )
 
 
+@router.get("/usuarios/medicos/by-cedula", response_model=schemas.UsuarioPublic)
+def obtener_medico_por_cedula(
+    *,
+    cedula: str = Query(..., description="Cédula del médico a buscar"),
+    session: Session = Depends(get_session),
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    """Resuelve un médico por su cédula. Admin-only. Usado por el panel para
+    re-emitir la tarjeta sin re-capturar los datos del usuario."""
+    _require_admin(current_user)
+    perfil = session.exec(select(Medico).where(Medico.cedula == cedula)).first()
+    if not perfil:
+        raise HTTPException(status_code=404, detail="Médico no encontrado con esa cédula.")
+    u = session.get(Usuario, perfil.id_usuario)
+    return schemas.UsuarioPublic(**u.model_dump(), rol_nombre=u.rol.nombre)
+
+
+@router.get("/usuarios/farmaceuticos/by-licencia", response_model=schemas.UsuarioPublic)
+def obtener_farmaceutico_por_licencia(
+    *,
+    licencia: str = Query(..., description="Licencia del farmacéutico a buscar"),
+    session: Session = Depends(get_session),
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    """Resuelve un farmacéutico por su licencia. Admin-only."""
+    _require_admin(current_user)
+    perfil = session.exec(select(Farmaceutico).where(Farmaceutico.licencia == licencia)).first()
+    if not perfil:
+        raise HTTPException(status_code=404, detail="Farmacéutico no encontrado con esa licencia.")
+    u = session.get(Usuario, perfil.id_usuario)
+    return schemas.UsuarioPublic(**u.model_dump(), rol_nombre=u.rol.nombre)
+
+
+@router.get("/usuarios/by-correo", response_model=schemas.UsuarioPublic)
+def obtener_usuario_por_correo(
+    *,
+    correo: str = Query(..., description="Correo del usuario a buscar"),
+    session: Session = Depends(get_session),
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    """Busca un usuario por correo. Lo usa el panel admin para resolver el id
+    cuando un alta colisiona con un usuario existente y se decide regenerar
+    sus llaves de acceso."""
+    _require_admin(current_user)
+    u = session.exec(select(Usuario).where(Usuario.correo == correo)).first()
+    if not u:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado con ese correo.")
+    return schemas.UsuarioPublic(**u.model_dump(), rol_nombre=u.rol.nombre)
+
+
 # ---------------------------------------------------------------------------
 # Llaves públicas por usuario
 # ---------------------------------------------------------------------------
