@@ -1294,7 +1294,7 @@ import Icons from '../../components/Icons.astro'
   // Carga el conteo público (clínicas + usuarios por rol) y lo pinta
   // arriba de los tabs. Endpoint público — no requiere el JWT de admin.
   // Si el backend no responde, dejamos los "—" como fallback silencioso.
-  (async () => {
+  ;(async () => {
     try {
       const base = (import.meta.env.PUBLIC_API_URL || 'http://localhost:8000').replace(/\/$/, '')
       const r = await fetch(base + '/api/v1/stats', { credentials: 'omit' })
