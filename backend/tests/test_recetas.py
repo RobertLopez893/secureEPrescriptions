@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime, timedelta, timezone
+from unittest.mock import patch
 import pytest
 
 from cryptography.hazmat.primitives import hashes
@@ -199,14 +200,24 @@ class TestEmitirRecetaSeguridad:
             "nombre": "Clínica Sola", "clues": "SOLA0001", "calle": "X",
             "colonia": "Y", "municipio": "Z", "estado": "W", "cp": "111", "tipo": "Hospital",
         }).json()
-        client.post("/api/v1/usuarios/medicos", headers=admin_headers, json={
+        solo = client.post("/api/v1/usuarios/medicos", headers=admin_headers, json={
             "nombre": "Dr. Solo", "paterno": "Med", "correo": "solo@test.com",
             "contrasena": "pass", "id_clinica": cli["id_clinica"], "cedula": "CED-SOLO",
             "especialidad": "General", "universidad": "UNAM",
-        })
-        token = client.post("/api/v1/auth/login", json={
-            "correo": "solo@test.com", "contrasena": "pass"
-        }).json()["access_token"]
+        }).json()
+        client.post(
+            f"/api/v1/usuarios/{solo['id_usuario']}/llave",
+            headers=admin_headers,
+            json={"llave_publica": "04" + ("a" * 128), "responsabilidad": "firmas"},
+        )
+        with patch("src.api_gateway.routers.auth.verify_p256_ecdsa", return_value=True):
+            nonce = client.post("/api/v1/auth/challenge", json={
+                "rol": "Medico", "identificador": "CED-SOLO",
+            }).json()["nonce_hex"]
+            token = client.post("/api/v1/auth/verify", json={
+                "rol": "Medico", "identificador": "CED-SOLO",
+                "nonce_hex": nonce, "firma_hex": "b" * 128,
+            }).json()["access_token"]
         headers = {"Authorization": f"Bearer {token}"}
         payload = _payload_receta(99, base_users["paciente"]["id_usuario"], 99)
         resp = client.post("/api/v1/recetas", headers=headers, json=payload)
@@ -243,14 +254,26 @@ class TestEmitirRecetaSeguridad:
             "nombre": "Otra Clínica", "clues": "OTRA0001", "calle": "X",
             "colonia": "Y", "municipio": "Z", "estado": "W", "cp": "222", "tipo": "Hospital",
         }).json()
-        client.post("/api/v1/usuarios/farmaceuticos", headers=admin_headers, json={
+        ajeno = client.post("/api/v1/usuarios/farmaceuticos", headers=admin_headers, json={
             "nombre": "Far. Ajeno", "paterno": "Otro", "correo": "ajeno@test.com",
             "contrasena": "pass", "id_clinica": cli2["id_clinica"],
             "licencia": "LIC-AJENO", "turno": "Nocturno",
-        })
-        token = client.post("/api/v1/auth/login", json={
-            "correo": "ajeno@test.com", "contrasena": "pass"
-        }).json()["access_token"]
+        }).json()
+        # Necesitamos registrar una pub-key para que /auth/verify pueda
+        # encontrarla; la verificación ECDSA real va mockeada abajo.
+        client.post(
+            f"/api/v1/usuarios/{ajeno['id_usuario']}/llave",
+            headers=admin_headers,
+            json={"llave_publica": "04" + ("a" * 128), "responsabilidad": "firmas"},
+        )
+        with patch("src.api_gateway.routers.auth.verify_p256_ecdsa", return_value=True):
+            nonce = client.post("/api/v1/auth/challenge", json={
+                "rol": "Farmaceutico", "identificador": "LIC-AJENO",
+            }).json()["nonce_hex"]
+            token = client.post("/api/v1/auth/verify", json={
+                "rol": "Farmaceutico", "identificador": "LIC-AJENO",
+                "nonce_hex": nonce, "firma_hex": "b" * 128,
+            }).json()["access_token"]
         ajeno_headers = {"Authorization": f"Bearer {token}"}
 
         sello = {

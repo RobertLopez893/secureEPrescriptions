@@ -17,7 +17,7 @@ la firma. La llave pública viva en la tabla `llaves` y se consulta por
 from datetime import datetime, timedelta, timezone
 from secrets import token_hex
 from threading import Lock
-from typing import Dict, Tuple, Union
+from typing import Dict, Optional, Tuple
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlmodel import Session, select
@@ -97,22 +97,22 @@ def _login_rate_limit_clear(request: Request, correo: str) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Login legacy (correo + contraseña)
+# Login por correo + contraseña — SOLO administradores
 # ---------------------------------------------------------------------------
-def authenticate_user(session: Session, correo: str, contrasena: str) -> Union[Usuario, Administrador, None]:
-    """
-    Busca un usuario o administrador por correo y verifica su contraseña.
-    """
-    # Primero busca en la tabla de usuarios generales (médico, paciente, etc.)
-    user = session.exec(select(Usuario).where(Usuario.correo == correo)).first()
-    if user and security.verify_password(contrasena, user.contrasena):
-        return user
-
-    # Si no, busca en la tabla de administradores
+# Los usuarios clínicos (médico, paciente, farmacéutico) se autentican
+# exclusivamente por tarjeta (/auth/challenge + /auth/verify). La columna
+# `usuarios.contrasena` sigue existiendo por compatibilidad de schema, pero
+# no es una credencial aceptada por este endpoint: aunque coincida, el
+# lookup se restringe a `administradores` para que nadie pueda saltarse
+# el flujo de tarjeta presentando una contraseña que el admin tecleó al
+# alta. La limpieza definitiva de la columna se hará en una migración
+# posterior.
+def authenticate_user(session: Session, correo: str, contrasena: str) -> Optional[Administrador]:
+    """Verifica credenciales de administrador. Devuelve `None` si el correo
+    no corresponde a un administrador o la contraseña no coincide."""
     admin = session.exec(select(Administrador).where(Administrador.correo == correo)).first()
     if admin and security.verify_password(contrasena, admin.contrasena):
         return admin
-
     return None
 
 
@@ -132,19 +132,16 @@ def login_for_access_token(
     session: Session = Depends(get_session),
     login_data: schemas.LoginRequest
 ):
-    """
-    Endpoint de login por correo + contraseña. Se mantiene para el
-    administrador y para el bootstrap inicial. Los usuarios clínicos
-    (médico, paciente, farmacéutico) deberían preferir /auth/challenge +
-    /auth/verify con su tarjeta.
-    """
+    """Endpoint de login por correo + contraseña, restringido a
+    administradores. Los usuarios clínicos (médico, paciente, farmacéutico)
+    deben usar /auth/challenge + /auth/verify con su tarjeta."""
     # Rate limit ANTES de tocar bcrypt: evita que un atacante convierta
     # cada intento en ~100 ms de CPU del servidor.
     _login_rate_limit_check(request, login_data.correo)
 
-    user_or_admin = authenticate_user(session=session, correo=login_data.correo, contrasena=login_data.contrasena)
+    admin = authenticate_user(session=session, correo=login_data.correo, contrasena=login_data.contrasena)
 
-    if not user_or_admin:
+    if not admin:
         _login_rate_limit_record_failure(request, login_data.correo)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -155,16 +152,7 @@ def login_for_access_token(
     # Login OK → limpiamos los fallos recientes de esta combinación.
     _login_rate_limit_clear(request, login_data.correo)
 
-    # Determinar el rol y el ID para el payload del token
-    if isinstance(user_or_admin, Usuario):
-        session.refresh(user_or_admin, ["rol"]) # Aseguramos que la relación de rol esté cargada
-        role_name = user_or_admin.rol.nombre
-        user_id = user_or_admin.id_usuario
-    else: # Es un Administrador
-        role_name = "Administrador"
-        user_id = user_or_admin.id_admin
-
-    return _issue_token(user_or_admin.correo, role_name, user_id)
+    return _issue_token(admin.correo, "Administrador", admin.id_admin)
 
 
 # ---------------------------------------------------------------------------
