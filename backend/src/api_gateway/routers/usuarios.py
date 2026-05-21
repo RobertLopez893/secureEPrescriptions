@@ -71,11 +71,10 @@ def registrar_paciente(
     )
 
     usuario_data = paciente_in.model_dump(
-        exclude={"curp", "nacimiento", "sexo", "tel_emergencia", "contrasena", "llave_publica"}
+        exclude={"curp", "nacimiento", "sexo", "tel_emergencia", "llave_publica"}
     )
     db_usuario = Usuario(
         **usuario_data,
-        contrasena=security.get_password_hash(paciente_in.contrasena),
         id_rol=rol_paciente.id_rol,
         paciente=perfil_paciente # Asigna el perfil directamente
     )
@@ -165,11 +164,10 @@ def registrar_medico(
     )
 
     usuario_data = medico_in.model_dump(
-        exclude={"cedula", "especialidad", "universidad", "contrasena", "llave_publica"}
+        exclude={"cedula", "especialidad", "universidad", "llave_publica"}
     )
     db_usuario = Usuario(
         **usuario_data,
-        contrasena=security.get_password_hash(medico_in.contrasena),
         id_rol=rol_medico.id_rol,
         medico=perfil_medico
     )
@@ -208,11 +206,10 @@ def registrar_farmaceutico(
     )
 
     usuario_data = farma_in.model_dump(
-        exclude={"licencia", "turno", "contrasena", "llave_publica"}
+        exclude={"licencia", "turno", "llave_publica"}
     )
     db_usuario = Usuario(
         **usuario_data,
-        contrasena=security.get_password_hash(farma_in.contrasena),
         id_rol=rol_farma.id_rol,
         farmaceutico=perfil_farma,
     )

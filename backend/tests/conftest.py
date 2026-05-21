@@ -58,17 +58,17 @@ def admin_headers(client):
 def base_users(client, admin_headers):
     """Crea un usuario de cada rol en la BD para usarlos en los tests."""
     p = client.post("/api/v1/usuarios/pacientes", headers=admin_headers, json={
-        "nombre": "Ana", "paterno": "Paz", "correo": "paciente@test.com", "contrasena": "pass",
+        "nombre": "Ana", "paterno": "Paz", "correo": "paciente@test.com",
         "curp": "PAZA900101HDFRRL01", "nacimiento": "1990-01-01", "sexo": "F", "tel_emergencia": "123"
     }).json()
-    
+
     m = client.post("/api/v1/usuarios/medicos", headers=admin_headers, json={
-        "nombre": "Dr. Juan", "paterno": "Med", "correo": "medico@test.com", "contrasena": "pass",
+        "nombre": "Dr. Juan", "paterno": "Med", "correo": "medico@test.com",
         "id_clinica": 1, "cedula": "CED-123", "especialidad": "General", "universidad": "UNAM"
     }).json()
-    
+
     f = client.post("/api/v1/usuarios/farmaceuticos", headers=admin_headers, json={
-        "nombre": "Far. Luis", "paterno": "Pild", "correo": "farma@test.com", "contrasena": "pass",
+        "nombre": "Far. Luis", "paterno": "Pild", "correo": "farma@test.com",
         "id_clinica": 1, "licencia": "LIC-123", "turno": "Matutino"
     }).json()
 

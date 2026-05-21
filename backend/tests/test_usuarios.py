@@ -3,7 +3,7 @@ import pytest
 class TestRegistroPaciente:
     PACIENTE_DATA = {
         "nombre": "Carlos", "paterno": "Gómez", "correo": "nuevo_paciente@test.com",
-        "contrasena": "pass123", "curp": "GOMC900101HDFRRL01",
+        "curp": "GOMC900101HDFRRL01",
         "nacimiento": "1990-01-01", "sexo": "M", "tel_emergencia": "5551234567"
     }
 
@@ -31,7 +31,7 @@ class TestRegistroPaciente:
 class TestRegistroMedico:
     MEDICO_DATA = {
         "nombre": "Roberto", "paterno": "Díaz", "correo": "nuevo_medico@test.com",
-        "contrasena": "pass123", "id_clinica": 1, "cedula": "CED-999",
+        "id_clinica": 1, "cedula": "CED-999",
         "especialidad": "Cardiología", "universidad": "UNAM"
     }
 

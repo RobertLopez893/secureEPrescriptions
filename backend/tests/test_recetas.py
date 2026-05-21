@@ -182,7 +182,7 @@ class TestEmitirRecetaSeguridad:
         # Segundo farmacéutico en la MISMA clínica (id 1) -> invariante roto.
         client.post("/api/v1/usuarios/farmaceuticos", headers=admin_headers, json={
             "nombre": "Far. Dos", "paterno": "Extra", "correo": "farma2@test.com",
-            "contrasena": "pass", "id_clinica": 1, "licencia": "LIC-999", "turno": "Vespertino",
+            "id_clinica": 1, "licencia": "LIC-999", "turno": "Vespertino",
         })
         payload = _payload_receta(
             base_users["medico"]["id_usuario"],
@@ -202,7 +202,7 @@ class TestEmitirRecetaSeguridad:
         }).json()
         solo = client.post("/api/v1/usuarios/medicos", headers=admin_headers, json={
             "nombre": "Dr. Solo", "paterno": "Med", "correo": "solo@test.com",
-            "contrasena": "pass", "id_clinica": cli["id_clinica"], "cedula": "CED-SOLO",
+            "id_clinica": cli["id_clinica"], "cedula": "CED-SOLO",
             "especialidad": "General", "universidad": "UNAM",
         }).json()
         client.post(
@@ -256,7 +256,7 @@ class TestEmitirRecetaSeguridad:
         }).json()
         ajeno = client.post("/api/v1/usuarios/farmaceuticos", headers=admin_headers, json={
             "nombre": "Far. Ajeno", "paterno": "Otro", "correo": "ajeno@test.com",
-            "contrasena": "pass", "id_clinica": cli2["id_clinica"],
+            "id_clinica": cli2["id_clinica"],
             "licencia": "LIC-AJENO", "turno": "Nocturno",
         }).json()
         # Necesitamos registrar una pub-key para que /auth/verify pueda

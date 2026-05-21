@@ -46,8 +46,7 @@ class Usuario(SQLModel, table=True):
     paterno: str
     materno: Optional[str] = None
     correo: str = Field(unique=True, index=True)
-    contrasena: str
-    
+
     activo: bool = Field(default=True)
     creado_en: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
