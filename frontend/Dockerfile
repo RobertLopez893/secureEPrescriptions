@@ -24,6 +24,8 @@ CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
 # 3. ETAPA DE CONSTRUCCIÓN (Solo para prod)
 # ==========================================
 FROM base AS builder
+ARG PUBLIC_API_URL
+ENV PUBLIC_API_URL=${PUBLIC_API_URL}
 # Aquí SÍ necesitamos los archivos para poder compilar
 COPY . .
 RUN npm run build

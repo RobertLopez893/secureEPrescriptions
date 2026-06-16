@@ -48,6 +48,8 @@ services:
       dockerfile: Dockerfile
       # Leemos la etapa (development o production) desde la variable
       target: ${APP_ENV:-development}
+      args:
+        PUBLIC_API_URL: ${PUBLIC_API_URL:-http://localhost:8000}
     ports:
       # Mapeamos el puerto externo al interno. 
       # Usamos variables para cambiarlo según el entorno (ej. 4321 en dev, 80 en prod)
