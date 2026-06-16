@@ -235,6 +235,18 @@ class UsuarioPublic(BaseModel):
     paterno: str
     rol_nombre: str
 
+class UsuarioMe(BaseModel):
+    """Perfil del usuario autenticado. Incluye el identificador del rol
+    (cédula para médicos, licencia para farmacéuticos, CURP para pacientes)
+    para que el frontend lo muestre en la topbar de las vistas autenticadas."""
+    id_usuario: int
+    correo: str
+    nombre: str
+    paterno: str
+    materno: Optional[str] = None
+    rol_nombre: str
+    identificador: Optional[str] = None  # cédula | licencia | curp según rol
+
 class PacienteCreate(BaseModel):
     # Datos del usuario base
     nombre: str

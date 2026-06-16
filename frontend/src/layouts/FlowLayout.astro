@@ -389,6 +389,24 @@ const roleLabelStyle = "font-family:'Press Start 2P',monospace;font-size:8px;col
       <span style={roleLabelStyle}>{rc.label}</span>
     </div>
 
+    <!-- Chip de usuario autenticado (nombre + cédula/licencia/CURP).
+         Se rellena en JS desde sessionStorage('rxpro_session') y queda
+         oculto en las páginas previas al login. -->
+    <div id="rxpro-userinfo"
+         data-role-color={rc.color}
+         data-role-dark={rc.dark}
+         style="display:none;flex:1;min-width:0;align-items:center;gap:10px;padding:5px 10px;border:2px solid var(--border-default);background:var(--surface-stepbar);max-width:340px;">
+      <svg width="14" height="14" viewBox="0 0 32 36" style="image-rendering:pixelated;flex-shrink:0;color:var(--text-muted);">
+        <use href="#ico-face"/>
+      </svg>
+      <div style="display:flex;flex-direction:column;gap:2px;min-width:0;line-height:1;">
+        <span id="rxpro-userinfo-name"
+              style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--text-primary);letter-spacing:.06em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">—</span>
+        <span id="rxpro-userinfo-id"
+              style="font-family:'VT323',monospace;font-size:13px;color:var(--text-muted);letter-spacing:.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">—</span>
+      </div>
+    </div>
+
     <!-- Nav with role icons -->
     <nav style="display:flex;gap:3px;align-items:center;">
       {navLinks.map((r) => (
@@ -619,16 +637,43 @@ const roleLabelStyle = "font-family:'Press Start 2P',monospace;font-size:8px;col
   // sesión. No mezclamos con el flujo de login/landing (donde no aplica).
   try {
     const logoutBtn = document.getElementById('rxpro-logout')
-    if (logoutBtn) {
-      const raw = sessionStorage.getItem('rxpro_session')
-      if (raw) {
-        logoutBtn.style.display = 'inline-flex'
-        logoutBtn.addEventListener('click', () => {
-          sessionStorage.removeItem('rxpro_token')
-          sessionStorage.removeItem('rxpro_session')
-          window.location.replace('/')
-        })
+    const raw = sessionStorage.getItem('rxpro_session')
+    let session = null
+    if (raw) { try { session = JSON.parse(raw) } catch {} }
+
+    if (logoutBtn && session) {
+      logoutBtn.style.display = 'inline-flex'
+      logoutBtn.addEventListener('click', () => {
+        sessionStorage.removeItem('rxpro_token')
+        sessionStorage.removeItem('rxpro_session')
+        window.location.replace('/')
+      })
+    }
+
+    // ── Chip "usuario autenticado" (nombre + cédula/licencia/CURP) ──
+    // El layout reserva el contenedor; aquí lo poblamos desde la sesión
+    // persistida por authFlow.loginWithCard. Si todavía no hay nombre
+    // (p.ej. /me falló justo después del login), caemos al correo.
+    const info = document.getElementById('rxpro-userinfo')
+    if (info && session) {
+      const nameEl = document.getElementById('rxpro-userinfo-name')
+      const idEl   = document.getElementById('rxpro-userinfo-id')
+      const nombre  = [session.nombre, session.paterno].filter(Boolean).join(' ').trim()
+      const label = session.role === 'Medico'        ? 'CÉD'
+                  : session.role === 'Farmaceutico'  ? 'LIC'
+                  : session.role === 'Paciente'      ? 'CURP'
+                  : 'ID'
+      if (nameEl) nameEl.textContent = (nombre || session.correo || '—').toUpperCase()
+      if (idEl) {
+        const ident = session.identificador || ''
+        idEl.textContent = ident ? `${label}. ${ident}` : (session.correo || '')
       }
+      const color = info.getAttribute('data-role-color') || ''
+      if (color) {
+        info.style.borderColor = color
+        info.style.boxShadow = '2px 2px 0 ' + (info.getAttribute('data-role-dark') || color)
+      }
+      info.style.display = 'flex'
     }
   } catch { /* sessionStorage bloqueado: ignorar */ }
 </script>
